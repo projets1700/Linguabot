@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Entity\UserBadge;
 use App\Entity\UserTrophy;
 use App\Repository\BadgeRepository;
+use App\Repository\ChallengeSessionRepository;
 use App\Repository\QuizAttemptRepository;
 use App\Repository\ScenarioRepository;
 use App\Repository\SessionRepository;
@@ -18,8 +19,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * XP calculation (CDCF §3.6) plus badges/trophies evaluation (TP chapitre
- * 14, CDCF §3.6). "Champion du défi" (7-day streak) is not evaluated yet:
- * it depends on the daily-challenge system, a separate future chapter.
+ * 14, CDCF §3.6).
  */
 final class GamificationService
 {
@@ -33,6 +33,7 @@ final class GamificationService
         private readonly SessionRepository $sessionRepository,
         private readonly ScenarioRepository $scenarioRepository,
         private readonly QuizAttemptRepository $quizAttemptRepository,
+        private readonly ChallengeSessionRepository $challengeSessionRepository,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -133,8 +134,7 @@ final class GamificationService
             'any_level_quotidien_complete' => $this->anyLevelCategoryComplete($user, 'quotidien'),
             'any_level_thematique_complete' => $this->anyLevelCategoryComplete($user, 'thematique'),
             'level_up' => 'A0' !== $user->getLevel()->getCode(),
-            // 'daily_challenge_streak' and any other unmodeled condition:
-            // not checkable yet (depends on the daily-challenge chapter).
+            'daily_challenge_streak' => $this->challengeSessionRepository->currentConsecutiveStreak($user) >= $badge->getConditionValue(),
             default => false,
         };
     }

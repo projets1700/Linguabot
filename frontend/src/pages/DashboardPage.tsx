@@ -52,6 +52,9 @@ export function DashboardPage() {
       </div>
 
       <div className="flex gap-4 flex-wrap">
+        <Link to="/defi-du-jour" className="inline-block bg-amber-600 px-6 py-3 rounded-lg font-semibold">
+          🔥 Défi du jour
+        </Link>
         <Link to="/quiz" className="inline-block bg-blue-600 px-6 py-3 rounded-lg">
           Quiz vocal A0
         </Link>

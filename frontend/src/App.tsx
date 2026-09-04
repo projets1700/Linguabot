@@ -9,6 +9,7 @@ import { QuizPage } from "./pages/QuizPage";
 import { QuizModulePage } from "./pages/QuizModulePage";
 import { BadgesPage } from "./pages/BadgesPage";
 import { TrophiesPage } from "./pages/TrophiesPage";
+import { DailyChallengePage } from "./pages/DailyChallengePage";
 import { RequireAuth } from "./components/RequireAuth";
 
 export default function App() {
@@ -71,6 +72,14 @@ export default function App() {
           element={
             <RequireAuth>
               <TrophiesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/defi-du-jour"
+          element={
+            <RequireAuth>
+              <DailyChallengePage />
             </RequireAuth>
           }
         />

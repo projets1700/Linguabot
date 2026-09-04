@@ -9,10 +9,9 @@ use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * The 12 badges and 6 trophies of the CDCF (§3.6). "Champion du défi" is
- * defined here (it belongs in the catalogue) but its condition_type
- * ('daily_challenge_streak') is not evaluated yet by GamificationService -
- * that depends on the daily-challenge chapter, not built yet.
+ * The 12 badges and 6 trophies of the CDCF (§3.6), all evaluated by
+ * GamificationService (including "Champion du défi", backed by the
+ * daily-challenge streak once that system landed).
  */
 final class GamificationFixtures extends Fixture
 {

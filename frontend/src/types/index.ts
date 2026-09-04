@@ -99,6 +99,26 @@ export type Badge = {
   earned: boolean;
 };
 
+export type DailyChallenge = {
+  id: number;
+  title: string;
+  context: string;
+  objective: string;
+  keywords: string[];
+  characterName: string;
+  challengeDate: string;
+  xpReward: number;
+  started: boolean;
+  completed: boolean;
+};
+
+export type DailyChallengeFinishResult = {
+  xpEarned: number;
+  userTotalXp: number;
+  newBadges: EarnedBadge[];
+  newTrophies: EarnedTrophy[];
+};
+
 export type Trophy = {
   code: string;
   name: string;
