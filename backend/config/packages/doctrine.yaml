@@ -8,6 +8,13 @@ doctrine:
 
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
+        # Native PostgreSQL ENUM types (created by hand in migrations to match
+        # the Jalon 3 MPD) are opaque to DBAL introspection unless mapped here.
+        mapping_types:
+            user_role: string
+            session_status: string
+            message_role: string
+            scenario_category: string
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true
