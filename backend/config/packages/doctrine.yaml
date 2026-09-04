@@ -15,6 +15,7 @@ doctrine:
             session_status: string
             message_role: string
             scenario_category: string
+            trophy_rarity: string
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true

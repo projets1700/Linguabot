@@ -7,6 +7,8 @@ import { CatalogPage } from "./pages/CatalogPage";
 import { SessionPage } from "./pages/SessionPage";
 import { QuizPage } from "./pages/QuizPage";
 import { QuizModulePage } from "./pages/QuizModulePage";
+import { BadgesPage } from "./pages/BadgesPage";
+import { TrophiesPage } from "./pages/TrophiesPage";
 import { RequireAuth } from "./components/RequireAuth";
 
 export default function App() {
@@ -53,6 +55,22 @@ export default function App() {
           element={
             <RequireAuth>
               <SessionPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/badges"
+          element={
+            <RequireAuth>
+              <BadgesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/trophees"
+          element={
+            <RequireAuth>
+              <TrophiesPage />
             </RequireAuth>
           }
         />

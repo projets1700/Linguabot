@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
+import { RewardBanner } from "../components/RewardBanner";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
 export function QuizModulePage() {
@@ -59,6 +60,7 @@ export function QuizModulePage() {
               🎉 Niveau {result.userLevel} débloqué !
             </p>
           )}
+          <RewardBanner badges={result.newBadges} trophies={result.newTrophies} />
           <h1 className="text-3xl font-bold mb-2">
             {result.passed ? "Module validé ✅" : "Module non validé"}
           </h1>

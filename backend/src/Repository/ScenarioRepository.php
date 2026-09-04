@@ -37,4 +37,20 @@ class ScenarioRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    public function countByLevel(string $levelCode, ?string $category = null): int
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->select('COUNT(s.id)')
+            ->innerJoin('s.level', 'l')
+            ->andWhere('l.code = :levelCode')
+            ->andWhere('s.isActive = true')
+            ->setParameter('levelCode', $levelCode);
+
+        if (null !== $category) {
+            $qb->andWhere('s.category = :category')->setParameter('category', $category);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
 }

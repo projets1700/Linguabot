@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene, type AvatarState } from "../components/AvatarScene";
+import { RewardBanner } from "../components/RewardBanner";
 import type { SessionDetail, SessionFinishResult, SessionMessage } from "../types";
 
 const SPEAKING_DURATION_MS = 2200;
@@ -92,6 +93,7 @@ export function SessionPage() {
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
         <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md text-center">
           <h1 className="text-3xl font-bold mb-4">Session terminée</h1>
+          <RewardBanner badges={result.newBadges} trophies={result.newTrophies} />
           <p className="text-slate-300 mb-2">Score : {result.score}/100</p>
           <p className="text-slate-300 mb-6">+{result.xpEarned} XP</p>
           <div className="flex gap-4 justify-center">

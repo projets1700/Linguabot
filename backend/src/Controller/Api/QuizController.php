@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Repository\QuizAttemptRepository;
 use App\Repository\QuizModuleRepository;
 use App\Repository\QuizQuestionRepository;
+use App\Service\GamificationService;
 use App\Service\QuizService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -58,6 +59,7 @@ final class QuizController
         #[CurrentUser] User $user,
         QuizModuleRepository $moduleRepository,
         QuizService $quizService,
+        GamificationService $gamificationService,
     ): JsonResponse {
         $data = json_decode($request->getContent(), true) ?? [];
         $module = $moduleRepository->find($data['moduleId'] ?? 0);
@@ -74,10 +76,15 @@ final class QuizController
 
         $result = $quizService->submitAttempt($user, $module, $answers);
 
+        $newBadges = $gamificationService->checkAndAwardBadges($user);
+        $newTrophies = $gamificationService->checkAndAwardTrophies($user);
+
         return new JsonResponse([
             ...$result,
             'userLevel' => $user->getLevel()->getCode(),
             'userTotalXp' => $user->getTotalXp(),
+            'newBadges' => array_map(static fn ($b) => ['code' => $b->getCode(), 'name' => $b->getName(), 'icon' => $b->getIcon()], $newBadges),
+            'newTrophies' => array_map(static fn ($t) => ['code' => $t->getCode(), 'name' => $t->getName(), 'rarity' => $t->getRarity()->value], $newTrophies),
         ], 201);
     }
 }

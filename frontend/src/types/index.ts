@@ -48,6 +48,8 @@ export type QuizAttemptResult = {
   levelUp: boolean;
   userLevel: string;
   userTotalXp: number;
+  newBadges: EarnedBadge[];
+  newTrophies: EarnedTrophy[];
 };
 
 export type SessionMessage = {
@@ -72,4 +74,38 @@ export type SessionFinishResult = {
   xpEarned: number;
   userTotalXp: number;
   userSessionsCount: number;
+  newBadges: EarnedBadge[];
+  newTrophies: EarnedTrophy[];
+};
+
+export type EarnedBadge = {
+  code: string;
+  name: string;
+  icon: string | null;
+};
+
+export type EarnedTrophy = {
+  code: string;
+  name: string;
+  rarity: "bronze" | "silver" | "gold" | "platinum";
+};
+
+export type Badge = {
+  code: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  xpBonus: number;
+  earned: boolean;
+};
+
+export type Trophy = {
+  code: string;
+  name: string;
+  description: string | null;
+  rarity: "bronze" | "silver" | "gold" | "platinum";
+  xpReward: number;
+  progressCurrent: number;
+  progressTotal: number;
+  earned: boolean;
 };

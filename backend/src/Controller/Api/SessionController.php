@@ -142,11 +142,16 @@ final class SessionController
         $user->setAvgScore($sessionRepository->averageScoreForUser($user));
         $em->flush();
 
+        $newBadges = $gamificationService->checkAndAwardBadges($user);
+        $newTrophies = $gamificationService->checkAndAwardTrophies($user);
+
         return new JsonResponse([
             'score' => $score,
             'xpEarned' => $xpEarned,
             'userTotalXp' => $user->getTotalXp(),
             'userSessionsCount' => $user->getSessionsCount(),
+            'newBadges' => array_map(static fn ($b) => ['code' => $b->getCode(), 'name' => $b->getName(), 'icon' => $b->getIcon()], $newBadges),
+            'newTrophies' => array_map(static fn ($t) => ['code' => $t->getCode(), 'name' => $t->getName(), 'rarity' => $t->getRarity()->value], $newTrophies),
         ]);
     }
 
