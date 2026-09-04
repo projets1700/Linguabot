@@ -1,7 +1,10 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
+import { AvatarScene, type AvatarState } from "../components/AvatarScene";
 import type { SessionDetail, SessionFinishResult, SessionMessage } from "../types";
+
+const SPEAKING_DURATION_MS = 2200;
 
 export function SessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -11,6 +14,7 @@ export function SessionPage() {
   const [sending, setSending] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<SessionFinishResult | null>(null);
+  const [avatarState, setAvatarState] = useState<AvatarState>("idle");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,6 +27,8 @@ export function SessionPage() {
       if (!ignore) {
         setSession(response.data);
         setMessages(response.data.messages);
+        setAvatarState("speaking");
+        setTimeout(() => setAvatarState("idle"), SPEAKING_DURATION_MS);
       }
     });
 
@@ -40,6 +46,7 @@ export function SessionPage() {
     if (!draft.trim()) return;
 
     setSending(true);
+    setAvatarState("thinking");
     const userMessage: SessionMessage = { id: Date.now(), role: "user", content: draft };
     setMessages((current) => [...current, userMessage]);
     setDraft("");
@@ -53,6 +60,10 @@ export function SessionPage() {
         ...current,
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
+      setAvatarState("speaking");
+      setTimeout(() => setAvatarState("idle"), SPEAKING_DURATION_MS);
+    } catch {
+      setAvatarState("idle");
     } finally {
       setSending(false);
     }
@@ -112,7 +123,11 @@ export function SessionPage() {
         </button>
       </div>
 
-      <div className="flex-1 bg-slate-900 rounded-xl p-4 mb-4 flex flex-col gap-3 overflow-y-auto min-h-[400px]">
+      <div className="mb-4">
+        <AvatarScene state={avatarState} />
+      </div>
+
+      <div className="flex-1 bg-slate-900 rounded-xl p-4 mb-4 flex flex-col gap-3 overflow-y-auto min-h-[300px]">
         {messages.map((message) => (
           <div
             key={message.id}
