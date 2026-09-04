@@ -27,3 +27,25 @@ export type Scenario = {
   durationEstimate: number;
   baseXp: number;
 };
+
+export type QuizModule = {
+  id: number;
+  code: string;
+  title: string;
+  questionCount: number;
+  passed: boolean;
+};
+
+export type QuizQuestion = {
+  id: number;
+  questionText: string;
+};
+
+export type QuizAttemptResult = {
+  score: number;
+  passed: boolean;
+  xpEarned: number;
+  levelUp: boolean;
+  userLevel: string;
+  userTotalXp: number;
+};

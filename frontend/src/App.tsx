@@ -5,6 +5,8 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { SessionPage } from "./pages/SessionPage";
+import { QuizPage } from "./pages/QuizPage";
+import { QuizModulePage } from "./pages/QuizModulePage";
 import { RequireAuth } from "./components/RequireAuth";
 
 export default function App() {
@@ -27,6 +29,22 @@ export default function App() {
           element={
             <RequireAuth>
               <CatalogPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/quiz"
+          element={
+            <RequireAuth>
+              <QuizPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/quiz/:moduleId"
+          element={
+            <RequireAuth>
+              <QuizModulePage />
             </RequireAuth>
           }
         />

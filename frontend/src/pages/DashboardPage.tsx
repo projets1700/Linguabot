@@ -51,9 +51,14 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <Link to="/catalog" className="inline-block bg-blue-600 px-6 py-3 rounded-lg">
-        Voir le catalogue de scénarios
-      </Link>
+      <div className="flex gap-4">
+        <Link to="/quiz" className="inline-block bg-blue-600 px-6 py-3 rounded-lg">
+          Quiz vocal A0
+        </Link>
+        <Link to="/catalog" className="inline-block bg-slate-800 px-6 py-3 rounded-lg">
+          Voir le catalogue de scénarios
+        </Link>
+      </div>
     </main>
   );
 }
