@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import type { Scenario } from "../types";
+import type { Scenario, SessionDetail } from "../types";
 
 const LEVELS = ["A1", "A2", "B1", "B2"] as const;
 const CATEGORIES = [
@@ -10,10 +10,12 @@ const CATEGORIES = [
 ] as const;
 
 export function CatalogPage() {
+  const navigate = useNavigate();
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [level, setLevel] = useState<string>("");
   const [category, setCategory] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [startingId, setStartingId] = useState<number | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -22,6 +24,16 @@ export function CatalogPage() {
       .then((response) => setScenarios(response.data))
       .finally(() => setLoading(false));
   }, [level, category]);
+
+  async function handleStart(scenarioId: number) {
+    setStartingId(scenarioId);
+    try {
+      const response = await api.post<SessionDetail>(`/scenarios/${scenarioId}/sessions`);
+      navigate(`/sessions/${response.data.id}`);
+    } finally {
+      setStartingId(null);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
@@ -68,12 +80,13 @@ export function CatalogPage() {
               <p className="text-sm text-slate-400">
                 ~{scenario.durationEstimate} min · {scenario.baseXp} XP
               </p>
-              <Link
-                to={`/sessions/${scenario.id}`}
-                className="inline-block mt-4 bg-blue-600 px-4 py-2 rounded-lg"
+              <button
+                onClick={() => handleStart(scenario.id)}
+                disabled={startingId === scenario.id}
+                className="inline-block mt-4 bg-blue-600 px-4 py-2 rounded-lg disabled:opacity-50"
               >
-                Démarrer
-              </Link>
+                {startingId === scenario.id ? "Démarrage..." : "Démarrer"}
+              </button>
             </article>
           ))}
         </div>

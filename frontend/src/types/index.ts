@@ -49,3 +49,27 @@ export type QuizAttemptResult = {
   userLevel: string;
   userTotalXp: number;
 };
+
+export type SessionMessage = {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type SessionDetail = {
+  id: number;
+  status: "in_progress" | "completed" | "abandoned";
+  scenario: {
+    id: number;
+    title: string;
+    characterName: string;
+  };
+  messages: SessionMessage[];
+};
+
+export type SessionFinishResult = {
+  score: number;
+  xpEarned: number;
+  userTotalXp: number;
+  userSessionsCount: number;
+};

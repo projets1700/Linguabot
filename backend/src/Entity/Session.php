@@ -48,6 +48,7 @@ class Session
 
     /** @var Collection<int, SessionMessage> */
     #[ORM\OneToMany(targetEntity: SessionMessage::class, mappedBy: 'session', orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $messages;
 
     public function __construct()
@@ -154,5 +155,19 @@ class Session
     public function getMessages(): Collection
     {
         return $this->messages;
+    }
+
+    /**
+     * Keeps both sides of the relation in sync so a freshly-created Session
+     * reflects messages added in the same request, without needing a reload.
+     */
+    public function addMessage(SessionMessage $message): static
+    {
+        if (!$this->messages->contains($message)) {
+            $this->messages->add($message);
+            $message->setSession($this);
+        }
+
+        return $this;
     }
 }
