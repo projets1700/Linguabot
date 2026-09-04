@@ -10,6 +10,11 @@ final class LevelFixtures extends Fixture
 {
     public const A0_REFERENCE = 'level-a0';
 
+    public static function reference(string $code): string
+    {
+        return 'level-'.strtolower($code);
+    }
+
     public function load(ObjectManager $manager): void
     {
         $levels = [
@@ -29,9 +34,7 @@ final class LevelFixtures extends Fixture
 
             $manager->persist($level);
 
-            if ('A0' === $code) {
-                $this->addReference(self::A0_REFERENCE, $level);
-            }
+            $this->addReference(self::reference($code), $level);
         }
 
         $manager->flush();

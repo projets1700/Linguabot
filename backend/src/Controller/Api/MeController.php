@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Controller\Api;
+
+use App\Entity\User;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
+
+final class MeController
+{
+    #[Route('/api/me', name: 'api_me', methods: ['GET'])]
+    public function __invoke(#[CurrentUser] User $user): JsonResponse
+    {
+        return new JsonResponse([
+            'id' => $user->getId(),
+            'prenom' => $user->getPrenom(),
+            'nom' => $user->getNom(),
+            'email' => $user->getEmail(),
+            'role' => $user->getRole()->value,
+            'level' => [
+                'code' => $user->getLevel()->getCode(),
+                'name' => $user->getLevel()->getName(),
+                'xpThreshold' => $user->getLevel()->getXpThreshold(),
+            ],
+            'totalXp' => $user->getTotalXp(),
+            'sessionsCount' => $user->getSessionsCount(),
+            'avgScore' => $user->getAvgScore(),
+        ]);
+    }
+}
