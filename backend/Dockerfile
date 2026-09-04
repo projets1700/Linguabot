@@ -21,6 +21,12 @@ RUN apk add --no-cache \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+COPY composer.json composer.lock ./
+RUN composer install --no-scripts --no-interaction
+
+COPY . .
+RUN composer dump-autoload --optimize
+
 EXPOSE 8000
 
 CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]
