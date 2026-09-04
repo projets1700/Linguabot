@@ -1,0 +1,10 @@
+/vendor/
+/node_modules/
+/.env.local
+/.idea/
+/.vscode/
+backend/var/
+backend/vendor/
+frontend/node_modules/
+frontend/dist/
+docker/postgres/data/
