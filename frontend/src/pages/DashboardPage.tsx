@@ -31,9 +31,16 @@ export function DashboardPage() {
         <h1 className="text-3xl font-bold">
           Bonjour {user.prenom} 👋
         </h1>
-        <button onClick={handleLogout} className="text-sm text-slate-400 hover:text-white">
-          Déconnexion
-        </button>
+        <div className="flex items-center gap-4">
+          {user.role === "ROLE_ADMIN" && (
+            <Link to="/admin" className="text-sm text-amber-400 hover:text-amber-300">
+              Administration
+            </Link>
+          )}
+          <button onClick={handleLogout} className="text-sm text-slate-400 hover:text-white">
+            Déconnexion
+          </button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 mb-8">

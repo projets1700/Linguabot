@@ -31,6 +31,8 @@ final class SessionController
             ->setScenario($scenario);
         $em->persist($session);
 
+        $scenario->setPlayCount($scenario->getPlayCount() + 1);
+
         $opening = (new SessionMessage())
             ->setRole(MessageRole::ASSISTANT)
             ->setContent($voiceService->openingMessage($scenario));

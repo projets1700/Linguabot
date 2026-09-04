@@ -10,7 +10,14 @@ import { QuizModulePage } from "./pages/QuizModulePage";
 import { BadgesPage } from "./pages/BadgesPage";
 import { TrophiesPage } from "./pages/TrophiesPage";
 import { DailyChallengePage } from "./pages/DailyChallengePage";
+import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
+import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
+import { AdminScenariosPage } from "./pages/admin/AdminScenariosPage";
+import { AdminChallengesPage } from "./pages/admin/AdminChallengesPage";
+import { AdminGamificationPage } from "./pages/admin/AdminGamificationPage";
+import { AdminLogsPage } from "./pages/admin/AdminLogsPage";
 import { RequireAuth } from "./components/RequireAuth";
+import { RequireAdmin } from "./components/RequireAdmin";
 
 export default function App() {
   return (
@@ -80,6 +87,66 @@ export default function App() {
           element={
             <RequireAuth>
               <DailyChallengePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth>
+              <RequireAdmin>
+                <AdminDashboardPage />
+              </RequireAdmin>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/utilisateurs"
+          element={
+            <RequireAuth>
+              <RequireAdmin>
+                <AdminUsersPage />
+              </RequireAdmin>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/scenarios"
+          element={
+            <RequireAuth>
+              <RequireAdmin>
+                <AdminScenariosPage />
+              </RequireAdmin>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/defis"
+          element={
+            <RequireAuth>
+              <RequireAdmin>
+                <AdminChallengesPage />
+              </RequireAdmin>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/gamification"
+          element={
+            <RequireAuth>
+              <RequireAdmin>
+                <AdminGamificationPage />
+              </RequireAdmin>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/logs"
+          element={
+            <RequireAuth>
+              <RequireAdmin>
+                <AdminLogsPage />
+              </RequireAdmin>
             </RequireAuth>
           }
         />

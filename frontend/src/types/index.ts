@@ -119,6 +119,86 @@ export type DailyChallengeFinishResult = {
   newTrophies: EarnedTrophy[];
 };
 
+export type AdminUser = {
+  id: number;
+  prenom: string;
+  nom: string;
+  email: string;
+  role: "ROLE_USER" | "ROLE_ADMIN";
+  level: string;
+  totalXp: number;
+  sessionsCount: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type AdminScenario = {
+  id: number;
+  code: string;
+  title: string;
+  level: string;
+  category: "quotidien" | "thematique";
+  characterName: string;
+  baseXp: number;
+  playCount: number;
+  isActive: boolean;
+};
+
+export type AdminDailyChallenge = {
+  id: number;
+  level: string;
+  title: string;
+  context: string;
+  objective: string;
+  keywords: string[];
+  characterName: string;
+  challengeDate: string;
+};
+
+export type AdminBadge = {
+  id: number;
+  code: string;
+  name: string;
+  conditionType: string;
+  conditionValue: number;
+  xpBonus: number;
+  isActive: boolean;
+};
+
+export type AdminTrophy = {
+  id: number;
+  code: string;
+  name: string;
+  conditionType: string;
+  conditionValue: number;
+  xpReward: number;
+  rarity: string;
+};
+
+export type AdminLog = {
+  id: number;
+  admin: string;
+  action: string;
+  targetType: string | null;
+  targetId: number | null;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+export type AdminStats = {
+  usersCount: number;
+  scenariosCount: number;
+  sessionsCount: number;
+  completedSessionsCount: number;
+  completionRate: number;
+  avgScoreGlobal: number | null;
+  levelDistribution: { level: string; count: number }[];
+  topScenarios: { code: string; title: string; playCount: number }[];
+  sessionsByDay: { day: string; count: number }[];
+  challengeParticipationRate: number;
+  xpDistributedToday: number;
+};
+
 export type Trophy = {
   code: string;
   name: string;

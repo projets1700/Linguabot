@@ -79,21 +79,44 @@ final class DailyChallengeService
 
     public function generateAndPersist(Level $level, \DateTimeImmutable $date): DailyChallenge
     {
-        $pool = self::TEMPLATES[$level->getCode()] ?? self::TEMPLATES['A1'];
-        [$title, $context, $objective, $keywords, $characterName] = $pool[array_rand($pool)];
-
-        $challenge = (new DailyChallenge())
-            ->setLevel($level)
-            ->setTitle($title)
-            ->setContext($context)
-            ->setObjective($objective)
-            ->setKeywords($keywords)
-            ->setCharacterName($characterName)
-            ->setChallengeDate($date);
+        $challenge = (new DailyChallenge())->setLevel($level)->setChallengeDate($date);
+        $this->applyRandomTemplate($challenge, $level);
 
         $this->em->persist($challenge);
         $this->em->flush();
 
         return $challenge;
+    }
+
+    /**
+     * Admin "Régénérer" action (CDCF Module 3). Mutates the existing row in
+     * place when one already exists rather than delete+recreate: a learner
+     * may already hold a challenge_sessions row pointing at it, and that FK
+     * has no ON DELETE clause (RESTRICT).
+     */
+    public function regenerate(Level $level, \DateTimeImmutable $date, ?DailyChallenge $existing): DailyChallenge
+    {
+        $challenge = $existing ?? (new DailyChallenge())->setLevel($level)->setChallengeDate($date);
+        $this->applyRandomTemplate($challenge, $level);
+
+        if (null === $existing) {
+            $this->em->persist($challenge);
+        }
+        $this->em->flush();
+
+        return $challenge;
+    }
+
+    private function applyRandomTemplate(DailyChallenge $challenge, Level $level): void
+    {
+        $pool = self::TEMPLATES[$level->getCode()] ?? self::TEMPLATES['A1'];
+        [$title, $context, $objective, $keywords, $characterName] = $pool[array_rand($pool)];
+
+        $challenge
+            ->setTitle($title)
+            ->setContext($context)
+            ->setObjective($objective)
+            ->setKeywords($keywords)
+            ->setCharacterName($characterName);
     }
 }
