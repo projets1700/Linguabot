@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { RewardBanner } from "../components/RewardBanner";
+import { VoiceInput } from "../components/VoiceInput";
 import type { DailyChallenge, DailyChallengeFinishResult } from "../types";
 
 type ChatMessage = { id: number; role: "user" | "assistant"; content: string };
@@ -10,7 +11,6 @@ export function DailyChallengePage() {
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [chatStarted, setChatStarted] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<DailyChallengeFinishResult | null>(null);
@@ -26,15 +26,11 @@ export function DailyChallengePage() {
     setChatStarted(true);
   }
 
-  async function handleSend(event: FormEvent) {
-    event.preventDefault();
-    if (!draft.trim()) return;
-
+  async function handleVoiceResult(transcript: string) {
     setSending(true);
-    const userMessage: ChatMessage = { id: Date.now(), role: "user", content: draft };
+    const userMessage: ChatMessage = { id: Date.now(), role: "user", content: transcript };
     const turnNumber = messages.filter((m) => m.role === "user").length;
     setMessages((current) => [...current, userMessage]);
-    setDraft("");
 
     try {
       const response = await api.post<{ assistantMessage: string }>("/daily-challenge/message", {
@@ -118,18 +114,9 @@ export function DailyChallengePage() {
             ))}
           </div>
 
-          <form onSubmit={handleSend} className="flex gap-3 mb-4">
-            <input
-              autoFocus
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Répondez en anglais..."
-              className="flex-1 bg-slate-800 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-blue-600"
-            />
-            <button type="submit" disabled={sending} className="bg-blue-600 px-6 py-2 rounded-lg disabled:opacity-50">
-              {sending ? "..." : "Envoyer"}
-            </button>
-          </form>
+          <div className="mb-4">
+            <VoiceInput onResult={handleVoiceResult} disabled={sending} />
+          </div>
 
           <button
             onClick={handleFinish}

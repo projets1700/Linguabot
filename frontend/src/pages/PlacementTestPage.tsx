@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene, type AvatarState } from "../components/AvatarScene";
+import { VoiceInput } from "../components/VoiceInput";
 import { useAuthStore } from "../stores/authStore";
 import type {
   PlacementTestDetail,
@@ -20,7 +21,6 @@ export function PlacementTestPage() {
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [totalQuestions, setTotalQuestions] = useState(5);
   const [answeredCount, setAnsweredCount] = useState(0);
-  const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<PlacementTestFinishResult | null>(null);
@@ -81,15 +81,13 @@ export function PlacementTestPage() {
     }
   }
 
-  async function handleSend(event: FormEvent) {
-    event.preventDefault();
-    if (!draft.trim() || !test) return;
+  async function handleVoiceResult(transcript: string) {
+    if (!test) return;
 
     setSending(true);
     setAvatarState("thinking");
-    const userMessage: SessionMessage = { id: Date.now(), role: "user", content: draft };
+    const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
     setMessages((current) => [...current, userMessage]);
-    setDraft("");
 
     try {
       const response = await api.post<PlacementTestMessageResult>(
@@ -171,23 +169,7 @@ export function PlacementTestPage() {
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} className="flex gap-3">
-        <input
-          autoFocus
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Répondez en anglais..."
-          disabled={sending || finishing}
-          className="flex-1 bg-slate-800 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={sending || finishing}
-          className="bg-blue-600 px-6 py-2 rounded-lg disabled:opacity-50"
-        >
-          {sending || finishing ? "..." : "Envoyer"}
-        </button>
-      </form>
+      <VoiceInput onResult={handleVoiceResult} disabled={sending || finishing} />
 
       <p className="text-xs text-slate-500 text-center mt-4">
         Ce test est obligatoire une seule fois, juste après ton inscription.

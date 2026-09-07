@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { RewardBanner } from "../components/RewardBanner";
+import { VoiceInput } from "../components/VoiceInput";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
 export function QuizModulePage() {
@@ -10,7 +11,6 @@ export function QuizModulePage() {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [currentAnswer, setCurrentAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
 
@@ -21,13 +21,10 @@ export function QuizModulePage() {
       .finally(() => setLoading(false));
   }, [moduleId]);
 
-  async function handleSubmitAnswer(event: FormEvent) {
-    event.preventDefault();
-
+  async function handleVoiceAnswer(transcript: string) {
     const question = questions[currentIndex];
-    const nextAnswers = { ...answers, [question.id]: currentAnswer };
+    const nextAnswers = { ...answers, [question.id]: transcript };
     setAnswers(nextAnswers);
-    setCurrentAnswer("");
 
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -85,36 +82,16 @@ export function QuizModulePage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
-      <form
-        onSubmit={handleSubmitAnswer}
-        className="bg-slate-900 p-8 rounded-xl w-full max-w-md flex flex-col gap-4"
-      >
+      <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md flex flex-col gap-4">
         <p className="text-slate-400 text-sm">
           Question {currentIndex + 1} / {questions.length}
         </p>
         <h1 className="text-2xl font-bold">{question.questionText}</h1>
 
-        <input
-          autoFocus
-          required
-          value={currentAnswer}
-          onChange={(event) => setCurrentAnswer(event.target.value)}
-          placeholder="Votre réponse en anglais"
-          className="bg-slate-800 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-blue-600"
-        />
+        <VoiceInput onResult={handleVoiceAnswer} disabled={submitting} />
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="bg-blue-600 rounded-lg px-4 py-2 disabled:opacity-50"
-        >
-          {submitting
-            ? "Envoi..."
-            : currentIndex < questions.length - 1
-              ? "Suivant"
-              : "Valider"}
-        </button>
-      </form>
+        {submitting && <p className="text-slate-400 text-sm text-center">Envoi...</p>}
+      </div>
     </main>
   );
 }

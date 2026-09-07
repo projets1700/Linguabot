@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene, type AvatarState } from "../components/AvatarScene";
 import { RewardBanner } from "../components/RewardBanner";
+import { VoiceInput } from "../components/VoiceInput";
 import type { SessionDetail, SessionFinishResult, SessionMessage } from "../types";
 
 const SPEAKING_DURATION_MS = 2200;
@@ -11,7 +12,6 @@ export function SessionPage() {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
-  const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<SessionFinishResult | null>(null);
@@ -42,15 +42,11 @@ export function SessionPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function handleSend(event: FormEvent) {
-    event.preventDefault();
-    if (!draft.trim()) return;
-
+  async function handleVoiceResult(transcript: string) {
     setSending(true);
     setAvatarState("thinking");
-    const userMessage: SessionMessage = { id: Date.now(), role: "user", content: draft };
+    const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
     setMessages((current) => [...current, userMessage]);
-    setDraft("");
 
     try {
       const response = await api.post<{ userTranscript: string; assistantMessage: string }>(
@@ -145,22 +141,7 @@ export function SessionPage() {
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} className="flex gap-3">
-        <input
-          autoFocus
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Répondez en anglais..."
-          className="flex-1 bg-slate-800 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-blue-600"
-        />
-        <button
-          type="submit"
-          disabled={sending}
-          className="bg-blue-600 px-6 py-2 rounded-lg disabled:opacity-50"
-        >
-          {sending ? "..." : "Envoyer"}
-        </button>
-      </form>
+      <VoiceInput onResult={handleVoiceResult} disabled={sending} />
     </main>
   );
 }
