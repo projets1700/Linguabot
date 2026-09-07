@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
+import { AvatarScene } from "../components/AvatarScene";
 import { ConversationLog } from "../components/ConversationLog";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
 import { speakText } from "../lib/speech";
+import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge, DailyChallengeFinishResult } from "../types";
 
 type ChatMessage = { id: number; role: "user" | "assistant"; content: string };
 
 export function DailyChallengePage() {
+  const user = useAuthStore((state) => state.user);
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [chatStarted, setChatStarted] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -123,6 +126,13 @@ export function DailyChallengePage() {
         </button>
       ) : (
         <>
+          <div className="mb-4">
+            <AvatarScene
+              state={aiSpeaking ? "speaking" : sending ? "thinking" : "idle"}
+              avatarType={user?.avatarType ?? "male"}
+            />
+          </div>
+
           <ConversationLog messages={messages} />
 
           <div className="mb-4">

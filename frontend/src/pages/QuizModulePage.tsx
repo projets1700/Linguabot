@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
+import { AvatarScene } from "../components/AvatarScene";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
 import { speakText } from "../lib/speech";
+import { useAuthStore } from "../stores/authStore";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
 export function QuizModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
+  const user = useAuthStore((state) => state.user);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -104,6 +107,11 @@ export function QuizModulePage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
       <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md flex flex-col gap-4">
+        <AvatarScene
+          state={aiSpeaking ? "speaking" : submitting ? "thinking" : "idle"}
+          avatarType={user?.avatarType ?? "male"}
+        />
+
         <p className="text-slate-400 text-sm">
           Question {currentIndex + 1} / {questions.length}
         </p>

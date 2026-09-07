@@ -15,6 +15,7 @@ import type {
 
 export function PlacementTestPage() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
   const fetchMe = useAuthStore((state) => state.fetchMe);
 
   const [test, setTest] = useState<PlacementTestDetail | null>(null);
@@ -157,7 +158,7 @@ export function PlacementTestPage() {
       </div>
 
       <div className="mb-4">
-        <AvatarScene state={avatarState} />
+        <AvatarScene state={avatarState} avatarType={user?.avatarType ?? "male"} />
       </div>
 
       <ConversationLog messages={messages} bottomRef={bottomRef} />

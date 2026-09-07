@@ -6,10 +6,12 @@ import { ConversationLog } from "../components/ConversationLog";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
 import { speakText } from "../lib/speech";
+import { useAuthStore } from "../stores/authStore";
 import type { SessionDetail, SessionFinishResult, SessionMessage } from "../types";
 
 export function SessionPage() {
   const { id } = useParams<{ id: string }>();
+  const user = useAuthStore((state) => state.user);
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [sending, setSending] = useState(false);
@@ -129,7 +131,7 @@ export function SessionPage() {
       </div>
 
       <div className="mb-4">
-        <AvatarScene state={avatarState} />
+        <AvatarScene state={avatarState} avatarType={user?.avatarType ?? "male"} />
       </div>
 
       <ConversationLog messages={messages} bottomRef={bottomRef} />
