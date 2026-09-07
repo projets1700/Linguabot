@@ -162,7 +162,10 @@ export function PlacementTestPage() {
 
       <ConversationLog messages={messages} bottomRef={bottomRef} />
 
-      <VoiceInput onResult={handleVoiceResult} disabled={sending || finishing} />
+      {/* The mic must stay off while the AI is talking, otherwise it can
+          pick its own voice back up through the speakers and "answer its
+          own question". */}
+      <VoiceInput onResult={handleVoiceResult} disabled={sending || finishing || avatarState === "speaking"} />
 
       <p className="text-xs text-slate-500 text-center mt-4">
         Ce test est obligatoire une seule fois, juste après ton inscription.

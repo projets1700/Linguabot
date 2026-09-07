@@ -134,7 +134,10 @@ export function SessionPage() {
 
       <ConversationLog messages={messages} bottomRef={bottomRef} />
 
-      <VoiceInput onResult={handleVoiceResult} disabled={sending} />
+      {/* The mic must stay off while the AI is talking, otherwise it can
+          pick its own voice back up through the speakers and "answer its
+          own question". */}
+      <VoiceInput onResult={handleVoiceResult} disabled={sending || avatarState === "speaking"} />
     </main>
   );
 }

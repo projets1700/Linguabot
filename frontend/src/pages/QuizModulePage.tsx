@@ -15,6 +15,7 @@ export function QuizModulePage() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
   const [showQuestionText, setShowQuestionText] = useState(false);
+  const [aiSpeaking, setAiSpeaking] = useState(false);
 
   useEffect(() => {
     api
@@ -25,7 +26,10 @@ export function QuizModulePage() {
 
   useEffect(() => {
     if (questions.length > 0) {
-      speakText(questions[currentIndex].questionText);
+      speakText(questions[currentIndex].questionText, {
+        onStart: () => setAiSpeaking(true),
+        onEnd: () => setAiSpeaking(false),
+      });
       setShowQuestionText(false);
     }
   }, [currentIndex, questions]);
@@ -110,7 +114,10 @@ export function QuizModulePage() {
           {showQuestionText ? "Masquer le texte" : "Je n'ai pas compris ? Afficher le texte"}
         </button>
 
-        <VoiceInput onResult={handleVoiceAnswer} disabled={submitting} />
+        {/* The mic must stay off while the AI is talking, otherwise it can
+            pick its own voice back up through the speakers and "answer its
+            own question". */}
+        <VoiceInput onResult={handleVoiceAnswer} disabled={submitting || aiSpeaking} />
 
         {submitting && <p className="text-slate-400 text-sm text-center">Envoi...</p>}
       </div>

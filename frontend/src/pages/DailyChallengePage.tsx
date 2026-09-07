@@ -16,6 +16,7 @@ export function DailyChallengePage() {
   const [sending, setSending] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<DailyChallengeFinishResult | null>(null);
+  const [aiSpeaking, setAiSpeaking] = useState(false);
 
   useEffect(() => {
     api.get<DailyChallenge>("/daily-challenge").then((response) => setChallenge(response.data));
@@ -26,7 +27,10 @@ export function DailyChallengePage() {
     const response = await api.post<{ openingMessage: string }>("/daily-challenge/start");
     setMessages([{ id: Date.now(), role: "assistant", content: response.data.openingMessage }]);
     setChatStarted(true);
-    speakText(response.data.openingMessage);
+    speakText(response.data.openingMessage, {
+      onStart: () => setAiSpeaking(true),
+      onEnd: () => setAiSpeaking(false),
+    });
   }
 
   async function handleVoiceResult(transcript: string) {
@@ -44,7 +48,10 @@ export function DailyChallengePage() {
         ...current,
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
-      speakText(response.data.assistantMessage);
+      speakText(response.data.assistantMessage, {
+        onStart: () => setAiSpeaking(true),
+        onEnd: () => setAiSpeaking(false),
+      });
     } finally {
       setSending(false);
     }
@@ -108,7 +115,10 @@ export function DailyChallengePage() {
           <ConversationLog messages={messages} />
 
           <div className="mb-4">
-            <VoiceInput onResult={handleVoiceResult} disabled={sending} />
+            {/* The mic must stay off while the AI is talking, otherwise it
+                can pick its own voice back up through the speakers and
+                "answer its own question". */}
+            <VoiceInput onResult={handleVoiceResult} disabled={sending || aiSpeaking} />
           </div>
 
           <button
