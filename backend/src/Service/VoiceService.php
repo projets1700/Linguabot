@@ -21,12 +21,17 @@ final class VoiceService
         'I understand. Can you describe that a bit more?',
     ];
 
+    /**
+     * Scenario::context/title are intentionally French (catalogue copy for
+     * a French-speaking learner choosing a scenario) - they must never be
+     * injected into the spoken conversation itself, which stays 100%
+     * English (CDCF §1.2 "zéro saisie texte" / full voice immersion).
+     */
     public function openingMessage(Scenario $scenario): string
     {
         return \sprintf(
-            "Hello! I'm %s. %s Go ahead, say something to get started!",
+            "Hello! I'm %s. Go ahead, say something to get started!",
             $scenario->getCharacterName(),
-            $scenario->getContext(),
         );
     }
 
