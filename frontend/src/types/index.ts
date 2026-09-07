@@ -4,6 +4,8 @@ export type Level = {
   xpThreshold: number;
 };
 
+export type AvatarType = "male" | "female";
+
 export type Me = {
   id: number;
   prenom: string;
@@ -11,6 +13,7 @@ export type Me = {
   email: string;
   role: "ROLE_USER" | "ROLE_ADMIN";
   level: Level;
+  avatarType: AvatarType;
   totalXp: number;
   sessionsCount: number;
   avgScore: string | null;

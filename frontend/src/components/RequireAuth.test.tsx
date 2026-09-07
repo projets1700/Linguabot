@@ -12,6 +12,7 @@ const BASE_USER: Me = {
   email: "adam@test.fr",
   role: "ROLE_USER",
   level: { code: "A0", name: "Débutant absolu", xpThreshold: 0 },
+  avatarType: "male",
   totalXp: 0,
   sessionsCount: 0,
   avgScore: null,

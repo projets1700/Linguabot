@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import { api } from "../api/client";
-import type { Me } from "../types";
+import type { AvatarType, Me } from "../types";
 
 type RegisterPayload = {
   prenom: string;
   nom: string;
   email: string;
   password: string;
+  avatarType: AvatarType;
 };
 
 type AuthState = {

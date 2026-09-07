@@ -1,6 +1,12 @@
 import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
+import type { AvatarType } from "../types";
+
+const AVATAR_OPTIONS: { type: AvatarType; label: string; emoji: string }[] = [
+  { type: "male", label: "Homme", emoji: "👨" },
+  { type: "female", label: "Femme", emoji: "👩" },
+];
 
 export function RegisterPage() {
   const register = useAuthStore((state) => state.register);
@@ -11,13 +17,15 @@ export function RegisterPage() {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [avatarType, setAvatarType] = useState<AvatarType | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!avatarType) return;
 
     try {
-      await register({ prenom, nom, email, password });
+      await register({ prenom, nom, email, password, avatarType });
       setSubmittedEmail(email);
     } catch {
       // error is already surfaced via the store's `error` state
@@ -97,11 +105,42 @@ export function RegisterPage() {
           />
         </label>
 
+        <div className="flex flex-col gap-2">
+          <span className="text-sm text-slate-300">Choisis ton avatar</span>
+          <div role="radiogroup" aria-label="Choix de l'avatar" className="flex gap-4">
+            {AVATAR_OPTIONS.map((option) => {
+              const isSelected = avatarType === option.type;
+              return (
+                <button
+                  key={option.type}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => setAvatarType(option.type)}
+                  className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-lg border-2 transition-colors ${
+                    isSelected
+                      ? "border-blue-500 bg-slate-800"
+                      : "border-slate-700 bg-slate-800/50 hover:border-slate-500"
+                  }`}
+                >
+                  <span className="text-4xl" aria-hidden="true">
+                    {option.emoji}
+                  </span>
+                  <span className={isSelected ? "text-blue-400 font-semibold" : "text-slate-300"}>
+                    {option.label}
+                    {isSelected && " ✓"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !avatarType}
           className="bg-blue-600 rounded-lg px-4 py-2 mt-2 disabled:opacity-50"
         >
           {loading ? "Création..." : "Créer mon compte"}

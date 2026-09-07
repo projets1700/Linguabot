@@ -48,6 +48,7 @@ describe("authStore", () => {
       nom: "Amrane",
       email: "adam@test.fr",
       password: "Password123!",
+      avatarType: "male",
     });
 
     expect(api.post).toHaveBeenCalledWith("/auth/register", {
@@ -55,6 +56,7 @@ describe("authStore", () => {
       nom: "Amrane",
       email: "adam@test.fr",
       password: "Password123!",
+      avatarType: "male",
     });
     expect(useAuthStore.getState().token).toBeNull();
     expect(localStorage.getItem("token")).toBeNull();
@@ -69,6 +71,7 @@ describe("authStore", () => {
         nom: "Amrane",
         email: "adam@test.fr",
         password: "Password123!",
+        avatarType: "male",
       }),
     ).rejects.toThrow();
 
