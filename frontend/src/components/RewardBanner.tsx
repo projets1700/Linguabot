@@ -1,4 +1,4 @@
-import type { EarnedBadge, EarnedTrophy } from "../types";
+import type { EarnedBadge, EarnedTrophy, LevelUpResult } from "../types";
 
 const RARITY_STYLE: Record<EarnedTrophy["rarity"], string> = {
   bronze: "bg-amber-800",
@@ -10,16 +10,23 @@ const RARITY_STYLE: Record<EarnedTrophy["rarity"], string> = {
 export function RewardBanner({
   badges,
   trophies,
+  levelUp,
 }: {
   badges: EarnedBadge[];
   trophies: EarnedTrophy[];
+  levelUp?: LevelUpResult | null;
 }) {
-  if (badges.length === 0 && trophies.length === 0) {
+  if (badges.length === 0 && trophies.length === 0 && !levelUp) {
     return null;
   }
 
   return (
     <div className="flex flex-col gap-2 mb-4">
+      {levelUp && (
+        <div className="bg-green-600 rounded-lg py-3 px-4 font-bold animate-pulse">
+          🎉 Niveau {levelUp.code} débloqué : {levelUp.name} !
+        </div>
+      )}
       {trophies.map((trophy) => (
         <div
           key={trophy.code}

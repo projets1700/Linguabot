@@ -2,7 +2,9 @@
 
 namespace App\Tests;
 
+use App\Entity\Level;
 use App\Entity\PendingRegistration;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -49,6 +51,40 @@ abstract class ApiTestCase extends WebTestCase
         self::assertArrayHasKey('token', $data, 'Verification did not return a token: '.$client->getResponse()->getContent());
 
         return $data['token'];
+    }
+
+    /**
+     * Every fresh registration lands at A0 (see AuthController::verifyEmail())
+     * and scenarios only exist from A1 up (SessionController::start() now
+     * locks anything above the learner's own level) - tests that need to
+     * actually start a scenario session use this instead of bumping the
+     * level by hand every time.
+     */
+    protected function registerAndGetTokenAtLevel(KernelBrowser $client, string $levelCode, ?string $email = null): string
+    {
+        $email ??= sprintf('test-%s-%s@linguabot.fr', str_replace('\\', '-', static::class), uniqid());
+        $token = $this->registerAndGetToken($client, $email);
+
+        /** @var EntityManagerInterface $em */
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => $email]);
+        $level = $em->getRepository(Level::class)->findOneBy(['code' => $levelCode]);
+        self::assertNotNull($user);
+        self::assertNotNull($level, "Unknown level code: {$levelCode}");
+        $user->setLevel($level);
+        $em->flush();
+
+        return $token;
+    }
+
+    protected function setUserTotalXp(string $email, int $totalXp): void
+    {
+        /** @var EntityManagerInterface $em */
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => $email]);
+        self::assertNotNull($user);
+        $user->setTotalXp($totalXp);
+        $em->flush();
     }
 
     /**

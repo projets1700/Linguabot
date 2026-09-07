@@ -89,7 +89,9 @@ export function DailyChallengePage() {
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
         <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md text-center">
           <h1 className="text-3xl font-bold mb-4">Défi relevé ! 🎉</h1>
-          {result && <RewardBanner badges={result.newBadges} trophies={result.newTrophies} />}
+          {result && (
+            <RewardBanner badges={result.newBadges} trophies={result.newTrophies} levelUp={result.levelUp} />
+          )}
           <p className="text-slate-300 mb-6">
             +{result?.xpEarned ?? challenge.xpReward} XP (bonus x2 défi du jour)
           </p>

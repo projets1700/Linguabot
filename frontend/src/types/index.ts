@@ -27,6 +27,12 @@ export type Scenario = {
   characterName: string;
   durationEstimate: number;
   baseXp: number;
+  locked: boolean;
+};
+
+export type LevelUpResult = {
+  code: string;
+  name: string;
 };
 
 export type QuizModule = {
@@ -98,6 +104,7 @@ export type SessionFinishResult = {
   xpEarned: number;
   userTotalXp: number;
   userSessionsCount: number;
+  levelUp: LevelUpResult | null;
   newBadges: EarnedBadge[];
   newTrophies: EarnedTrophy[];
 };
@@ -139,6 +146,7 @@ export type DailyChallenge = {
 export type DailyChallengeFinishResult = {
   xpEarned: number;
   userTotalXp: number;
+  levelUp: LevelUpResult | null;
   newBadges: EarnedBadge[];
   newTrophies: EarnedTrophy[];
 };

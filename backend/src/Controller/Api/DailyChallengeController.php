@@ -157,12 +157,14 @@ final class DailyChallengeController
         $user->setTotalXp($user->getTotalXp() + $xpEarned);
         $em->flush();
 
+        $newLevel = $gamificationService->checkAndApplyLevelUp($user);
         $newBadges = $gamificationService->checkAndAwardBadges($user);
         $newTrophies = $gamificationService->checkAndAwardTrophies($user);
 
         return new JsonResponse([
             'xpEarned' => $xpEarned,
             'userTotalXp' => $user->getTotalXp(),
+            'levelUp' => null !== $newLevel ? ['code' => $newLevel->getCode(), 'name' => $newLevel->getName()] : null,
             'newBadges' => array_map(static fn ($b) => ['code' => $b->getCode(), 'name' => $b->getName(), 'icon' => $b->getIcon()], $newBadges),
             'newTrophies' => array_map(static fn ($t) => ['code' => $t->getCode(), 'name' => $t->getName(), 'rarity' => $t->getRarity()->value], $newTrophies),
         ]);

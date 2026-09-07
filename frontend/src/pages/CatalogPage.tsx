@@ -72,7 +72,10 @@ export function CatalogPage() {
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
           {scenarios.map((scenario) => (
-            <article key={scenario.id} className="bg-slate-800 p-6 rounded-xl">
+            <article
+              key={scenario.id}
+              className={`bg-slate-800 p-6 rounded-xl ${scenario.locked ? "opacity-50" : ""}`}
+            >
               <span className="text-xs uppercase text-blue-400">{scenario.level} · {scenario.category}</span>
               <h2 className="text-xl font-bold mt-1">{scenario.title}</h2>
               <p className="text-slate-300 mt-2">{scenario.context}</p>
@@ -80,13 +83,19 @@ export function CatalogPage() {
               <p className="text-sm text-slate-400">
                 ~{scenario.durationEstimate} min · {scenario.baseXp} XP
               </p>
-              <button
-                onClick={() => handleStart(scenario.id)}
-                disabled={startingId === scenario.id}
-                className="inline-block mt-4 bg-blue-600 px-4 py-2 rounded-lg disabled:opacity-50"
-              >
-                {startingId === scenario.id ? "Démarrage..." : "Démarrer"}
-              </button>
+              {scenario.locked ? (
+                <p className="inline-block mt-4 bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm">
+                  🔒 Niveau {scenario.level} requis
+                </p>
+              ) : (
+                <button
+                  onClick={() => handleStart(scenario.id)}
+                  disabled={startingId === scenario.id}
+                  className="inline-block mt-4 bg-blue-600 px-4 py-2 rounded-lg disabled:opacity-50"
+                >
+                  {startingId === scenario.id ? "Démarrage..." : "Démarrer"}
+                </button>
+              )}
             </article>
           ))}
         </div>

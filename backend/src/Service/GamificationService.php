@@ -7,8 +7,10 @@ use App\Entity\Trophy;
 use App\Entity\User;
 use App\Entity\UserBadge;
 use App\Entity\UserTrophy;
+use App\Entity\Level;
 use App\Repository\BadgeRepository;
 use App\Repository\ChallengeSessionRepository;
+use App\Repository\LevelRepository;
 use App\Repository\QuizAttemptRepository;
 use App\Repository\ScenarioRepository;
 use App\Repository\SessionRepository;
@@ -34,8 +36,43 @@ final class GamificationService
         private readonly ScenarioRepository $scenarioRepository,
         private readonly QuizAttemptRepository $quizAttemptRepository,
         private readonly ChallengeSessionRepository $challengeSessionRepository,
+        private readonly LevelRepository $levelRepository,
         private readonly EntityManagerInterface $em,
     ) {
+    }
+
+    /**
+     * Scenarios are locked above the learner's current level (see
+     * SessionController::start()) until totalXp reaches the next level's
+     * threshold - this is what unlocks them. A0 -> A1 is excluded on
+     * purpose: that step has its own dedicated gate (RG10, 4 of 6 quiz
+     * modules passed - see QuizService::maybeUnlockA1()), not an XP
+     * threshold, so a learner can't buy their way past it with daily
+     * challenge XP alone.
+     *
+     * Loops in case totalXp jumped past more than one threshold in a
+     * single award (e.g. a big trophy XP bonus on top of a session).
+     */
+    public function checkAndApplyLevelUp(User $user): ?Level
+    {
+        $startingLevel = $user->getLevel();
+        if ('A0' === $startingLevel->getCode()) {
+            return null;
+        }
+
+        $current = $startingLevel;
+        while (null !== ($next = $this->levelRepository->findNext($current)) && $user->getTotalXp() >= $next->getXpThreshold()) {
+            $current = $next;
+        }
+
+        if ($current === $startingLevel) {
+            return null;
+        }
+
+        $user->setLevel($current);
+        $this->em->flush();
+
+        return $current;
     }
 
     public function calculateXp(int $baseXp, float $score): int

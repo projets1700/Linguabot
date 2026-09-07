@@ -15,4 +15,9 @@ class LevelRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Level::class);
     }
+
+    public function findNext(Level $level): ?Level
+    {
+        return $this->findOneBy(['orderNum' => $level->getOrderNum() + 1]);
+    }
 }

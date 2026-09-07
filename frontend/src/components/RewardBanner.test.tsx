@@ -20,4 +20,17 @@ describe("RewardBanner", () => {
     expect(screen.getByText(/Premier pas/)).toBeInTheDocument();
     expect(screen.getByText(/Trophée Explorateur/)).toBeInTheDocument();
   });
+
+  it("renders the level-up banner when levelUp is provided", () => {
+    render(<RewardBanner badges={[]} trophies={[]} levelUp={{ code: "A2", name: "Explorateur" }} />);
+
+    expect(screen.getByText(/Niveau A2 débloqué/)).toBeInTheDocument();
+    expect(screen.getByText(/Explorateur/)).toBeInTheDocument();
+  });
+
+  it("does not render anything when levelUp is null and there are no rewards", () => {
+    const { container } = render(<RewardBanner badges={[]} trophies={[]} levelUp={null} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });

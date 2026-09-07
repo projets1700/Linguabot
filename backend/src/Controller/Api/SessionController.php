@@ -26,6 +26,15 @@ final class SessionController
         VoiceService $voiceService,
         EntityManagerInterface $em,
     ): JsonResponse {
+        if ($scenario->getLevel()->getOrderNum() > $user->getLevel()->getOrderNum()) {
+            return new JsonResponse([
+                'message' => \sprintf(
+                    "Ce scénario est verrouillé : atteins le niveau %s pour y accéder.",
+                    $scenario->getLevel()->getCode(),
+                ),
+            ], 403);
+        }
+
         $session = (new Session())
             ->setUser($user)
             ->setScenario($scenario);
@@ -165,6 +174,7 @@ final class SessionController
         $user->setAvgScore($sessionRepository->averageScoreForUser($user));
         $em->flush();
 
+        $newLevel = $gamificationService->checkAndApplyLevelUp($user);
         $newBadges = $gamificationService->checkAndAwardBadges($user);
         $newTrophies = $gamificationService->checkAndAwardTrophies($user);
 
@@ -173,6 +183,7 @@ final class SessionController
             'xpEarned' => $xpEarned,
             'userTotalXp' => $user->getTotalXp(),
             'userSessionsCount' => $user->getSessionsCount(),
+            'levelUp' => null !== $newLevel ? ['code' => $newLevel->getCode(), 'name' => $newLevel->getName()] : null,
             'newBadges' => array_map(static fn ($b) => ['code' => $b->getCode(), 'name' => $b->getName(), 'icon' => $b->getIcon()], $newBadges),
             'newTrophies' => array_map(static fn ($t) => ['code' => $t->getCode(), 'name' => $t->getName(), 'rarity' => $t->getRarity()->value], $newTrophies),
         ]);
