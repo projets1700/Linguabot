@@ -26,7 +26,15 @@ export function QuizModulePage() {
 
   useEffect(() => {
     if (questions.length > 0) {
+      // Unlike every other voice screen, the A0 quiz's prompts are
+      // deliberately in French ("Comment dit-on...?" - QuizFixtures) since
+      // it's testing basic French-to-English vocabulary for absolute
+      // beginners. Reading French text with the default en-US voice came
+      // out as "French with an English accent" - forcing fr-FR here (and
+      // only here) fixes the pronunciation without touching every other
+      // scenario/challenge/placement-test screen, which stay English.
       speakText(questions[currentIndex].questionText, {
+        lang: "fr-FR",
         onStart: () => setAiSpeaking(true),
         onEnd: () => setAiSpeaking(false),
       });
