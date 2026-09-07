@@ -18,6 +18,9 @@
              <env force="true"> also calls putenv(), which actually overrides it. -->
         <env name="APP_ENV" value="test" force="true" />
         <env name="KERNEL_CLASS" value="App\Kernel" force="true" />
+        <!-- docker-compose sets a real MAILER_DSN pointing at Mailpit for
+             dev; tests must not depend on that container being up. -->
+        <env name="MAILER_DSN" value="null://null" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 

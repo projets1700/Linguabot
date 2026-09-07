@@ -16,6 +16,13 @@ services:
       timeout: 5s
       retries: 10
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: linguabot_mailpit
+    ports:
+      - "8025:8025" # web UI: http://localhost:8025
+      - "1025:1025" # SMTP
+
   backend:
     build:
       context: ./backend
@@ -23,6 +30,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     ports:
       - "8080:8000"
     volumes:
@@ -34,6 +43,7 @@ services:
       # "dev", and a real process env var here would outrank phpunit's own
       # env override when running tests via `docker exec ... php bin/phpunit`.
       DATABASE_URL: "postgresql://linguabot_user:linguabot_password@database:5432/linguabot?serverVersion=16&charset=utf8"
+      MAILER_DSN: "smtp://mailpit:1025"
 
   frontend:
     build:

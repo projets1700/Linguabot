@@ -18,7 +18,10 @@ framework:
             messenger.bus.default: []
 
         routing:
-            Symfony\Component\Mailer\Messenger\SendEmailMessage: async
+            # Left unrouted (not "async"): with no consumer worker running,
+            # routing this to the async transport would just queue emails
+            # forever in messenger_messages without ever sending them.
+            # Unrouted means it's handled synchronously in-process instead.
             Symfony\Component\Notifier\Message\ChatMessage: async
             Symfony\Component\Notifier\Message\SmsMessage: async
 

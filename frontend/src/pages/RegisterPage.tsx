@@ -1,9 +1,8 @@
 import { FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 
 export function RegisterPage() {
-  const navigate = useNavigate();
   const register = useAuthStore((state) => state.register);
   const loading = useAuthStore((state) => state.loading);
   const error = useAuthStore((state) => state.error);
@@ -12,16 +11,37 @@ export function RegisterPage() {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
     try {
       await register({ prenom, nom, email, password });
-      navigate("/dashboard");
+      setSubmittedEmail(email);
     } catch {
       // error is already surfaced via the store's `error` state
     }
+  }
+
+  if (submittedEmail) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
+        <div className="bg-slate-900 p-8 rounded-xl w-full max-w-sm flex flex-col gap-4 text-center">
+          <h1 className="text-3xl font-bold mb-2">Vérifie ta boîte mail</h1>
+          <p className="text-slate-300">
+            Un email de confirmation a été envoyé à <strong>{submittedEmail}</strong>. Clique sur
+            le lien qu'il contient pour activer ton compte (valable 1 heure).
+          </p>
+          <p className="text-sm text-slate-400">
+            Déjà activé ?{" "}
+            <Link to="/login" className="text-blue-400">
+              Connectez-vous
+            </Link>
+          </p>
+        </div>
+      </main>
+    );
   }
 
   return (

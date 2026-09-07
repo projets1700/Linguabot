@@ -2,6 +2,8 @@
 
 namespace App\Tests;
 
+use App\Entity\PendingRegistration;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -13,6 +15,13 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 abstract class ApiTestCase extends WebTestCase
 {
+    /**
+     * Registration no longer creates a User directly (email verification is
+     * required first - see AuthController::verifyEmail()). This drives the
+     * full two-step flow: register, read the verification token straight
+     * from the database (no real email is sent in the test env, MAILER_DSN
+     * is forced to null://null), then verify to obtain the real JWT.
+     */
     protected function registerAndGetToken(KernelBrowser $client, ?string $email = null): string
     {
         $email ??= sprintf('test-%s-%s@linguabot.fr', str_replace('\\', '-', static::class), uniqid());
@@ -24,9 +33,20 @@ abstract class ApiTestCase extends WebTestCase
             'password' => 'Password123!',
         ]));
 
+        self::assertResponseStatusCodeSame(202, 'Registration did not accept: '.$client->getResponse()->getContent());
+
+        /** @var EntityManagerInterface $em */
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $pending = $em->getRepository(PendingRegistration::class)->findOneBy(['email' => $email]);
+        self::assertNotNull($pending, 'No pending registration was created for '.$email);
+
+        $client->request('POST', '/api/auth/verify-email', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'token' => $pending->getToken(),
+        ]));
+
         $data = json_decode($client->getResponse()->getContent(), true);
 
-        self::assertArrayHasKey('token', $data, 'Registration did not return a token: '.$client->getResponse()->getContent());
+        self::assertArrayHasKey('token', $data, 'Verification did not return a token: '.$client->getResponse()->getContent());
 
         return $data['token'];
     }

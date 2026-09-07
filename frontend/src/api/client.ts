@@ -9,7 +9,7 @@ export const api = axios.create({
 // moment it sees a Bearer header, even an expired/stale one - before
 // access_control ever gets to check that the route is public. A leftover
 // token from a previous session would otherwise silently break register/login.
-const PUBLIC_PATHS = ["/auth/login", "/auth/register"];
+const PUBLIC_PATHS = ["/auth/login", "/auth/register", "/auth/verify-email"];
 
 api.interceptors.request.use((config) => {
   const isPublicAuthRoute = PUBLIC_PATHS.some((path) => config.url?.startsWith(path));

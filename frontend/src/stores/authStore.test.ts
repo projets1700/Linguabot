@@ -40,8 +40,8 @@ describe("authStore", () => {
     expect(localStorage.getItem("token")).toBeNull();
   });
 
-  it("stores the token returned by register", async () => {
-    vi.mocked(api.post).mockResolvedValueOnce({ data: { token: "jwt-456" } });
+  it("does not store a token on register: the account only exists after email verification", async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { message: "Vérifie ta boîte mail" } });
 
     await useAuthStore.getState().register({
       prenom: "Adam",
@@ -50,7 +50,56 @@ describe("authStore", () => {
       password: "Password123!",
     });
 
+    expect(api.post).toHaveBeenCalledWith("/auth/register", {
+      prenom: "Adam",
+      nom: "Amrane",
+      email: "adam@test.fr",
+      password: "Password123!",
+    });
+    expect(useAuthStore.getState().token).toBeNull();
+    expect(localStorage.getItem("token")).toBeNull();
+  });
+
+  it("sets an error and throws on failed register", async () => {
+    vi.mocked(api.post).mockRejectedValueOnce(new Error("422"));
+
+    await expect(
+      useAuthStore.getState().register({
+        prenom: "Adam",
+        nom: "Amrane",
+        email: "adam@test.fr",
+        password: "Password123!",
+      }),
+    ).rejects.toThrow();
+
+    expect(useAuthStore.getState().error).not.toBeNull();
+  });
+
+  it("stores the token returned by verifyEmail on success", async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { token: "jwt-456" } });
+
+    await useAuthStore.getState().verifyEmail("some-token");
+
+    expect(api.post).toHaveBeenCalledWith("/auth/verify-email", { token: "some-token" });
     expect(useAuthStore.getState().token).toBe("jwt-456");
+    expect(localStorage.getItem("token")).toBe("jwt-456");
+  });
+
+  it("surfaces an expiry-specific error when verifyEmail returns 410", async () => {
+    vi.mocked(api.post).mockRejectedValueOnce({ response: { status: 410 } });
+
+    await expect(useAuthStore.getState().verifyEmail("stale-token")).rejects.toThrow();
+
+    expect(useAuthStore.getState().token).toBeNull();
+    expect(useAuthStore.getState().error).toMatch(/expiré/);
+  });
+
+  it("surfaces a generic invalid-link error when verifyEmail fails for another reason", async () => {
+    vi.mocked(api.post).mockRejectedValueOnce({ response: { status: 404 } });
+
+    await expect(useAuthStore.getState().verifyEmail("bad-token")).rejects.toThrow();
+
+    expect(useAuthStore.getState().error).toMatch(/invalide/);
   });
 
   it("fetchMe populates the user from /me", async () => {
