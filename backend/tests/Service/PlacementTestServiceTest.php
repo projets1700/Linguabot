@@ -2,9 +2,12 @@
 
 namespace App\Tests\Service;
 
+use App\Service\OpenAiChatService;
 use App\Service\PlacementTestService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpClient\MockHttpClient;
+use Symfony\Component\HttpClient\Response\MockResponse;
 
 final class PlacementTestServiceTest extends TestCase
 {
@@ -12,7 +15,10 @@ final class PlacementTestServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->service = new PlacementTestService();
+        // Empty API key: evaluateLevel() always falls through to the
+        // word-count heuristic in these tests (the AI path is covered
+        // separately, with a mocked response).
+        $this->service = new PlacementTestService(new OpenAiChatService(new MockHttpClient(), '', 'gpt-4o-mini'));
     }
 
     public function testTotalQuestionsMatchesTheScript(): void
@@ -33,9 +39,36 @@ final class PlacementTestServiceTest extends TestCase
     }
 
     #[DataProvider('answerLengthProvider')]
-    public function testEvaluateLevelBucketsByAverageWordsPerAnswer(array $answers, string $expectedLevel): void
+    public function testEvaluateLevelFallsBackToBucketingByAverageWordsPerAnswerWithNoApiKey(array $answers, string $expectedLevel): void
     {
         self::assertSame($expectedLevel, $this->service->evaluateLevel($answers));
+    }
+
+    public function testEvaluateLevelUsesTheRealAiJudgementWhenTheApiCallSucceeds(): void
+    {
+        $mockClient = new MockHttpClient([
+            new MockResponse(json_encode([
+                'choices' => [['message' => ['content' => 'B1']]],
+            ])),
+        ]);
+        $service = new PlacementTestService(new OpenAiChatService($mockClient, 'fake-key', 'gpt-4o-mini'));
+
+        // Deliberately short answers that the word-count heuristic alone
+        // would bucket as A0 - if this comes back B1, the real AI path (not
+        // the fallback) is what actually produced the result.
+        self::assertSame('B1', $service->evaluateLevel(['Yes', 'No', 'Ok', 'Sure', 'Fine']));
+    }
+
+    public function testEvaluateLevelFallsBackWhenTheAiResponseHasNoRecognizableLevelCode(): void
+    {
+        $mockClient = new MockHttpClient([
+            new MockResponse(json_encode([
+                'choices' => [['message' => ['content' => "I'm not sure, hard to tell."]]],
+            ])),
+        ]);
+        $service = new PlacementTestService(new OpenAiChatService($mockClient, 'fake-key', 'gpt-4o-mini'));
+
+        self::assertSame('A0', $service->evaluateLevel(['Hi', 'Ok']));
     }
 
     public static function answerLengthProvider(): array

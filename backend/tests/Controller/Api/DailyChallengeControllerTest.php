@@ -38,6 +38,41 @@ final class DailyChallengeControllerTest extends ApiTestCase
         self::assertTrue($this->decodeResponse($client)['completed']);
     }
 
+    public function testMessageThatEchoesTheAisOwnLastLineIsRejectedWhenHistoryIsProvided(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/start', $token);
+        $opening = $this->decodeResponse($client)['openingMessage'];
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/message', $token, [
+            'message' => $opening,
+            'turnNumber' => 0,
+            'history' => [['role' => 'assistant', 'content' => $opening]],
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testAskingToRepeatReSaysTheAisLastLineWhenHistoryIsProvided(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/start', $token);
+        $opening = $this->decodeResponse($client)['openingMessage'];
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/message', $token, [
+            'message' => 'Sorry, can you repeat that?',
+            'turnNumber' => 0,
+            'history' => [['role' => 'assistant', 'content' => $opening]],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString($opening, $this->decodeResponse($client)['assistantMessage']);
+    }
+
     public function testCannotFinishAChallengeThatWasNeverStarted(): void
     {
         $client = static::createClient();

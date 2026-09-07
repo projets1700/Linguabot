@@ -37,12 +37,18 @@ export function DailyChallengePage() {
     setSending(true);
     const userMessage: ChatMessage = { id: Date.now(), role: "user", content: transcript };
     const turnNumber = messages.filter((m) => m.role === "user").length;
+    // The backend doesn't persist this conversation, so it has no way to
+    // know what was already said - the frontend (which does render the
+    // full transcript) is the source of truth it needs for real GPT-4o
+    // replies and for detecting an echo/repeat request server-side.
+    const history = messages.map(({ role, content }) => ({ role, content }));
     setMessages((current) => [...current, userMessage]);
 
     try {
       const response = await api.post<{ assistantMessage: string }>("/daily-challenge/message", {
         message: userMessage.content,
         turnNumber,
+        history,
       });
       setMessages((current) => [
         ...current,
@@ -52,6 +58,9 @@ export function DailyChallengePage() {
         onStart: () => setAiSpeaking(true),
         onEnd: () => setAiSpeaking(false),
       });
+    } catch {
+      // Rejected (e.g. echo detection): nothing to say, the mic just
+      // resumes listening for a real answer.
     } finally {
       setSending(false);
     }

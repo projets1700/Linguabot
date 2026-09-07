@@ -101,7 +101,11 @@ final class SessionController
         $em->persist($userMessage);
 
         $turnNumber = $session->getMessages()->count();
-        $reply = $voiceService->generateAnswer($transcript, $turnNumber);
+        $conversationHistory = array_map(
+            static fn (SessionMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
+            $session->getMessages()->toArray(),
+        );
+        $reply = $voiceService->generateAnswer($session->getScenario()->getPromptTemplate(), $conversationHistory, $turnNumber);
 
         $assistantMessage = (new SessionMessage())
             ->setRole(MessageRole::ASSISTANT)

@@ -5,11 +5,11 @@ namespace App\Service;
 use App\Entity\Scenario;
 
 /**
- * Simulated LLM/TTS pipeline (TP chapitre 12.2): the frontend now does real
- * browser-side STT/TTS (VoiceInput/speakText), sending the recognized text
- * here and reading the reply aloud - GPT-4o/OpenAI TTS wiring replaces the
- * innards of this class in a later chapter without changing the
- * controllers' contract.
+ * Conversation logic for scenario sessions and the daily challenge (TP
+ * chapitre 12.2). STT/TTS are real and run in the browser (VoiceInput/
+ * speakText); generateAnswer() calls real GPT-4o via OpenAiChatService when
+ * OPENAI_API_KEY is configured, and transparently falls back to a fixed
+ * pool of encouraging replies otherwise - the app works either way.
  */
 final class VoiceService
 {
@@ -56,6 +56,11 @@ final class VoiceService
         'I understand. Can you describe that a bit more?',
     ];
 
+    public function __construct(
+        private readonly OpenAiChatService $openAiChatService,
+    ) {
+    }
+
     /**
      * Scenario::context/title are intentionally French (catalogue copy for
      * a French-speaking learner choosing a scenario) - they must never be
@@ -71,8 +76,9 @@ final class VoiceService
     }
 
     /**
-     * Simulated Whisper STT: the frontend already sends typed text (voice
-     * capture is not implemented yet), so this is a pass-through for now.
+     * The frontend already does real speech-to-text in the browser
+     * (VoiceInput, Web Speech API) and sends the recognized text here, so
+     * this is just a trim - no server-side transcription needed.
      */
     public function transcribeAudio(string $input): string
     {
@@ -80,20 +86,22 @@ final class VoiceService
     }
 
     /**
-     * Simulated GPT-4o: rotates through a fixed set of encouraging replies
-     * instead of generating a real contextual answer.
+     * Real GPT-4o reply when an API key is configured, playing the
+     * character described by $systemPrompt and grounded in the actual
+     * conversation so far; falls back to a fixed pool of encouraging
+     * replies (cycled by turn number, ignoring content - the pre-AI
+     * behaviour) if no key is set or the call fails for any reason.
+     *
+     * @param array<int, array{role: string, content: string}> $conversationHistory OpenAI-style {role, content} pairs, oldest first, already including the learner's latest message
      */
-    public function generateAnswer(string $userMessage, int $turnNumber): string
+    public function generateAnswer(string $systemPrompt, array $conversationHistory, int $turnNumber): string
     {
-        return self::SIMULATED_REPLIES[$turnNumber % \count(self::SIMULATED_REPLIES)];
-    }
+        $reply = $this->openAiChatService->chat([
+            ['role' => 'system', 'content' => $systemPrompt],
+            ...$conversationHistory,
+        ]);
 
-    /**
-     * Simulated OpenAI TTS: no audio is actually synthesized yet.
-     */
-    public function synthesizeSpeech(string $text): ?string
-    {
-        return null;
+        return $reply ?? self::SIMULATED_REPLIES[$turnNumber % \count(self::SIMULATED_REPLIES)];
     }
 
     /**

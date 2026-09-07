@@ -5,9 +5,12 @@ namespace App\Tests\Service;
 use App\Entity\Level;
 use App\Entity\Scenario;
 use App\Enum\ScenarioCategory;
+use App\Service\OpenAiChatService;
 use App\Service\VoiceService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpClient\MockHttpClient;
+use Symfony\Component\HttpClient\Response\MockResponse;
 
 final class VoiceServiceTest extends TestCase
 {
@@ -15,7 +18,11 @@ final class VoiceServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->service = new VoiceService();
+        // Empty API key: OpenAiChatService::chat() short-circuits to null
+        // without any HTTP call, so generateAnswer() always exercises its
+        // simulated fallback in these tests (the AI-path itself is covered
+        // separately, with a mocked response).
+        $this->service = new VoiceService(new OpenAiChatService(new MockHttpClient(), '', 'gpt-4o-mini'));
     }
 
     public function testOpeningMessageIncludesTheCharacterName(): void
@@ -65,19 +72,30 @@ final class VoiceServiceTest extends TestCase
         self::assertSame('hello there', $this->service->transcribeAudio('  hello there  '));
     }
 
-    public function testGenerateAnswerCyclesThroughRepliesByTurnNumber(): void
+    public function testGenerateAnswerFallsBackToSimulatedRepliesCyclingByTurnNumberWithNoApiKey(): void
     {
-        $first = $this->service->generateAnswer('hi', 0);
-        $second = $this->service->generateAnswer('hi', 1);
-        $sameAsFirst = $this->service->generateAnswer('hi', 6); // wraps around (6 replies in the pool)
+        $first = $this->service->generateAnswer('system prompt', [], 0);
+        $second = $this->service->generateAnswer('system prompt', [], 1);
+        $sameAsFirst = $this->service->generateAnswer('system prompt', [], 6); // wraps around (6 replies in the pool)
 
         self::assertNotSame($first, $second);
         self::assertSame($first, $sameAsFirst);
     }
 
-    public function testSynthesizeSpeechIsSimulatedAndReturnsNull(): void
+    public function testGenerateAnswerUsesTheRealAiReplyWhenTheApiCallSucceeds(): void
     {
-        self::assertNull($this->service->synthesizeSpeech('Hello!'));
+        $mockClient = new MockHttpClient([
+            new MockResponse(json_encode([
+                'choices' => [['message' => ['content' => 'A real, contextual GPT-4o reply.']]],
+            ])),
+        ]);
+        $service = new VoiceService(new OpenAiChatService($mockClient, 'fake-key', 'gpt-4o-mini'));
+
+        $reply = $service->generateAnswer('You are a friendly waiter.', [
+            ['role' => 'user', 'content' => "I'd like a coffee, please."],
+        ], 0);
+
+        self::assertSame('A real, contextual GPT-4o reply.', $reply);
     }
 
     #[DataProvider('repeatRequestProvider')]

@@ -66,8 +66,12 @@ final class DailyChallengeController
     }
 
     #[Route('/api/daily-challenge/message', name: 'api_daily_challenge_message', methods: ['POST'])]
-    public function message(Request $request, VoiceService $voiceService): JsonResponse
-    {
+    public function message(
+        Request $request,
+        VoiceService $voiceService,
+        #[CurrentUser] User $user,
+        DailyChallengeService $dailyChallengeService,
+    ): JsonResponse {
         $data = json_decode($request->getContent(), true) ?? [];
         $transcript = $voiceService->transcribeAudio((string) ($data['message'] ?? ''));
         $turnNumber = (int) ($data['turnNumber'] ?? 0);
@@ -76,9 +80,53 @@ final class DailyChallengeController
             return new JsonResponse(['message' => 'Message vide.'], 422);
         }
 
+        $challenge = $dailyChallengeService->findOrCreateTodaysChallenge($user->getLevel());
+
+        // No ChallengeMessage entity is persisted for this stateless
+        // endpoint (turnNumber alone drives the simulated fallback), so the
+        // frontend - which already renders the full transcript locally -
+        // is the one source of truth for what was actually said so far.
+        $history = \is_array($data['history'] ?? null) ? $data['history'] : [];
+        $conversationHistory = [];
+        foreach ($history as $entry) {
+            if (\is_array($entry) && \in_array($entry['role'] ?? null, ['user', 'assistant'], true) && \is_string($entry['content'] ?? null)) {
+                $conversationHistory[] = ['role' => $entry['role'], 'content' => $entry['content']];
+            }
+        }
+
+        $lastAssistantMessage = null;
+        for ($i = \count($conversationHistory) - 1; $i >= 0; --$i) {
+            if ('assistant' === $conversationHistory[$i]['role']) {
+                $lastAssistantMessage = $conversationHistory[$i]['content'];
+                break;
+            }
+        }
+
+        if (null !== $lastAssistantMessage && $voiceService->isRepeatRequest($transcript)) {
+            return new JsonResponse([
+                'userTranscript' => $transcript,
+                'assistantMessage' => $voiceService->repeatMessage($lastAssistantMessage),
+            ]);
+        }
+
+        if (null !== $lastAssistantMessage && $voiceService->isEchoOfQuestion($transcript, $lastAssistantMessage)) {
+            return new JsonResponse(['message' => "On dirait que tu répètes la question posée - réponds avec tes propres mots."], 422);
+        }
+
+        $conversationHistory[] = ['role' => 'user', 'content' => $transcript];
+
+        $systemPrompt = \sprintf(
+            "You are %s, a character in an English conversation practice scenario. Context: %s Objective: %s. ".
+            'Stay in character, speak only English, adapt your vocabulary and pace to the level, '.
+            'and gently correct the learner when needed.',
+            $challenge->getCharacterName(),
+            $challenge->getContext(),
+            $challenge->getObjective(),
+        );
+
         return new JsonResponse([
             'userTranscript' => $transcript,
-            'assistantMessage' => $voiceService->generateAnswer($transcript, $turnNumber),
+            'assistantMessage' => $voiceService->generateAnswer($systemPrompt, $conversationHistory, $turnNumber),
         ]);
     }
 
