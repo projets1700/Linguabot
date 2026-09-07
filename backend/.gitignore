@@ -1,6 +1,9 @@
 
 ###> symfony/framework-bundle ###
-/.env.local
+# Inverted from Symfony's usual default on purpose for this repo: .env
+# holds the real, machine-local values (git-ignored here) and .env.local
+# is the tracked, safe-to-share template (see both files' own comments).
+/.env
 /.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
