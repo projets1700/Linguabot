@@ -27,6 +27,7 @@ final class MeController
                 'name' => $user->getLevel()->getName(),
                 'xpThreshold' => $user->getLevel()->getXpThreshold(),
             ],
+            'avatarType' => $user->getAvatarType()->value,
             'totalXp' => $user->getTotalXp(),
             'sessionsCount' => $user->getSessionsCount(),
             'avgScore' => $user->getAvgScore(),

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\AvatarType;
 use App\Enum\UserRole;
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
@@ -34,6 +35,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: 'string', enumType: UserRole::class, columnDefinition: "user_role NOT NULL DEFAULT 'ROLE_USER'")]
     private UserRole $role = UserRole::USER;
+
+    #[ORM\Column(name: 'avatar_type', type: 'string', enumType: AvatarType::class, columnDefinition: "avatar_type NOT NULL DEFAULT 'male'")]
+    private AvatarType $avatarType = AvatarType::MALE;
 
     #[ORM\ManyToOne(targetEntity: Level::class, inversedBy: 'users')]
     #[ORM\JoinColumn(name: 'level_id', referencedColumnName: 'id', nullable: false, onDelete: 'RESTRICT')]
@@ -138,6 +142,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRoles(): array
     {
         return [$this->role->value];
+    }
+
+    public function getAvatarType(): AvatarType
+    {
+        return $this->avatarType;
+    }
+
+    public function setAvatarType(AvatarType $avatarType): static
+    {
+        $this->avatarType = $avatarType;
+
+        return $this;
     }
 
     #[\Deprecated]

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\AvatarType;
 use App\Repository\PendingRegistrationRepository;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -33,6 +34,9 @@ class PendingRegistration
 
     #[ORM\Column(name: 'password_hash', length: 255)]
     private string $passwordHash;
+
+    #[ORM\Column(name: 'avatar_type', type: 'string', enumType: AvatarType::class, columnDefinition: "avatar_type NOT NULL DEFAULT 'male'")]
+    private AvatarType $avatarType = AvatarType::MALE;
 
     #[ORM\Column(length: 64)]
     private string $token;
@@ -98,6 +102,18 @@ class PendingRegistration
     public function setPasswordHash(string $passwordHash): static
     {
         $this->passwordHash = $passwordHash;
+
+        return $this;
+    }
+
+    public function getAvatarType(): AvatarType
+    {
+        return $this->avatarType;
+    }
+
+    public function setAvatarType(AvatarType $avatarType): static
+    {
+        $this->avatarType = $avatarType;
 
         return $this;
     }

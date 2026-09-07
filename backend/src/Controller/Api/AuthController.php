@@ -6,6 +6,7 @@ use App\DTO\RegisterDTO;
 use App\DTO\VerifyEmailDTO;
 use App\Entity\PendingRegistration;
 use App\Entity\User;
+use App\Enum\AvatarType;
 use App\Enum\UserRole;
 use App\Repository\LevelRepository;
 use App\Repository\PendingRegistrationRepository;
@@ -79,6 +80,7 @@ final class AuthController
             ->setPrenom($dto->prenom)
             ->setNom($dto->nom)
             ->setPasswordHash($passwordHash)
+            ->setAvatarType(AvatarType::from($dto->avatarType))
             ->refreshToken();
 
         $em = $pendingRepository->getEntityManager();
@@ -149,7 +151,8 @@ final class AuthController
             ->setNom($pending->getNom())
             ->setEmail($pending->getEmail())
             ->setRole(UserRole::USER)
-            ->setLevel($levelA0);
+            ->setLevel($levelA0)
+            ->setAvatarType($pending->getAvatarType());
         $user->setPasswordHash($pending->getPasswordHash());
 
         $em->persist($user);
