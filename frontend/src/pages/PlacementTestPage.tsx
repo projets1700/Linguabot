@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene, type AvatarState } from "../components/AvatarScene";
+import { ConversationLog } from "../components/ConversationLog";
 import { VoiceInput } from "../components/VoiceInput";
+import { speakText } from "../lib/speech";
 import { useAuthStore } from "../stores/authStore";
 import type {
   PlacementTestDetail,
@@ -10,8 +12,6 @@ import type {
   PlacementTestMessageResult,
   SessionMessage,
 } from "../types";
-
-const SPEAKING_DURATION_MS = 2200;
 
 export function PlacementTestPage() {
   const navigate = useNavigate();
@@ -41,8 +41,13 @@ export function PlacementTestPage() {
           setMessages(response.data.messages);
           setTotalQuestions(response.data.totalQuestions);
           setAnsweredCount(response.data.answeredCount);
-          setAvatarState("speaking");
-          setTimeout(() => setAvatarState("idle"), SPEAKING_DURATION_MS);
+          const opening = response.data.messages.at(-1);
+          if (opening) {
+            speakText(opening.content, {
+              onStart: () => setAvatarState("speaking"),
+              onEnd: () => setAvatarState("idle"),
+            });
+          }
         }
       })
       .catch(() => {
@@ -99,8 +104,10 @@ export function PlacementTestPage() {
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
       setAnsweredCount(response.data.answeredCount);
-      setAvatarState("speaking");
-      setTimeout(() => setAvatarState("idle"), SPEAKING_DURATION_MS);
+      speakText(response.data.assistantMessage, {
+        onStart: () => setAvatarState("speaking"),
+        onEnd: () => setAvatarState("idle"),
+      });
 
       if (response.data.readyToFinish) {
         await finishTest(test.id);
@@ -153,21 +160,7 @@ export function PlacementTestPage() {
         <AvatarScene state={avatarState} />
       </div>
 
-      <div className="flex-1 bg-slate-900 rounded-xl p-4 mb-4 flex flex-col gap-3 overflow-y-auto min-h-[300px]">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`max-w-[80%] px-4 py-2 rounded-xl ${
-              message.role === "assistant"
-                ? "bg-slate-800 self-start"
-                : "bg-blue-600 self-end"
-            }`}
-          >
-            {message.content}
-          </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
+      <ConversationLog messages={messages} bottomRef={bottomRef} />
 
       <VoiceInput onResult={handleVoiceResult} disabled={sending || finishing} />
 

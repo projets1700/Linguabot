@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
+import { ConversationLog } from "../components/ConversationLog";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
+import { speakText } from "../lib/speech";
 import type { DailyChallenge, DailyChallengeFinishResult } from "../types";
 
 type ChatMessage = { id: number; role: "user" | "assistant"; content: string };
@@ -24,6 +26,7 @@ export function DailyChallengePage() {
     const response = await api.post<{ openingMessage: string }>("/daily-challenge/start");
     setMessages([{ id: Date.now(), role: "assistant", content: response.data.openingMessage }]);
     setChatStarted(true);
+    speakText(response.data.openingMessage);
   }
 
   async function handleVoiceResult(transcript: string) {
@@ -41,6 +44,7 @@ export function DailyChallengePage() {
         ...current,
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
+      speakText(response.data.assistantMessage);
     } finally {
       setSending(false);
     }
@@ -101,18 +105,7 @@ export function DailyChallengePage() {
         </button>
       ) : (
         <>
-          <div className="bg-slate-900 rounded-xl p-4 mb-4 flex flex-col gap-3 min-h-[250px]">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`max-w-[80%] px-4 py-2 rounded-xl ${
-                  message.role === "assistant" ? "bg-slate-800 self-start" : "bg-blue-600 self-end"
-                }`}
-              >
-                {message.content}
-              </div>
-            ))}
-          </div>
+          <ConversationLog messages={messages} />
 
           <div className="mb-4">
             <VoiceInput onResult={handleVoiceResult} disabled={sending} />

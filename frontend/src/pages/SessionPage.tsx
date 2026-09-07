@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene, type AvatarState } from "../components/AvatarScene";
+import { ConversationLog } from "../components/ConversationLog";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
+import { speakText } from "../lib/speech";
 import type { SessionDetail, SessionFinishResult, SessionMessage } from "../types";
-
-const SPEAKING_DURATION_MS = 2200;
 
 export function SessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,8 +28,13 @@ export function SessionPage() {
       if (!ignore) {
         setSession(response.data);
         setMessages(response.data.messages);
-        setAvatarState("speaking");
-        setTimeout(() => setAvatarState("idle"), SPEAKING_DURATION_MS);
+        const opening = response.data.messages.at(-1);
+        if (opening) {
+          speakText(opening.content, {
+            onStart: () => setAvatarState("speaking"),
+            onEnd: () => setAvatarState("idle"),
+          });
+        }
       }
     });
 
@@ -57,8 +62,10 @@ export function SessionPage() {
         ...current,
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
-      setAvatarState("speaking");
-      setTimeout(() => setAvatarState("idle"), SPEAKING_DURATION_MS);
+      speakText(response.data.assistantMessage, {
+        onStart: () => setAvatarState("speaking"),
+        onEnd: () => setAvatarState("idle"),
+      });
     } catch {
       setAvatarState("idle");
     } finally {
@@ -125,21 +132,7 @@ export function SessionPage() {
         <AvatarScene state={avatarState} />
       </div>
 
-      <div className="flex-1 bg-slate-900 rounded-xl p-4 mb-4 flex flex-col gap-3 overflow-y-auto min-h-[300px]">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`max-w-[80%] px-4 py-2 rounded-xl ${
-              message.role === "assistant"
-                ? "bg-slate-800 self-start"
-                : "bg-blue-600 self-end"
-            }`}
-          >
-            {message.content}
-          </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
+      <ConversationLog messages={messages} bottomRef={bottomRef} />
 
       <VoiceInput onResult={handleVoiceResult} disabled={sending} />
     </main>

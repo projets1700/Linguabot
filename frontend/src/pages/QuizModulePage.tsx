@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
+import { speakText } from "../lib/speech";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
 export function QuizModulePage() {
@@ -13,6 +14,7 @@ export function QuizModulePage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
+  const [showQuestionText, setShowQuestionText] = useState(false);
 
   useEffect(() => {
     api
@@ -20,6 +22,13 @@ export function QuizModulePage() {
       .then((response) => setQuestions(response.data))
       .finally(() => setLoading(false));
   }, [moduleId]);
+
+  useEffect(() => {
+    if (questions.length > 0) {
+      speakText(questions[currentIndex].questionText);
+      setShowQuestionText(false);
+    }
+  }, [currentIndex, questions]);
 
   async function handleVoiceAnswer(transcript: string) {
     const question = questions[currentIndex];
@@ -86,7 +95,20 @@ export function QuizModulePage() {
         <p className="text-slate-400 text-sm">
           Question {currentIndex + 1} / {questions.length}
         </p>
-        <h1 className="text-2xl font-bold">{question.questionText}</h1>
+
+        {showQuestionText ? (
+          <h1 className="text-2xl font-bold">{question.questionText}</h1>
+        ) : (
+          <p className="text-slate-500 text-sm text-center py-4">🔊 Mode audio — écoute la question</p>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowQuestionText((current) => !current)}
+          className="self-center text-xs text-slate-400 underline hover:text-slate-300"
+        >
+          {showQuestionText ? "Masquer le texte" : "Je n'ai pas compris ? Afficher le texte"}
+        </button>
 
         <VoiceInput onResult={handleVoiceAnswer} disabled={submitting} />
 
