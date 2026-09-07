@@ -6,6 +6,7 @@ use App\Entity\Level;
 use App\Entity\Scenario;
 use App\Enum\ScenarioCategory;
 use App\Service\VoiceService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class VoiceServiceTest extends TestCase
@@ -77,5 +78,56 @@ final class VoiceServiceTest extends TestCase
     public function testSynthesizeSpeechIsSimulatedAndReturnsNull(): void
     {
         self::assertNull($this->service->synthesizeSpeech('Hello!'));
+    }
+
+    #[DataProvider('echoProvider')]
+    public function testIsEchoOfQuestion(string $answer, string $lastAssistantMessage, bool $expectedEcho): void
+    {
+        self::assertSame($expectedEcho, $this->service->isEchoOfQuestion($answer, $lastAssistantMessage));
+    }
+
+    public static function echoProvider(): array
+    {
+        return [
+            // Real examples pulled from a placement test corrupted by the
+            // mic-picking-up-its-own-voice bug this check guards against.
+            'opening self-introduction echoed back' => [
+                "hello I'm your Lingard Examiner",
+                "Hello! I'm your LinguaBot examiner. We're going to have a short conversation, ".
+                "about 3 to 5 minutes - just answer naturally, there's no wrong answer. Hi! Let's ".
+                "start easy: what's your name, and where are you from?",
+                true,
+            ],
+            'question repeated near-verbatim' => [
+                'what do you usually do in the morning',
+                'Nice to meet you! Can you tell me about your daily routine? What do you usually do in the morning?',
+                true,
+            ],
+            'question repeated with a contraction dropped' => [
+                'describe a challenge you faced and how you dealt with it',
+                "Describe a challenge you've faced and how you dealt with it. What did you learn from it?",
+                true,
+            ],
+            'genuine short answer sharing no real words with the question' => [
+                "I don't know",
+                'If you could change one thing about your city, what would it be, and why?',
+                false,
+            ],
+            'genuine reworded answer with only incidental overlap' => [
+                'Last weekend I went hiking with some friends.',
+                'What did you do last weekend? Tell me about something fun you did recently.',
+                false,
+            ],
+            'too short to judge reliably' => [
+                'Paris',
+                "Hi! Let's start easy: what's your name, and where are you from?",
+                false,
+            ],
+            'empty last assistant message never flags anything' => [
+                'My name is Adam and I live in Paris.',
+                '',
+                false,
+            ],
+        ];
     }
 }

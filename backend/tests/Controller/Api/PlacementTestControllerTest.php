@@ -85,6 +85,28 @@ final class PlacementTestControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function testMessageThatEchoesTheAisOwnQuestionIsRejected(): void
+    {
+        // Regression: a real user's placement test got filled with garbage
+        // like "what did you do last weekend" as their own "answer" - the
+        // mic picking the AI's own voice back up through the speakers
+        // rather than being stopped while it talked.
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $token);
+        $test = $this->decodeResponse($client);
+        $opening = $test['messages'][0]['content'];
+
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$test['id']}/message", $token, ['message' => $opening]);
+
+        self::assertResponseStatusCodeSame(422);
+
+        // Rejected as an echo, not counted as a real (wasted) answer.
+        $this->jsonRequest($client, 'GET', "/api/placement-test/{$test['id']}", $token);
+        self::assertSame(0, $this->decodeResponse($client)['answeredCount']);
+    }
+
     public function testMessageOnAnotherUsersTestIsForbidden(): void
     {
         $client = static::createClient();

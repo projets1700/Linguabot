@@ -77,6 +77,11 @@ final class SessionController
             return new JsonResponse(['message' => 'Message vide.'], 422);
         }
 
+        $lastAssistantMessage = $session->getMessages()->last();
+        if (false !== $lastAssistantMessage && $voiceService->isEchoOfQuestion($transcript, $lastAssistantMessage->getContent())) {
+            return new JsonResponse(['message' => "On dirait que tu répètes la question posée - réponds avec tes propres mots."], 422);
+        }
+
         $userMessage = (new SessionMessage())
             ->setRole(MessageRole::USER)
             ->setContent($transcript);

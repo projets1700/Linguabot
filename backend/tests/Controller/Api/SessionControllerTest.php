@@ -49,6 +49,25 @@ final class SessionControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function testMessageThatEchoesTheAisOwnQuestionIsRejected(): void
+    {
+        // Regression: the mic used to keep listening (or get abandoned
+        // rather than stopped) while the AI's own voice was still playing,
+        // so its own opening line could get picked up and submitted back
+        // as if the learner had said it.
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $session = $this->decodeResponse($client);
+        $opening = $session['messages'][0]['content'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$session['id']}/message", $token, ['message' => $opening]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testCannotAccessAnotherUsersSession(): void
     {
         $client = static::createClient();

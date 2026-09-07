@@ -97,6 +97,11 @@ final class PlacementTestController
             return new JsonResponse(['message' => 'Message vide.'], 422);
         }
 
+        $lastAssistantMessage = $placementTest->getMessages()->last();
+        if (false !== $lastAssistantMessage && $voiceService->isEchoOfQuestion($transcript, $lastAssistantMessage->getContent())) {
+            return new JsonResponse(['message' => "On dirait que tu répètes la question posée - réponds avec tes propres mots."], 422);
+        }
+
         $userMessage = (new PlacementTestMessage())
             ->setRole(MessageRole::USER)
             ->setContent($transcript);
