@@ -1,0 +1,110 @@
+<?php
+
+namespace App\Tests\Controller\Api;
+
+use App\Tests\ApiTestCase;
+
+final class PlacementTestControllerTest extends ApiTestCase
+{
+    public function testStartCreatesATestWithAnOpeningQuestion(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $token);
+
+        self::assertResponseStatusCodeSame(201);
+        $data = $this->decodeResponse($client);
+        self::assertSame('in_progress', $data['status']);
+        self::assertSame(5, $data['totalQuestions']);
+        self::assertSame(0, $data['answeredCount']);
+        self::assertCount(1, $data['messages']);
+        self::assertSame('assistant', $data['messages'][0]['role']);
+    }
+
+    public function testStartTwiceResumesTheSameTestInsteadOfCreatingAnother(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $token);
+        $firstId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $token);
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame($firstId, $this->decodeResponse($client)['id']);
+    }
+
+    public function testFullConversationSetsTheUserLevelAndCompletesTheTest(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $token);
+        $testId = $this->decodeResponse($client)['id'];
+
+        // Deliberately long, elaborate answers so the simulated heuristic
+        // (average words per answer) places this learner above A0.
+        $answer = 'I usually wake up early, have a big breakfast, and then go to work by train while listening to podcasts about history.';
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->jsonRequest($client, 'POST', "/api/placement-test/{$testId}/message", $token, ['message' => $answer]);
+            self::assertResponseIsSuccessful();
+            $data = $this->decodeResponse($client);
+            self::assertFalse($data['readyToFinish']);
+        }
+
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$testId}/message", $token, ['message' => $answer]);
+        $lastMessageData = $this->decodeResponse($client);
+        self::assertTrue($lastMessageData['readyToFinish']);
+        self::assertSame(5, $lastMessageData['answeredCount']);
+
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$testId}/finish", $token);
+        self::assertResponseIsSuccessful();
+        $result = $this->decodeResponse($client);
+        self::assertArrayHasKey('level', $result);
+        self::assertNotSame('A0', $result['level']['code']);
+
+        $this->jsonRequest($client, 'GET', '/api/me', $token);
+        $me = $this->decodeResponse($client);
+        self::assertTrue($me['placementTestCompleted']);
+        self::assertSame($result['level']['code'], $me['level']['code']);
+    }
+
+    public function testFinishBeforeAnsweringAllQuestionsIsRejected(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $token);
+        $testId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$testId}/message", $token, ['message' => 'Hi there']);
+
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$testId}/finish", $token);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testMessageOnAnotherUsersTestIsForbidden(): void
+    {
+        $client = static::createClient();
+        $ownerToken = $this->registerAndGetToken($client);
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $ownerToken);
+        $testId = $this->decodeResponse($client)['id'];
+
+        $intruderToken = $this->registerAndGetToken($client);
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$testId}/message", $intruderToken, ['message' => 'Hi']);
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testMeReflectsPlacementTestNotCompletedRightAfterRegistration(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'GET', '/api/me', $token);
+        $me = $this->decodeResponse($client);
+
+        self::assertFalse($me['placementTestCompleted']);
+    }
+}

@@ -14,6 +14,7 @@ export type Me = {
   totalXp: number;
   sessionsCount: number;
   avgScore: string | null;
+  placementTestCompleted: boolean;
 };
 
 export type Scenario = {
@@ -67,6 +68,29 @@ export type SessionDetail = {
     characterName: string;
   };
   messages: SessionMessage[];
+};
+
+export type PlacementTestDetail = {
+  id: number;
+  status: "in_progress" | "completed" | "abandoned";
+  totalQuestions: number;
+  answeredCount: number;
+  messages: SessionMessage[];
+};
+
+export type PlacementTestMessageResult = {
+  userTranscript: string;
+  assistantMessage: string;
+  answeredCount: number;
+  totalQuestions: number;
+  readyToFinish: boolean;
+};
+
+export type PlacementTestFinishResult = {
+  level: {
+    code: string;
+    name: string;
+  };
 };
 
 export type SessionFinishResult = {
