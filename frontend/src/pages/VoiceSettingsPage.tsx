@@ -79,14 +79,7 @@ export function VoiceSettingsPage() {
                         isSelected ? "border-blue-500 bg-slate-800" : "border-slate-700"
                       }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => setSelectedVoiceURI(voice.voiceURI)}
-                        className="text-left text-sm flex-1"
-                      >
-                        {voice.name}
-                        {isSelected && <span className="text-blue-400"> ✓</span>}
-                      </button>
+                      <span className="text-left text-sm flex-1">{voice.name}</span>
                       <button
                         type="button"
                         onClick={() => handlePreview(voice.voiceURI)}
@@ -94,6 +87,18 @@ export function VoiceSettingsPage() {
                         className="text-xs bg-slate-700 px-2 py-1 rounded hover:bg-slate-600 disabled:opacity-50"
                       >
                         {previewing === voice.voiceURI ? "..." : "Écouter"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedVoiceURI(voice.voiceURI)}
+                        disabled={isSelected}
+                        className={`text-xs px-2 py-1 rounded font-semibold disabled:opacity-100 ${
+                          isSelected
+                            ? "bg-blue-600 text-white"
+                            : "bg-slate-700 hover:bg-slate-600"
+                        }`}
+                      >
+                        {isSelected ? "✓ Sélectionné" : "Choisir"}
                       </button>
                     </div>
                   );
