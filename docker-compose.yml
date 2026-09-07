@@ -30,7 +30,9 @@ services:
       - backend_var:/app/var
       - backend_vendor:/app/vendor
     environment:
-      APP_ENV: dev
+      # APP_ENV is intentionally not set here: .env already defaults to
+      # "dev", and a real process env var here would outrank phpunit's own
+      # env override when running tests via `docker exec ... php bin/phpunit`.
       DATABASE_URL: "postgresql://linguabot_user:linguabot_password@database:5432/linguabot?serverVersion=16&charset=utf8"
 
   frontend:

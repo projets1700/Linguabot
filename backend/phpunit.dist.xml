@@ -13,7 +13,11 @@
     <php>
         <ini name="display_errors" value="1" />
         <ini name="error_reporting" value="-1" />
-        <server name="APP_ENV" value="test" force="true" />
+        <!-- <server> only sets $_SERVER, not getenv(); docker-compose sets
+             a real APP_ENV=dev process env var that would otherwise win.
+             <env force="true"> also calls putenv(), which actually overrides it. -->
+        <env name="APP_ENV" value="test" force="true" />
+        <env name="KERNEL_CLASS" value="App\Kernel" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 
@@ -40,5 +44,10 @@
     </source>
 
     <extensions>
+        <!-- Wraps every test in a transaction that's rolled back afterwards,
+             so functional tests hitting the real test DB never pollute each
+             other's data (e.g. a scenario created in one test leaking into
+             another test's count assertion). -->
+        <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension"/>
     </extensions>
 </phpunit>

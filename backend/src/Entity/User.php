@@ -140,6 +140,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return [$this->role->value];
     }
 
+    #[\Deprecated]
     public function eraseCredentials(): void
     {
         // No sensitive temporary data stored on the entity.

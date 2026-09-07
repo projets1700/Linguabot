@@ -10,6 +10,7 @@ RUN apk add --no-cache \
         oniguruma-dev \
         libzip-dev \
         postgresql-dev \
+        $PHPIZE_DEPS \
     && docker-php-ext-install -j$(nproc) \
         pdo \
         pdo_pgsql \
@@ -17,7 +18,10 @@ RUN apk add --no-cache \
         intl \
         mbstring \
         zip \
-        opcache
+        opcache \
+    && pecl install pcov \
+    && docker-php-ext-enable pcov \
+    && apk del $PHPIZE_DEPS
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
