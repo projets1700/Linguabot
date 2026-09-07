@@ -81,4 +81,34 @@ describe("speakText", () => {
 
     expect(onEnd).toHaveBeenCalled();
   });
+
+  it("force-releases onEnd via a fallback timeout if the browser never fires end/error", () => {
+    // Regression: a real Chrome bug can garbage-collect the utterance and
+    // silently drop the "end" event, which used to leave the mic (gated on
+    // this callback) disabled forever - see VoiceInput's `disabled` wiring.
+    vi.useFakeTimers();
+    const onEnd = vi.fn();
+
+    speakText("Hello there", { onEnd });
+    expect(onEnd).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(15000);
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("does not call onEnd twice if the real event fires just before the fallback timeout", () => {
+    vi.useFakeTimers();
+    const onEnd = vi.fn();
+
+    speakText("Hello there", { onEnd });
+    const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
+    utterance.onend?.(new Event("end") as never);
+
+    vi.advanceTimersByTime(15000);
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
 });
