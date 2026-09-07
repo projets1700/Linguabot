@@ -21,6 +21,13 @@
         <!-- docker-compose sets a real MAILER_DSN pointing at Mailpit for
              dev; tests must not depend on that container being up. -->
         <env name="MAILER_DSN" value="null://null" force="true" />
+        <!-- Defense in depth on top of .env.local already being skipped in
+             the test env (Symfony's own convention, where the real key
+             actually lives): force it empty here too so
+             AiChatService::chat() always takes its simulated-fallback path
+             in tests regardless - deterministic, no network dependency, no
+             real API cost per test run. -->
+        <env name="AI_API_KEY" value="" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 
