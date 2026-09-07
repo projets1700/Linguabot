@@ -25,12 +25,13 @@ services:
         arguments:
             $frontendUrl: '%env(FRONTEND_URL)%'
 
-    App\Service\OpenAiChatService:
+    App\Service\AiChatService:
         arguments:
-            # .env defines OPENAI_API_KEY as an empty string by default (see
-            # its own comment there): chat() treats that as "no key
-            # configured" and always returns null, so every caller's
-            # simulated fallback kicks in - the app works with or without a
-            # real key set in .env.local.
-            $apiKey: '%env(OPENAI_API_KEY)%'
-            $model: '%env(OPENAI_MODEL)%'
+            # .env defines AI_API_KEY as an empty string by default (see its
+            # own comment there): chat() treats that as "no key configured"
+            # and always returns null, so every caller's simulated fallback
+            # kicks in - the app works with or without a real key set in
+            # .env.local.
+            $apiKey: '%env(AI_API_KEY)%'
+            $baseUrl: '%env(AI_API_BASE_URL)%'
+            $model: '%env(AI_MODEL)%'

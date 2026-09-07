@@ -7,9 +7,10 @@ namespace App\Service;
  * script of increasingly demanding prompts (present tense -> narrative past
  * -> opinion/conditional -> reflection). The questions themselves stay
  * scripted on purpose - every learner gets the same, CEFR-progression-ordered
- * test - but evaluateLevel() asks a real GPT-4o examiner to judge the
- * answers when OPENAI_API_KEY is configured, falling back to a simulated
- * word-count heuristic otherwise (see evaluateLevelHeuristically()).
+ * test - but evaluateLevel() asks a real LLM examiner to judge the answers
+ * when AI_API_KEY is configured (Groq by default, OpenAI-compatible),
+ * falling back to a simulated word-count heuristic otherwise (see
+ * evaluateLevelHeuristically()).
  */
 final class PlacementTestService
 {
@@ -22,7 +23,7 @@ final class PlacementTestService
     ];
 
     public function __construct(
-        private readonly OpenAiChatService $openAiChatService,
+        private readonly AiChatService $aiChatService,
     ) {
     }
 
@@ -60,7 +61,7 @@ final class PlacementTestService
     }
 
     /**
-     * Sends the full Q&A transcript to a real CEFR-examiner-prompted GPT-4o
+     * Sends the full Q&A transcript to a real CEFR-examiner-prompted LLM
      * call, judging grammar, vocabulary, complexity and fluency instead of
      * just answer length. Returns null (never throws) whenever this can't
      * produce a trustworthy result - no API key, the call failed, or the
@@ -80,7 +81,7 @@ final class PlacementTestService
             $transcript .= \sprintf("Examiner: %s\nLearner: %s\n\n", $question, $userAnswers[$i] ?? '(no answer)');
         }
 
-        $reply = $this->openAiChatService->chat([
+        $reply = $this->aiChatService->chat([
             ['role' => 'system', 'content' =>
                 'You are a CEFR (Common European Framework of Reference for Languages) English placement '.
                 'examiner. Given the following short oral exam transcript, assess the learner\'s English '.

@@ -2,7 +2,7 @@
 
 namespace App\Tests\Service;
 
-use App\Service\OpenAiChatService;
+use App\Service\AiChatService;
 use App\Service\PlacementTestService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +18,7 @@ final class PlacementTestServiceTest extends TestCase
         // Empty API key: evaluateLevel() always falls through to the
         // word-count heuristic in these tests (the AI path is covered
         // separately, with a mocked response).
-        $this->service = new PlacementTestService(new OpenAiChatService(new MockHttpClient(), '', 'gpt-4o-mini'));
+        $this->service = new PlacementTestService(new AiChatService(new MockHttpClient(), '', 'https://example.test/chat', 'gpt-4o-mini'));
     }
 
     public function testTotalQuestionsMatchesTheScript(): void
@@ -51,7 +51,7 @@ final class PlacementTestServiceTest extends TestCase
                 'choices' => [['message' => ['content' => 'B1']]],
             ])),
         ]);
-        $service = new PlacementTestService(new OpenAiChatService($mockClient, 'fake-key', 'gpt-4o-mini'));
+        $service = new PlacementTestService(new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'));
 
         // Deliberately short answers that the word-count heuristic alone
         // would bucket as A0 - if this comes back B1, the real AI path (not
@@ -66,7 +66,7 @@ final class PlacementTestServiceTest extends TestCase
                 'choices' => [['message' => ['content' => "I'm not sure, hard to tell."]]],
             ])),
         ]);
-        $service = new PlacementTestService(new OpenAiChatService($mockClient, 'fake-key', 'gpt-4o-mini'));
+        $service = new PlacementTestService(new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'));
 
         self::assertSame('A0', $service->evaluateLevel(['Hi', 'Ok']));
     }

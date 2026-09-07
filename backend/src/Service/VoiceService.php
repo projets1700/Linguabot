@@ -7,9 +7,10 @@ use App\Entity\Scenario;
 /**
  * Conversation logic for scenario sessions and the daily challenge (TP
  * chapitre 12.2). STT/TTS are real and run in the browser (VoiceInput/
- * speakText); generateAnswer() calls real GPT-4o via OpenAiChatService when
- * OPENAI_API_KEY is configured, and transparently falls back to a fixed
- * pool of encouraging replies otherwise - the app works either way.
+ * speakText); generateAnswer() calls a real LLM via AiChatService when
+ * AI_API_KEY is configured (Groq by default, OpenAI-compatible), and
+ * transparently falls back to a fixed pool of encouraging replies
+ * otherwise - the app works either way.
  */
 final class VoiceService
 {
@@ -57,7 +58,7 @@ final class VoiceService
     ];
 
     public function __construct(
-        private readonly OpenAiChatService $openAiChatService,
+        private readonly AiChatService $aiChatService,
     ) {
     }
 
@@ -86,17 +87,17 @@ final class VoiceService
     }
 
     /**
-     * Real GPT-4o reply when an API key is configured, playing the
-     * character described by $systemPrompt and grounded in the actual
-     * conversation so far; falls back to a fixed pool of encouraging
-     * replies (cycled by turn number, ignoring content - the pre-AI
-     * behaviour) if no key is set or the call fails for any reason.
+     * Real LLM reply when an API key is configured, playing the character
+     * described by $systemPrompt and grounded in the actual conversation so
+     * far; falls back to a fixed pool of encouraging replies (cycled by
+     * turn number, ignoring content - the pre-AI behaviour) if no key is
+     * set or the call fails for any reason.
      *
-     * @param array<int, array{role: string, content: string}> $conversationHistory OpenAI-style {role, content} pairs, oldest first, already including the learner's latest message
+     * @param array<int, array{role: string, content: string}> $conversationHistory {role, content} pairs, oldest first, already including the learner's latest message
      */
     public function generateAnswer(string $systemPrompt, array $conversationHistory, int $turnNumber): string
     {
-        $reply = $this->openAiChatService->chat([
+        $reply = $this->aiChatService->chat([
             ['role' => 'system', 'content' => $systemPrompt],
             ...$conversationHistory,
         ]);

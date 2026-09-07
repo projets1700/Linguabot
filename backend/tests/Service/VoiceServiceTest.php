@@ -5,7 +5,7 @@ namespace App\Tests\Service;
 use App\Entity\Level;
 use App\Entity\Scenario;
 use App\Enum\ScenarioCategory;
-use App\Service\OpenAiChatService;
+use App\Service\AiChatService;
 use App\Service\VoiceService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -18,11 +18,11 @@ final class VoiceServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        // Empty API key: OpenAiChatService::chat() short-circuits to null
+        // Empty API key: AiChatService::chat() short-circuits to null
         // without any HTTP call, so generateAnswer() always exercises its
         // simulated fallback in these tests (the AI-path itself is covered
         // separately, with a mocked response).
-        $this->service = new VoiceService(new OpenAiChatService(new MockHttpClient(), '', 'gpt-4o-mini'));
+        $this->service = new VoiceService(new AiChatService(new MockHttpClient(), '', 'https://example.test/chat', 'gpt-4o-mini'));
     }
 
     public function testOpeningMessageIncludesTheCharacterName(): void
@@ -89,7 +89,7 @@ final class VoiceServiceTest extends TestCase
                 'choices' => [['message' => ['content' => 'A real, contextual GPT-4o reply.']]],
             ])),
         ]);
-        $service = new VoiceService(new OpenAiChatService($mockClient, 'fake-key', 'gpt-4o-mini'));
+        $service = new VoiceService(new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'));
 
         $reply = $service->generateAnswer('You are a friendly waiter.', [
             ['role' => 'user', 'content' => "I'd like a coffee, please."],
