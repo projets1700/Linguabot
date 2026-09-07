@@ -26,8 +26,14 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | undef
  * not fatal, it just means try again. Only a real permission refusal
  * ("not-allowed") stops the loop, since retrying that is pointless without
  * the user changing a browser setting.
+ *
+ * The one button this renders is a mute toggle: it does not start a turn
+ * (there is nothing to "press to talk"), it only lets the learner switch
+ * the always-on mic off - e.g. to think out loud, cough, or take a call -
+ * without the app picking that up as an answer.
  */
 export function VoiceInput({ onResult, disabled = false }: Props) {
+  const [micEnabled, setMicEnabled] = useState(true);
   const [listening, setListening] = useState(false);
   const [interimText, setInterimText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +44,7 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
   const supported = Boolean(SpeechRecognitionCtor);
 
   useEffect(() => {
-    if (!SpeechRecognitionCtor || disabled) {
+    if (!SpeechRecognitionCtor || disabled || !micEnabled) {
       setListening(false);
       return;
     }
@@ -104,7 +110,7 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [disabled, SpeechRecognitionCtor]);
+  }, [disabled, micEnabled, SpeechRecognitionCtor]);
 
   if (!supported) {
     return (
@@ -116,16 +122,25 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-2 py-2">
-      <div
-        aria-hidden
+      <button
+        type="button"
+        onClick={() => setMicEnabled((current) => !current)}
+        aria-label={micEnabled ? "Désactiver le micro" : "Activer le micro"}
+        aria-pressed={micEnabled}
         className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-colors ${
-          listening ? "bg-red-600 animate-pulse" : "bg-slate-700"
+          !micEnabled
+            ? "bg-slate-800 hover:bg-slate-700"
+            : listening
+              ? "bg-red-600 animate-pulse"
+              : "bg-slate-700"
         }`}
       >
-        🎤
-      </div>
+        {micEnabled ? "🎤" : "🔇"}
+      </button>
       <p className="text-sm text-slate-400 min-h-[1.25rem] text-center max-w-sm">
-        {error ?? (listening ? interimText || "Je t'écoute..." : "...")}
+        {!micEnabled
+          ? "Micro coupé"
+          : (error ?? (listening ? interimText || "Je t'écoute..." : "..."))}
       </p>
     </div>
   );

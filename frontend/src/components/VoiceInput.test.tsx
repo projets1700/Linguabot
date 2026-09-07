@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VoiceInput } from "./VoiceInput";
 
@@ -65,10 +65,12 @@ describe("VoiceInput", () => {
     expect(screen.getByText(/ne supporte pas la reconnaissance vocale/)).toBeInTheDocument();
   });
 
-  it("starts listening automatically on mount, with no button to press", () => {
+  it("starts listening automatically on mount, with no press-to-talk step", () => {
     render(<VoiceInput onResult={vi.fn()} />);
 
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    // The only button is the mute toggle - it doesn't need to be pressed to
+    // start a turn, listening already began on its own.
+    expect(screen.getByRole("button", { name: "Désactiver le micro" })).toBeInTheDocument();
     expect(lastInstance().start).toHaveBeenCalled();
   });
 
@@ -123,6 +125,34 @@ describe("VoiceInput", () => {
     rerender(<VoiceInput onResult={vi.fn()} disabled={false} />);
 
     expect(instances.length).toBe(1);
+    expect(lastInstance().start).toHaveBeenCalled();
+  });
+
+  it("mutes on click: stops the current recognition and never restarts it", () => {
+    render(<VoiceInput onResult={vi.fn()} />);
+    const instanceCountBeforeMute = instances.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "Désactiver le micro" }));
+
+    expect(screen.getByText("Micro coupé")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Activer le micro" })).toBeInTheDocument();
+
+    // Even a stray onend firing after the mute must not restart listening.
+    act(() => {
+      instances[instanceCountBeforeMute - 1]?.onend?.();
+    });
+    expect(instances.length).toBe(instanceCountBeforeMute);
+  });
+
+  it("resumes listening when unmuted", () => {
+    render(<VoiceInput onResult={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Désactiver le micro" }));
+    const instanceCountWhileMuted = instances.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "Activer le micro" }));
+
+    expect(instances.length).toBe(instanceCountWhileMuted + 1);
     expect(lastInstance().start).toHaveBeenCalled();
   });
 });
