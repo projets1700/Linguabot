@@ -12,6 +12,7 @@ import { QuizModulePage } from "./pages/QuizModulePage";
 import { BadgesPage } from "./pages/BadgesPage";
 import { TrophiesPage } from "./pages/TrophiesPage";
 import { DailyChallengePage } from "./pages/DailyChallengePage";
+import { VoiceSettingsPage } from "./pages/VoiceSettingsPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminScenariosPage } from "./pages/admin/AdminScenariosPage";
@@ -98,6 +99,14 @@ export default function App() {
           element={
             <RequireAuth>
               <DailyChallengePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/voix"
+          element={
+            <RequireAuth>
+              <VoiceSettingsPage />
             </RequireAuth>
           }
         />

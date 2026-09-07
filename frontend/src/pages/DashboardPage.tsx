@@ -37,6 +37,9 @@ export function DashboardPage() {
               Administration
             </Link>
           )}
+          <Link to="/voix" className="text-sm text-slate-400 hover:text-white">
+            🔊 Voix de l'IA
+          </Link>
           <button onClick={handleLogout} className="text-sm text-slate-400 hover:text-white">
             Déconnexion
           </button>

@@ -1,17 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { speakText } from "./speech";
+import { useVoiceSettingsStore } from "../stores/voiceSettingsStore";
+
+function fakeVoice(voiceURI: string, lang = "en-US"): SpeechSynthesisVoice {
+  return { name: voiceURI, lang, voiceURI, default: false, localService: true } as SpeechSynthesisVoice;
+}
 
 describe("speakText", () => {
   let speak: ReturnType<typeof vi.fn>;
   let cancel: ReturnType<typeof vi.fn>;
+  let getVoices: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     speak = vi.fn();
     cancel = vi.fn();
+    getVoices = vi.fn().mockReturnValue([]);
     Object.defineProperty(window, "speechSynthesis", {
       configurable: true,
-      value: { speak, cancel },
+      value: { speak, cancel, getVoices },
     });
+    localStorage.clear();
+    useVoiceSettingsStore.setState({ selectedVoiceURI: null });
 
     // jsdom doesn't implement the Web Speech API at all (no stub, not even
     // an "unimplemented" warning) - SpeechSynthesisUtterance simply doesn't
@@ -19,6 +28,7 @@ describe("speakText", () => {
     class FakeSpeechSynthesisUtterance {
       text: string;
       lang = "";
+      voice: SpeechSynthesisVoice | null = null;
       onstart: ((ev: Event) => void) | null = null;
       onend: ((ev: Event) => void) | null = null;
       onerror: ((ev: Event) => void) | null = null;
@@ -56,6 +66,38 @@ describe("speakText", () => {
 
     const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
     expect(utterance.lang).toBe("fr-FR");
+  });
+
+  it("applies the learner's saved voice preference to English speech", () => {
+    const preferred = fakeVoice("Microsoft Zira Desktop");
+    getVoices.mockReturnValue([fakeVoice("Microsoft David Desktop"), preferred]);
+    useVoiceSettingsStore.getState().setSelectedVoiceURI("Microsoft Zira Desktop");
+
+    speakText("Hello there");
+
+    const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
+    expect(utterance.voice).toBe(preferred);
+  });
+
+  it("never applies the saved English voice preference to French speech (A0 quiz)", () => {
+    getVoices.mockReturnValue([fakeVoice("Microsoft Zira Desktop")]);
+    useVoiceSettingsStore.getState().setSelectedVoiceURI("Microsoft Zira Desktop");
+
+    speakText("Comment dit-on bonjour ?", { lang: "fr-FR" });
+
+    const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
+    expect(utterance.voice).toBeNull();
+  });
+
+  it("lets an explicit voiceURI override the saved preference, for previewing", () => {
+    const previewed = fakeVoice("Microsoft David Desktop");
+    getVoices.mockReturnValue([previewed, fakeVoice("Microsoft Zira Desktop")]);
+    useVoiceSettingsStore.getState().setSelectedVoiceURI("Microsoft Zira Desktop");
+
+    speakText("Hello there", { voiceURI: "Microsoft David Desktop" });
+
+    const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
+    expect(utterance.voice).toBe(previewed);
   });
 
   it("calls onStart/onEnd through the utterance's own event handlers", () => {

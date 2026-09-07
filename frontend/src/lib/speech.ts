@@ -1,5 +1,11 @@
+import { useVoiceSettingsStore } from "../stores/voiceSettingsStore";
+
 type SpeakOptions = {
   lang?: string;
+  // Explicit override, used by the voice settings page to preview a voice
+  // regardless of what's currently saved. Everywhere else this is left
+  // unset and the learner's saved preference (if any) applies instead.
+  voiceURI?: string;
   onStart?: () => void;
   onEnd?: () => void;
 };
@@ -37,7 +43,21 @@ export function speakText(text: string, options: SpeakOptions = {}): void {
   window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = options.lang ?? "en-US";
+  const lang = options.lang ?? "en-US";
+  utterance.lang = lang;
+
+  // The voice picker only offers English voices (that's where nearly all
+  // of the app's speech happens), so the saved preference is only applied
+  // to English utterances - it must never hijack the A0 quiz's forced
+  // lang="fr-FR" prompts, which need a French voice regardless.
+  const preferredVoiceURI =
+    options.voiceURI ?? (lang.startsWith("en") ? useVoiceSettingsStore.getState().selectedVoiceURI : null);
+  if (preferredVoiceURI) {
+    const match = window.speechSynthesis
+      .getVoices()
+      .find((voice) => voice.voiceURI === preferredVoiceURI);
+    if (match) utterance.voice = match;
+  }
 
   let settled = false;
   const fallbackTimer = setTimeout(() => settle(), FALLBACK_TIMEOUT_MS);
