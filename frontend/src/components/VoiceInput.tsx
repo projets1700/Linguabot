@@ -50,11 +50,13 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
     }
 
     let cancelled = false;
+    let activeRecognition: SpeechRecognition | null = null;
 
     function listenOnce() {
       if (cancelled || !SpeechRecognitionCtor) return;
 
       const recognition = new SpeechRecognitionCtor();
+      activeRecognition = recognition;
       recognition.lang = "en-US";
       recognition.interimResults = true;
       recognition.continuous = false;
@@ -87,6 +89,18 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
       recognition.onend = () => {
         setInterimText("");
 
+        // Must be checked first, before anything else: once torn down (the
+        // AI started talking, the turn is being sent, or the mic was
+        // muted), NOTHING this recognition still reports counts - not even
+        // a transcript already in flight when abort() was called below.
+        // Without this guard, a straggling result could still be
+        // submitted as if the learner said it, even though the mic had
+        // already been told to stop - which is exactly how the app ended
+        // up "answering its own question" despite being muted while
+        // speaking: stopping new restarts never stopped the recognition
+        // that was already running.
+        if (cancelled) return;
+
         const transcript = finalTranscript.trim();
         if (transcript) {
           setListening(false);
@@ -95,7 +109,7 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
           // to true while it processes the turn, which tears this effect
           // down; it restarts on its own once `disabled` goes back to
           // false for the next turn.
-        } else if (!cancelled) {
+        } else {
           listenOnce();
         }
       };
@@ -109,6 +123,11 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
 
     return () => {
       cancelled = true;
+      // Actually stop the microphone, not just the app-level restart loop -
+      // an abandoned-but-still-running recognition keeps capturing audio
+      // (including the AI's own voice through the speakers) with nothing
+      // left to stop it from eventually firing onend with a transcript.
+      activeRecognition?.abort();
     };
   }, [disabled, micEnabled, SpeechRecognitionCtor]);
 

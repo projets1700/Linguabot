@@ -131,17 +131,50 @@ describe("VoiceInput", () => {
   it("mutes on click: stops the current recognition and never restarts it", () => {
     render(<VoiceInput onResult={vi.fn()} />);
     const instanceCountBeforeMute = instances.length;
+    const runningInstance = lastInstance();
 
     fireEvent.click(screen.getByRole("button", { name: "Désactiver le micro" }));
 
     expect(screen.getByText("Micro coupé")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Activer le micro" })).toBeInTheDocument();
+    // Regression: muting used to only stop new restarts, not the
+    // recognition already running - it kept the mic physically listening.
+    expect(runningInstance.abort).toHaveBeenCalled();
 
     // Even a stray onend firing after the mute must not restart listening.
     act(() => {
       instances[instanceCountBeforeMute - 1]?.onend?.();
     });
     expect(instances.length).toBe(instanceCountBeforeMute);
+  });
+
+  it("aborts the running recognition the moment `disabled` becomes true, instead of leaving it running", () => {
+    const { rerender } = render(<VoiceInput onResult={vi.fn()} disabled={false} />);
+    const runningInstance = lastInstance();
+
+    rerender(<VoiceInput onResult={vi.fn()} disabled />);
+
+    expect(runningInstance.abort).toHaveBeenCalled();
+  });
+
+  it("ignores a transcript that arrives from a recognition already torn down (was still running when the AI started talking)", () => {
+    // Regression: this is exactly how the app ended up "answering its own
+    // question" even while supposedly muted during TTS playback - the old
+    // recognition was abandoned, not stopped, and its eventual onend still
+    // unconditionally reported whatever it had picked up (including the
+    // AI's own voice through the speakers).
+    const onResult = vi.fn();
+    const { rerender } = render(<VoiceInput onResult={onResult} disabled={false} />);
+    const staleInstance = lastInstance();
+
+    rerender(<VoiceInput onResult={onResult} disabled />);
+
+    act(() => {
+      staleInstance.onresult?.(makeResultEvent([{ text: "What did you do last weekend", isFinal: true }]));
+      staleInstance.onend?.();
+    });
+
+    expect(onResult).not.toHaveBeenCalled();
   });
 
   it("resumes listening when unmuted", () => {
