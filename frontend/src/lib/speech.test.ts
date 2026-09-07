@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { speakText } from "./speech";
+import { useAuthStore } from "../stores/authStore";
 import { useVoiceSettingsStore } from "../stores/voiceSettingsStore";
+import type { Me } from "../types";
 
 function fakeVoice(voiceURI: string, lang = "en-US"): SpeechSynthesisVoice {
   return { name: voiceURI, lang, voiceURI, default: false, localService: true } as SpeechSynthesisVoice;
@@ -21,6 +23,7 @@ describe("speakText", () => {
     });
     localStorage.clear();
     useVoiceSettingsStore.setState({ selectedVoiceURI: null });
+    useAuthStore.setState({ user: null });
 
     // jsdom doesn't implement the Web Speech API at all (no stub, not even
     // an "unimplemented" warning) - SpeechSynthesisUtterance simply doesn't
@@ -87,6 +90,31 @@ describe("speakText", () => {
 
     const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
     expect(utterance.voice).toBeNull();
+  });
+
+  it("auto-picks a French voice matching the avatar's gender for the A0 quiz", () => {
+    // Regression: a male avatar was still getting a female voice on the A0
+    // quiz, because French speech never applied any gender preference at
+    // all - it just fell through to the browser's own French default.
+    const frenchMale = fakeVoice("Microsoft Henri Online (Natural)", "fr-FR");
+    const frenchFemale = fakeVoice("Microsoft Denise Online (Natural)", "fr-FR");
+    getVoices.mockReturnValue([frenchFemale, frenchMale]);
+    useAuthStore.setState({ user: { avatarType: "male" } as Me });
+
+    speakText("Comment dit-on bonjour ?", { lang: "fr-FR" });
+
+    const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
+    expect(utterance.voice).toBe(frenchMale);
+  });
+
+  it("defaults to a male French voice when no user is loaded", () => {
+    const frenchMale = fakeVoice("Microsoft Henri Online (Natural)", "fr-FR");
+    getVoices.mockReturnValue([frenchMale]);
+
+    speakText("Comment dit-on bonjour ?", { lang: "fr-FR" });
+
+    const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
+    expect(utterance.voice).toBe(frenchMale);
   });
 
   it("lets an explicit voiceURI override the saved preference, for previewing", () => {

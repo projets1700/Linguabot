@@ -1,3 +1,5 @@
+import { pickVoiceForGender } from "./voices";
+import { useAuthStore } from "../stores/authStore";
 import { useVoiceSettingsStore } from "../stores/voiceSettingsStore";
 
 type SpeakOptions = {
@@ -56,6 +58,14 @@ export function speakText(text: string, options: SpeakOptions = {}): void {
     const match = window.speechSynthesis
       .getVoices()
       .find((voice) => voice.voiceURI === preferredVoiceURI);
+    if (match) utterance.voice = match;
+  } else if (!lang.startsWith("en")) {
+    // No user-configurable preference for non-English speech (only the A0
+    // quiz's French prompts use this), but the browser's own default French
+    // voice is often female regardless of the learner's chosen avatar -
+    // auto-pick one matching avatarType instead of leaving that to chance.
+    const avatarType = useAuthStore.getState().user?.avatarType ?? "male";
+    const match = pickVoiceForGender(window.speechSynthesis.getVoices(), lang.split("-")[0].toLowerCase(), avatarType);
     if (match) utterance.voice = match;
   }
 

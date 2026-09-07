@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyVoiceGender, groupEnglishVoicesByGender } from "./voices";
+import { classifyVoiceGender, groupEnglishVoicesByGender, pickVoiceForGender } from "./voices";
 
 function fakeVoice(name: string, lang: string): SpeechSynthesisVoice {
   return {
@@ -20,6 +20,11 @@ describe("classifyVoiceGender", () => {
   it("recognises common male voice names", () => {
     expect(classifyVoiceGender(fakeVoice("Microsoft David Desktop", "en-US"))).toBe("male");
     expect(classifyVoiceGender(fakeVoice("Google UK English Male", "en-GB"))).toBe("male");
+  });
+
+  it("recognises common French voice names", () => {
+    expect(classifyVoiceGender(fakeVoice("Microsoft Hortense Desktop", "fr-FR"))).toBe("female");
+    expect(classifyVoiceGender(fakeVoice("Microsoft Henri Online (Natural)", "fr-FR"))).toBe("male");
   });
 
   it("falls back to female for unrecognised names rather than a third category", () => {
@@ -64,5 +69,24 @@ describe("groupEnglishVoicesByGender", () => {
     const grouped = groupEnglishVoicesByGender(voices);
 
     expect(grouped.female).toHaveLength(6);
+  });
+});
+
+describe("pickVoiceForGender", () => {
+  it("finds a voice matching both the language prefix and the gender", () => {
+    const voices = [
+      fakeVoice("Microsoft Denise Online (Natural)", "fr-FR"),
+      fakeVoice("Microsoft Henri Online (Natural)", "fr-FR"),
+      fakeVoice("Microsoft Zira Desktop", "en-US"),
+    ];
+
+    expect(pickVoiceForGender(voices, "fr", "male")?.name).toBe("Microsoft Henri Online (Natural)");
+    expect(pickVoiceForGender(voices, "fr", "female")?.name).toBe("Microsoft Denise Online (Natural)");
+  });
+
+  it("returns null when no voice matches the language prefix", () => {
+    const voices = [fakeVoice("Microsoft Zira Desktop", "en-US")];
+
+    expect(pickVoiceForGender(voices, "fr", "male")).toBeNull();
   });
 });
