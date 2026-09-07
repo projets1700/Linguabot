@@ -9,11 +9,10 @@ const PREVIEW_TEXT = "Hello! I'm your English conversation partner. Nice to meet
 const CATEGORY_LABELS: Record<keyof GroupedVoices, string> = {
   male: "Voix homme",
   female: "Voix femme",
-  neutral: "Voix neutre",
 };
 
 export function VoiceSettingsPage() {
-  const [grouped, setGrouped] = useState<GroupedVoices>({ male: [], female: [], neutral: [] });
+  const [grouped, setGrouped] = useState<GroupedVoices>({ male: [], female: [] });
   const [loading, setLoading] = useState(true);
   const [previewing, setPreviewing] = useState<string | null>(null);
   const selectedVoiceURI = useVoiceSettingsStore((state) => state.selectedVoiceURI);
@@ -34,7 +33,7 @@ export function VoiceSettingsPage() {
     });
   }
 
-  const hasAnyVoice = grouped.male.length + grouped.female.length + grouped.neutral.length > 0;
+  const hasAnyVoice = grouped.male.length + grouped.female.length > 0;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
@@ -60,7 +59,7 @@ export function VoiceSettingsPage() {
       )}
 
       {!loading && hasAnyVoice && (
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
           {(Object.keys(grouped) as (keyof GroupedVoices)[]).map((category) => (
             <div key={category} className="bg-slate-900 p-6 rounded-xl">
               <h2 className="text-lg font-semibold mb-4">{CATEGORY_LABELS[category]}</h2>

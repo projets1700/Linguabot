@@ -22,8 +22,8 @@ describe("classifyVoiceGender", () => {
     expect(classifyVoiceGender(fakeVoice("Google UK English Male", "en-GB"))).toBe("male");
   });
 
-  it("falls back to neutral for unrecognised names rather than guessing", () => {
-    expect(classifyVoiceGender(fakeVoice("Google US English", "en-US"))).toBe("neutral");
+  it("falls back to female for unrecognised names rather than a third category", () => {
+    expect(classifyVoiceGender(fakeVoice("Google US English", "en-US"))).toBe("female");
   });
 });
 
@@ -35,10 +35,9 @@ describe("groupEnglishVoicesByGender", () => {
 
     expect(grouped.female).toHaveLength(1);
     expect(grouped.male).toHaveLength(0);
-    expect(grouped.neutral).toHaveLength(0);
   });
 
-  it("caps each gender category at 3 voices", () => {
+  it("caps male at 3 voices", () => {
     const voices = [
       fakeVoice("David", "en-US"),
       fakeVoice("Mark", "en-US"),
@@ -49,5 +48,21 @@ describe("groupEnglishVoicesByGender", () => {
     const grouped = groupEnglishVoicesByGender(voices);
 
     expect(grouped.male).toHaveLength(3);
+  });
+
+  it("caps female at 6, since it also absorbs unrecognised names", () => {
+    const voices = [
+      fakeVoice("Zira", "en-US"),
+      fakeVoice("Aria", "en-US"),
+      fakeVoice("Jenny", "en-US"),
+      fakeVoice("Google US English", "en-US"),
+      fakeVoice("Google UK English", "en-US"),
+      fakeVoice("Ivy", "en-US"),
+      fakeVoice("Salma", "en-US"),
+    ];
+
+    const grouped = groupEnglishVoicesByGender(voices);
+
+    expect(grouped.female).toHaveLength(6);
   });
 });

@@ -1,10 +1,10 @@
-export type VoiceGender = "male" | "female" | "neutral";
+export type VoiceGender = "male" | "female";
 
 // The Web Speech API exposes no gender field on SpeechSynthesisVoice, only
 // a free-text name that varies by OS/browser (Windows SAPI, Google's
 // network voices, macOS voices, ...). These are the common name patterns
-// across those engines; anything that doesn't match either list falls back
-// to "neutral" rather than guessing wrong.
+// across those engines; anything that doesn't match the male list is
+// bucketed as female rather than adding a third "unsure" category.
 const FEMALE_NAME_HINTS = [
   "female", "zira", "aria", "jenny", "ana", "michelle", "samantha", "karen",
   "moira", "tessa", "fiona", "victoria", "susan", "kate", "hazel",
@@ -19,18 +19,22 @@ const MALE_NAME_HINTS = [
 
 export function classifyVoiceGender(voice: SpeechSynthesisVoice): VoiceGender {
   const name = voice.name.toLowerCase();
+  // Order matters: "female" contains "male" as a substring, so a name like
+  // "Google UK English Female" would wrongly match the male hint if that
+  // list were checked first.
   if (FEMALE_NAME_HINTS.some((hint) => name.includes(hint))) return "female";
   if (MALE_NAME_HINTS.some((hint) => name.includes(hint))) return "male";
-  return "neutral";
+  return "female";
 }
 
 export type GroupedVoices = Record<VoiceGender, SpeechSynthesisVoice[]>;
 
-// Caps each category at 3, per the app's voice picker (3 male, 3 female, 3
-// neutral) - a machine with more English voices installed just has its
-// extras left out rather than overwhelming the picker.
+// Caps male at 3, per the app's voice picker (3 male, 3 female). Female
+// also absorbs whatever doesn't match a male name hint, so it's capped at
+// 6 instead of 3 - otherwise those extra voices would just disappear
+// instead of becoming pickable female options.
 export function groupEnglishVoicesByGender(voices: SpeechSynthesisVoice[]): GroupedVoices {
-  const grouped: GroupedVoices = { male: [], female: [], neutral: [] };
+  const grouped: GroupedVoices = { male: [], female: [] };
   const englishVoices = voices
     .filter((voice) => voice.lang.toLowerCase().startsWith("en"))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -41,8 +45,7 @@ export function groupEnglishVoicesByGender(voices: SpeechSynthesisVoice[]): Grou
 
   return {
     male: grouped.male.slice(0, 3),
-    female: grouped.female.slice(0, 3),
-    neutral: grouped.neutral.slice(0, 3),
+    female: grouped.female.slice(0, 6),
   };
 }
 
