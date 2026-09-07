@@ -107,6 +107,35 @@ final class PlacementTestControllerTest extends ApiTestCase
         self::assertSame(0, $this->decodeResponse($client)['answeredCount']);
     }
 
+    public function testAskingToRepeatReSaysTheSameQuestionWithoutCountingAsAnAnswer(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $token);
+        $test = $this->decodeResponse($client);
+        $firstQuestion = $test['messages'][0]['content'];
+
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$test['id']}/message", $token, ['message' => "Sorry, can you repeat that?"]);
+
+        self::assertResponseIsSuccessful();
+        $repeatResult = $this->decodeResponse($client);
+        self::assertStringContainsString($firstQuestion, $repeatResult['assistantMessage']);
+        self::assertSame(0, $repeatResult['answeredCount']);
+        self::assertFalse($repeatResult['readyToFinish']);
+
+        // Nothing was persisted for the repeat request.
+        $this->jsonRequest($client, 'GET', "/api/placement-test/{$test['id']}", $token);
+        $refreshed = $this->decodeResponse($client);
+        self::assertSame(0, $refreshed['answeredCount']);
+        self::assertCount(1, $refreshed['messages']);
+
+        // A real answer right after still works normally.
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$test['id']}/message", $token, ['message' => 'My name is Adam and I live in Paris.']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(1, $this->decodeResponse($client)['answeredCount']);
+    }
+
     public function testMessageOnAnotherUsersTestIsForbidden(): void
     {
         $client = static::createClient();

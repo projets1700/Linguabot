@@ -68,6 +68,26 @@ final class SessionControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function testAskingToRepeatReSaysTheSameLineWithoutAdvancingTheConversation(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $session = $this->decodeResponse($client);
+        $opening = $session['messages'][0]['content'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$session['id']}/message", $token, ['message' => "Sorry, I didn't understand, can you repeat?"]);
+
+        self::assertResponseIsSuccessful();
+        $repeatResult = $this->decodeResponse($client);
+        self::assertStringContainsString($opening, $repeatResult['assistantMessage']);
+
+        $this->jsonRequest($client, 'GET', "/api/sessions/{$session['id']}", $token);
+        self::assertCount(1, $this->decodeResponse($client)['messages']);
+    }
+
     public function testCannotAccessAnotherUsersSession(): void
     {
         $client = static::createClient();

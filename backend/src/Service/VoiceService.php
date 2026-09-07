@@ -28,6 +28,24 @@ final class VoiceService
      */
     private const ECHO_OVERLAP_THRESHOLD = 0.8;
 
+    /**
+     * Common phrasings for "I didn't catch that, say it again" - matched
+     * loosely (substring, case-insensitive) since these are short, fixed
+     * expressions rather than open-ended sentences worth a word-overlap
+     * heuristic like isEchoOfQuestion().
+     */
+    private const REPEAT_REQUEST_PATTERNS = [
+        'repeat',
+        'again',
+        'pardon',
+        "didn't understand",
+        'did not understand',
+        "don't understand",
+        'do not understand',
+        'what did you say',
+        'come again',
+        'one more time',
+    ];
 
     private const SIMULATED_REPLIES = [
         "That's interesting! Can you tell me more about that?",
@@ -112,6 +130,35 @@ final class VoiceService
         }
 
         return ($matched / \count($answerWords)) >= self::ECHO_OVERLAP_THRESHOLD;
+    }
+
+    /**
+     * True STT never happened here, but the simulated conversation logic
+     * (generateAnswer/PlacementTestService::nextQuestion) doesn't actually
+     * understand anything either - without this, a learner saying "sorry,
+     * can you repeat that?" gets treated as a real answer and the
+     * conversation just moves on, never actually repeating itself.
+     */
+    public function isRepeatRequest(string $answer): bool
+    {
+        $normalized = mb_strtolower($answer);
+
+        foreach (self::REPEAT_REQUEST_PATTERNS as $pattern) {
+            if (str_contains($normalized, $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Re-says the AI's last message instead of moving the conversation
+     * forward, for when isRepeatRequest() catches a "come again?" turn.
+     */
+    public function repeatMessage(string $lastAssistantMessage): string
+    {
+        return \sprintf("No worries, I'll say it again: %s", $lastAssistantMessage);
     }
 
     /**

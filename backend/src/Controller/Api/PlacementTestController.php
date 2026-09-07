@@ -98,6 +98,20 @@ final class PlacementTestController
         }
 
         $lastAssistantMessage = $placementTest->getMessages()->last();
+
+        // "Can you repeat that?" is not an answer: re-say the same question
+        // without persisting anything, so it doesn't count against the 5
+        // questions or change what the next real answer gets compared to.
+        if (false !== $lastAssistantMessage && $voiceService->isRepeatRequest($transcript)) {
+            return new JsonResponse([
+                'userTranscript' => $transcript,
+                'assistantMessage' => $voiceService->repeatMessage($lastAssistantMessage->getContent()),
+                'answeredCount' => $answeredCount,
+                'totalQuestions' => $placementTestService->totalQuestions(),
+                'readyToFinish' => false,
+            ]);
+        }
+
         if (false !== $lastAssistantMessage && $voiceService->isEchoOfQuestion($transcript, $lastAssistantMessage->getContent())) {
             return new JsonResponse(['message' => "On dirait que tu répètes la question posée - réponds avec tes propres mots."], 422);
         }

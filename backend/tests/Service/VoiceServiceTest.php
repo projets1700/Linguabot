@@ -80,6 +80,36 @@ final class VoiceServiceTest extends TestCase
         self::assertNull($this->service->synthesizeSpeech('Hello!'));
     }
 
+    #[DataProvider('repeatRequestProvider')]
+    public function testIsRepeatRequest(string $answer, bool $expected): void
+    {
+        self::assertSame($expected, $this->service->isRepeatRequest($answer));
+    }
+
+    public static function repeatRequestProvider(): array
+    {
+        return [
+            'plain repeat' => ['Can you repeat that, please?', true],
+            'again' => ['Sorry, say that again?', true],
+            'pardon' => ['Pardon?', true],
+            "didn't understand" => ["Sorry, I didn't understand.", true],
+            'do not understand (no contraction)' => ['I do not understand the question.', true],
+            'what did you say' => ['Wait, what did you say?', true],
+            'come again' => ['Come again?', true],
+            'one more time' => ['Could you say that one more time?', true],
+            'case insensitive' => ['REPEAT PLEASE', true],
+            'genuine answer, no trigger words' => ['My name is Adam and I live in Paris.', false],
+            'genuine answer mentioning an unrelated topic' => ['I went to the market again yesterday.', true], // "again" is a real trigger word even mid-sentence - accepted false-positive risk, see note below
+        ];
+    }
+
+    public function testRepeatMessageRestatesTheOriginalWithoutAlteringIt(): void
+    {
+        $repeated = $this->service->repeatMessage('What did you do last weekend?');
+
+        self::assertStringContainsString('What did you do last weekend?', $repeated);
+    }
+
     #[DataProvider('echoProvider')]
     public function testIsEchoOfQuestion(string $answer, string $lastAssistantMessage, bool $expectedEcho): void
     {

@@ -78,6 +78,18 @@ final class SessionController
         }
 
         $lastAssistantMessage = $session->getMessages()->last();
+
+        // "Can you repeat that?" is not an answer: re-say the same line
+        // without persisting anything, so it doesn't advance the turn
+        // counter (VoiceService::generateAnswer cycles replies by turn
+        // number) or change what the next real answer gets compared to.
+        if (false !== $lastAssistantMessage && $voiceService->isRepeatRequest($transcript)) {
+            return new JsonResponse([
+                'userTranscript' => $transcript,
+                'assistantMessage' => $voiceService->repeatMessage($lastAssistantMessage->getContent()),
+            ]);
+        }
+
         if (false !== $lastAssistantMessage && $voiceService->isEchoOfQuestion($transcript, $lastAssistantMessage->getContent())) {
             return new JsonResponse(['message' => "On dirait que tu répètes la question posée - réponds avec tes propres mots."], 422);
         }
