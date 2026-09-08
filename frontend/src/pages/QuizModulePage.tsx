@@ -17,6 +17,7 @@ export function QuizModulePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
   const [showQuestionText, setShowQuestionText] = useState(false);
   const [aiSpeaking, setAiSpeaking] = useState(false);
@@ -90,12 +91,21 @@ export function QuizModulePage() {
     }
 
     setSubmitting(true);
-    const response = await api.post<QuizAttemptResult>("/quiz/attempts", {
-      moduleId: Number(moduleId),
-      answers: nextAnswers,
-    });
-    setResult(response.data);
-    setSubmitting(false);
+    setSubmitError(false);
+    try {
+      const response = await api.post<QuizAttemptResult>("/quiz/attempts", {
+        moduleId: Number(moduleId),
+        answers: nextAnswers,
+      });
+      setResult(response.data);
+    } catch {
+      // Network/API failure: without this, `submitting` stayed true forever
+      // and the mic (disabled while submitting) never came back - the quiz
+      // was permanently stuck on its last question.
+      setSubmitError(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (loading) {
@@ -172,6 +182,11 @@ export function QuizModulePage() {
         <VoiceInput onResult={handleVoiceAnswer} disabled={submitting || aiSpeaking} />
 
         {submitting && <p className="text-slate-400 text-sm text-center">Envoi...</p>}
+        {submitError && (
+          <p className="text-red-400 text-sm text-center">
+            Échec de l'envoi. Réponds à nouveau pour réessayer.
+          </p>
+        )}
       </div>
     </main>
   );

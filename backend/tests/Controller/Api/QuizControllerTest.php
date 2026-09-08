@@ -83,6 +83,43 @@ final class QuizControllerTest extends ApiTestCase
         self::assertFalse($result['levelUp']); // only 1 of the 4 required modules
     }
 
+    public function testRetryingAnAlreadyPassedModuleEarnsNoAdditionalXp(): void
+    {
+        // Regression: XP_PER_CORRECT_ANSWER used to be credited on every
+        // attempt regardless of $alreadyPassed - only the module bonus was
+        // guarded - so replaying an already-passed module farmed unlimited
+        // XP, 10 per correct answer every time.
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $moduleId = $this->findModuleId($client, $token, 'M0-1');
+
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
+        $questions = $this->decodeResponse($client);
+
+        $answers = [];
+        foreach ($questions as $index => $question) {
+            $answers[(string) $question['id']] = self::M0_1_ANSWERS[$index];
+        }
+
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answers,
+        ]);
+        $firstResult = $this->decodeResponse($client);
+        self::assertSame(150, $firstResult['xpEarned']);
+
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answers,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $secondResult = $this->decodeResponse($client);
+
+        self::assertSame(10, $secondResult['score']);
+        self::assertTrue($secondResult['passed']);
+        self::assertSame(0, $secondResult['xpEarned'], 'A retry of an already-passed module must not earn any XP.');
+    }
+
     public function testFourthPassedModuleUnlocksLevelA1(): void
     {
         $client = static::createClient();

@@ -43,12 +43,14 @@ final class QuizService
         }
 
         $passed = $score >= self::PASS_THRESHOLD;
-        $xpEarned = $score * self::XP_PER_CORRECT_ANSWER;
 
-        // Don't re-award the module bonus (or re-trigger a level-up check) if
-        // the learner retries a module they already passed.
+        // Don't re-award any XP (per-answer or the module bonus), or
+        // re-trigger a level-up check, if the learner retries a module they
+        // already passed - otherwise replaying an already-passed module
+        // farms unlimited XP, 10 per correct answer every time.
         $alreadyPassed = \in_array($module->getId(), $this->attemptRepository->findPassedModuleIds($user), true);
 
+        $xpEarned = $alreadyPassed ? 0 : $score * self::XP_PER_CORRECT_ANSWER;
         if ($passed && !$alreadyPassed) {
             $xpEarned += self::XP_PER_MODULE_PASSED;
         }
