@@ -98,6 +98,34 @@ final class VoiceServiceTest extends TestCase
         self::assertSame('A real, contextual GPT-4o reply.', $reply);
     }
 
+    public function testGenerateAnswerPrependsTheLevelInstructionToTheSystemPromptSentToTheAi(): void
+    {
+        $capturedMessages = null;
+        $mockClient = new MockHttpClient(function (string $method, string $url, array $options) use (&$capturedMessages): MockResponse {
+            $body = $options['body'] ?? null;
+            $capturedMessages = json_decode(\is_string($body) ? $body : json_encode($options['json'] ?? []), true)['messages'] ?? [];
+
+            return new MockResponse(json_encode([
+                'choices' => [['message' => ['content' => 'A reply.']]],
+            ]));
+        });
+        $service = new VoiceService(new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'));
+
+        $service->generateAnswer('You are a friendly waiter.', [
+            ['role' => 'user', 'content' => "I'd like a coffee, please."],
+        ], 0, 'Speak very simply, CEFR A0 level.');
+
+        self::assertStringContainsString('Speak very simply, CEFR A0 level.', $capturedMessages[0]['content']);
+        self::assertStringContainsString('You are a friendly waiter.', $capturedMessages[0]['content']);
+    }
+
+    public function testGenerateAnswerWorksWithoutALevelInstruction(): void
+    {
+        $reply = $this->service->generateAnswer('system prompt', [], 0);
+
+        self::assertNotEmpty($reply);
+    }
+
     #[DataProvider('repeatRequestProvider')]
     public function testIsRepeatRequest(string $answer, bool $expected): void
     {

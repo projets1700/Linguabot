@@ -73,6 +73,55 @@ final class DailyChallengeControllerTest extends ApiTestCase
         self::assertStringContainsString($opening, $this->decodeResponse($client)['assistantMessage']);
     }
 
+    public function testChallengeResponseExposesTheLearnersCecrlProfile(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client); // fresh user is level A0
+
+        $this->jsonRequest($client, 'GET', '/api/daily-challenge', $token);
+
+        $challenge = $this->decodeResponse($client);
+        self::assertSame('auto', $challenge['cecrlProfile']['transcriptMode']);
+        self::assertSame('visible', $challenge['cecrlProfile']['translationMode']);
+    }
+
+    public function testHintIsAvailableOnRequestWithHistorySuppliedByTheClient(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/hint', $token, [
+            'tier' => 2,
+            'history' => [['role' => 'assistant', 'content' => 'What would you like to order?']],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        $hint = $this->decodeResponse($client);
+        self::assertSame(2, $hint['tier']);
+        self::assertNotEmpty($hint['content']);
+    }
+
+    public function testTranslateReturnsAFrenchTranslationField(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/translate', $token, ['text' => 'What would you like to order?']);
+
+        self::assertResponseIsSuccessful();
+        self::assertNotEmpty($this->decodeResponse($client)['translation']);
+    }
+
+    public function testTranslateRejectsAnEmptyText(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/translate', $token, ['text' => '   ']);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testCannotFinishAChallengeThatWasNeverStarted(): void
     {
         $client = static::createClient();

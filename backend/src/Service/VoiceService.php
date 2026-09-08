@@ -94,11 +94,16 @@ final class VoiceService
      * set or the call fails for any reason.
      *
      * @param array<int, array{role: string, content: string}> $conversationHistory {role, content} pairs, oldest first, already including the learner's latest message
+     * @param ?string $levelInstruction CECRL-level prompt prefix from CecrlProfileService::buildSystemPromptPrefix() - prepended, never replacing $systemPrompt, so scenario authors' prompts keep working unchanged
      */
-    public function generateAnswer(string $systemPrompt, array $conversationHistory, int $turnNumber): string
+    public function generateAnswer(string $systemPrompt, array $conversationHistory, int $turnNumber, ?string $levelInstruction = null): string
     {
+        $fullSystemPrompt = null !== $levelInstruction
+            ? $levelInstruction."\n\n".$systemPrompt
+            : $systemPrompt;
+
         $reply = $this->aiChatService->chat([
-            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'system', 'content' => $fullSystemPrompt],
             ...$conversationHistory,
         ]);
 

@@ -129,6 +129,82 @@ final class SessionControllerTest extends ApiTestCase
         self::assertFalse($this->decodeResponse($client)[0]['locked']);
     }
 
+    public function testSessionResponseExposesTheLearnersCecrlProfile(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'B2');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $session = $this->decodeResponse($client);
+
+        // B2 is the least-assisted profile (CecrlProfileService): transcript
+        // hidden by default, translation off by default.
+        self::assertSame('onDemand', $session['cecrlProfile']['transcriptMode']);
+        self::assertSame('off', $session['cecrlProfile']['translationMode']);
+    }
+
+    public function testHintIsAvailableOnRequestRegardlessOfLevel(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'B2');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/hint", $token, ['tier' => 1]);
+
+        self::assertResponseIsSuccessful();
+        $hint = $this->decodeResponse($client);
+        self::assertSame(1, $hint['tier']);
+        self::assertNotEmpty($hint['content']);
+    }
+
+    public function testHintRejectsAnOutOfRangeTier(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/hint", $token, ['tier' => 7]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testTranslateReturnsAFrenchTranslationField(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/translate", $token, ['text' => 'What is your name?']);
+
+        self::assertResponseIsSuccessful();
+        self::assertNotEmpty($this->decodeResponse($client)['translation']);
+    }
+
+    public function testCannotRequestAHintForAnotherUsersSession(): void
+    {
+        $client = static::createClient();
+        $ownerToken = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $ownerToken);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $ownerToken);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $intruderToken = $this->registerAndGetToken($client);
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/hint", $intruderToken, ['tier' => 1]);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
     public function testCannotAccessAnotherUsersSession(): void
     {
         $client = static::createClient();

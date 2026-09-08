@@ -25,6 +25,13 @@ describe("ConversationLog", () => {
     expect(screen.getByText("I am fine, thanks.")).toBeInTheDocument();
   });
 
+  it("shows the transcript by default when initialShowText is set (A0/A1 CECRL profile)", () => {
+    render(<ConversationLog messages={MESSAGES} initialShowText />);
+
+    expect(screen.getByText("Hello! How are you?")).toBeInTheDocument();
+    expect(screen.queryByText(/Mode audio/)).not.toBeInTheDocument();
+  });
+
   it("hides it again on a second click", () => {
     render(<ConversationLog messages={MESSAGES} />);
 

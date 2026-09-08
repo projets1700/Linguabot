@@ -9,7 +9,9 @@ use App\Entity\User;
 use App\Enum\MessageRole;
 use App\Enum\SessionStatus;
 use App\Repository\SessionRepository;
+use App\Service\CecrlProfileService;
 use App\Service\GamificationService;
+use App\Service\LearningAidService;
 use App\Service\VoiceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,6 +26,7 @@ final class SessionController
         Scenario $scenario,
         #[CurrentUser] User $user,
         VoiceService $voiceService,
+        CecrlProfileService $cecrlProfileService,
         EntityManagerInterface $em,
     ): JsonResponse {
         if ($scenario->getLevel()->getOrderNum() > $user->getLevel()->getOrderNum()) {
@@ -50,17 +53,17 @@ final class SessionController
 
         $em->flush();
 
-        return new JsonResponse($this->serializeSession($session), 201);
+        return new JsonResponse($this->serializeSession($session, $cecrlProfileService), 201);
     }
 
     #[Route('/api/sessions/{id}', name: 'api_session_show', methods: ['GET'])]
-    public function show(Session $session, #[CurrentUser] User $user): JsonResponse
+    public function show(Session $session, #[CurrentUser] User $user, CecrlProfileService $cecrlProfileService): JsonResponse
     {
         if ($session->getUser()->getId() !== $user->getId()) {
             return new JsonResponse(['message' => 'Accès refusé.'], 403);
         }
 
-        return new JsonResponse($this->serializeSession($session));
+        return new JsonResponse($this->serializeSession($session, $cecrlProfileService));
     }
 
     #[Route('/api/sessions/{id}/message', name: 'api_session_message', methods: ['POST'])]
@@ -69,6 +72,7 @@ final class SessionController
         Request $request,
         #[CurrentUser] User $user,
         VoiceService $voiceService,
+        CecrlProfileService $cecrlProfileService,
         EntityManagerInterface $em,
     ): JsonResponse {
         if ($session->getUser()->getId() !== $user->getId()) {
@@ -114,7 +118,8 @@ final class SessionController
             static fn (SessionMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
             $session->getMessages()->toArray(),
         );
-        $reply = $voiceService->generateAnswer($session->getScenario()->getPromptTemplate(), $conversationHistory, $turnNumber);
+        $levelInstruction = $cecrlProfileService->buildSystemPromptPrefix($user->getLevel()->getCode(), $turnNumber);
+        $reply = $voiceService->generateAnswer($session->getScenario()->getPromptTemplate(), $conversationHistory, $turnNumber, $levelInstruction);
 
         $assistantMessage = (new SessionMessage())
             ->setRole(MessageRole::ASSISTANT)
@@ -128,6 +133,54 @@ final class SessionController
             'userTranscript' => $transcript,
             'assistantMessage' => $reply,
         ]);
+    }
+
+    #[Route('/api/sessions/{id}/hint', name: 'api_session_hint', methods: ['POST'])]
+    public function hint(
+        Session $session,
+        Request $request,
+        #[CurrentUser] User $user,
+        LearningAidService $learningAidService,
+    ): JsonResponse {
+        if ($session->getUser()->getId() !== $user->getId()) {
+            return new JsonResponse(['message' => 'Accès refusé.'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $tier = (int) ($data['tier'] ?? 1);
+        if ($tier < 1 || $tier > 3) {
+            return new JsonResponse(['message' => 'Palier d\'aide invalide.'], 422);
+        }
+
+        $conversationHistory = array_map(
+            static fn (SessionMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
+            $session->getMessages()->toArray(),
+        );
+
+        return new JsonResponse([
+            'tier' => $tier,
+            'content' => $learningAidService->hint($conversationHistory, $tier),
+        ]);
+    }
+
+    #[Route('/api/sessions/{id}/translate', name: 'api_session_translate', methods: ['POST'])]
+    public function translate(
+        Session $session,
+        Request $request,
+        #[CurrentUser] User $user,
+        LearningAidService $learningAidService,
+    ): JsonResponse {
+        if ($session->getUser()->getId() !== $user->getId()) {
+            return new JsonResponse(['message' => 'Accès refusé.'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $text = trim((string) ($data['text'] ?? ''));
+        if ('' === $text) {
+            return new JsonResponse(['message' => 'Texte manquant.'], 422);
+        }
+
+        return new JsonResponse(['translation' => $learningAidService->translate($text)]);
     }
 
     #[Route('/api/sessions/{id}/finish', name: 'api_session_finish', methods: ['POST'])]
@@ -189,7 +242,7 @@ final class SessionController
         ]);
     }
 
-    private function serializeSession(Session $session): array
+    private function serializeSession(Session $session, CecrlProfileService $cecrlProfileService): array
     {
         return [
             'id' => $session->getId(),
@@ -199,6 +252,7 @@ final class SessionController
                 'title' => $session->getScenario()->getTitle(),
                 'characterName' => $session->getScenario()->getCharacterName(),
             ],
+            'cecrlProfile' => $cecrlProfileService->publicPayload($session->getUser()->getLevel()->getCode()),
             'messages' => array_map(
                 static fn (SessionMessage $m) => [
                     'id' => $m->getId(),

@@ -1,9 +1,6 @@
-import type { MutableRefObject } from "react";
 import { loadVoices, pickVoiceForGender } from "./voices";
 import { useAuthStore } from "../stores/authStore";
 import { useVoiceSettingsStore } from "../stores/voiceSettingsStore";
-import { speakEnglishWithAzureVisemes, type AzureVisemeFrame } from "./azureSpeech";
-import type { AvatarType } from "../types";
 
 // Chrome/Edge reliably return an empty voice list from getVoices() until
 // they've finished asynchronously enumerating voices - normally invisible
@@ -147,36 +144,4 @@ function speakNow(text: string, options: SpeakOptions): void {
 
   currentUtterance = utterance;
   window.speechSynthesis.speak(utterance);
-}
-
-type SpeakEnglishWithAvatarOptions = {
-  onStart?: () => void;
-  onEnd?: () => void;
-  onBoundary?: (event: SpeechSynthesisEvent) => void;
-};
-
-/**
- * English-only entry point used by the pages that render an AvatarScene
- * (Session, Placement test, Daily challenge) - tries Azure Speech first for
- * real audio and natively-synchronized visemes, and falls back to the
- * existing speechSynthesis path unchanged when Azure isn't configured or
- * the token request fails. The A0 quiz (French) never calls this - it
- * keeps calling speakText directly, since Azure has no French viseme
- * support (see azureSpeech.ts).
- */
-export async function speakEnglishWithAvatar(
-  text: string,
-  avatarType: AvatarType,
-  azureRefs: { framesRef: MutableRefObject<AzureVisemeFrame[]>; startTimeRef: MutableRefObject<number | null> },
-  options: SpeakEnglishWithAvatarOptions = {},
-): Promise<void> {
-  const usedAzure = await speakEnglishWithAzureVisemes(text, avatarType, {
-    onStart: options.onStart,
-    onEnd: options.onEnd,
-    framesRef: azureRefs.framesRef,
-    startTimeRef: azureRefs.startTimeRef,
-  });
-  if (usedAzure) return;
-
-  speakText(text, { lang: "en-US", onStart: options.onStart, onEnd: options.onEnd, onBoundary: options.onBoundary });
 }

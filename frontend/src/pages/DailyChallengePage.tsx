@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { ConversationLog } from "../components/ConversationLog";
+import { HelpPanel } from "../components/HelpPanel";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
-import { speakEnglishWithAvatar } from "../lib/speech";
-import type { AzureVisemeFrame } from "../lib/azureSpeech";
+import { useConversationSession } from "../hooks/useConversationSession";
 import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge, DailyChallengeFinishResult } from "../types";
 
@@ -24,55 +24,18 @@ export function DailyChallengePage() {
   const [sendError, setSendError] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<DailyChallengeFinishResult | null>(null);
-  const [aiSpeaking, setAiSpeaking] = useState(false);
-  const [speechText, setSpeechText] = useState<string | null>(null);
-  const charIndexRef = useRef<number | null>(null);
-  const visemeFramesRef = useRef<AzureVisemeFrame[]>([]);
-  const visemeStartTimeRef = useRef<number | null>(null);
-  // AvatarScene isn't even mounted until chatStarted (see the JSX below) -
-  // its ~30MB of GLB/FBX assets only start loading right as handleStart
-  // fires, which is also exactly when this page wants to speak the opening
-  // line, making this page the worst case for the race this gate fixes.
-  // Any speech requested before onReady fires is held here and replayed
-  // exactly once, the moment it does.
-  const avatarReadyRef = useRef(false);
-  const pendingSpeechRef = useRef<(() => void) | null>(null);
+  const {
+    avatarState,
+    setAvatarState,
+    speechText,
+    charIndexRef,
+    speakAssistantLine,
+    handleAvatarReady,
+  } = useConversationSession();
 
   useEffect(() => {
     api.get<DailyChallenge>("/daily-challenge").then((response) => setChallenge(response.data));
   }, []);
-
-  function speakAssistantLine(text: string) {
-    charIndexRef.current = null;
-    setSpeechText(text);
-    const avatarType = useAuthStore.getState().user?.avatarType ?? "male";
-    const speak = () =>
-      void speakEnglishWithAvatar(text, avatarType, { framesRef: visemeFramesRef, startTimeRef: visemeStartTimeRef }, {
-        onStart: () => setAiSpeaking(true),
-        onBoundary: (event) => {
-          charIndexRef.current = event.charIndex;
-        },
-        onEnd: () => {
-          setAiSpeaking(false);
-          setSpeechText(null);
-        },
-      });
-
-    if (avatarReadyRef.current) {
-      speak();
-    } else {
-      pendingSpeechRef.current = speak;
-    }
-  }
-
-  function handleAvatarReady() {
-    avatarReadyRef.current = true;
-    const pending = pendingSpeechRef.current;
-    if (pending) {
-      pendingSpeechRef.current = null;
-      pending();
-    }
-  }
 
   async function handleStart() {
     if (!challenge) return;
@@ -85,6 +48,7 @@ export function DailyChallengePage() {
   async function handleVoiceResult(transcript: string) {
     setSending(true);
     setSendError(false);
+    setAvatarState("thinking");
     const userMessage: ChatMessage = { id: Date.now(), role: "user", content: transcript };
     const turnNumber = messages.filter((m) => m.role === "user").length;
     // The backend doesn't persist this conversation, so it has no way to
@@ -111,6 +75,7 @@ export function DailyChallengePage() {
       // else (network/API failure) gets a visible error instead of failing
       // silently.
       const status = (error as { response?: { status?: number } }).response?.status;
+      setAvatarState("idle");
       if (status !== 422) {
         setSendError(true);
       }
@@ -150,6 +115,9 @@ export function DailyChallengePage() {
     );
   }
 
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant")?.content ?? null;
+  const historyForHint = messages.map(({ role, content }) => ({ role, content }));
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8 max-w-2xl mx-auto">
       <p className="text-amber-400 text-sm font-semibold mb-1 uppercase">Défi du jour · +{challenge.xpReward} XP</p>
@@ -170,23 +138,32 @@ export function DailyChallengePage() {
         <>
           <div className="mb-4">
             <AvatarScene
-              state={aiSpeaking ? "speaking" : sending ? "thinking" : "idle"}
+              state={avatarState}
               avatarType={user?.avatarType ?? "male"}
               speechText={speechText}
               charIndexRef={charIndexRef}
-              visemeFramesRef={visemeFramesRef}
-              visemeStartTimeRef={visemeStartTimeRef}
               onReady={handleAvatarReady}
             />
           </div>
 
-          <ConversationLog messages={messages} />
+          <ConversationLog
+            messages={messages}
+            initialShowText={challenge.cecrlProfile.transcriptMode === "auto"}
+          />
+
+          <HelpPanel
+            profile={challenge.cecrlProfile}
+            translateEndpoint="/daily-challenge/translate"
+            hintEndpoint="/daily-challenge/hint"
+            textToTranslate={lastAssistantMessage}
+            hintBody={{ history: historyForHint }}
+          />
 
           <div className="mb-4">
             {/* The mic must stay off while the AI is talking, otherwise it
                 can pick its own voice back up through the speakers and
                 "answer its own question". */}
-            <VoiceInput onResult={handleVoiceResult} disabled={sending || aiSpeaking} />
+            <VoiceInput onResult={handleVoiceResult} disabled={sending || avatarState === "speaking"} />
           </div>
 
           {sendError && (

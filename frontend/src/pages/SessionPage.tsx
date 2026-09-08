@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
-import { AvatarScene, type AvatarState } from "../components/AvatarScene";
+import { AvatarScene } from "../components/AvatarScene";
 import { ConversationLog } from "../components/ConversationLog";
+import { HelpPanel } from "../components/HelpPanel";
+import { PronunciationPractice } from "../components/PronunciationPractice";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
-import { speakEnglishWithAvatar } from "../lib/speech";
-import type { AzureVisemeFrame } from "../lib/azureSpeech";
+import { useConversationSession } from "../hooks/useConversationSession";
+import { selectPracticeSentence } from "../lib/selectPracticeSentence";
 import { useAuthStore } from "../stores/authStore";
 import type { SessionDetail, SessionFinishResult, SessionMessage } from "../types";
 
@@ -23,54 +25,15 @@ export function SessionPage() {
   const [sendError, setSendError] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<SessionFinishResult | null>(null);
-  const [avatarState, setAvatarState] = useState<AvatarState>("idle");
-  const [speechText, setSpeechText] = useState<string | null>(null);
-  const charIndexRef = useRef<number | null>(null);
-  const visemeFramesRef = useRef<AzureVisemeFrame[]>([]);
-  const visemeStartTimeRef = useRef<number | null>(null);
+  const {
+    avatarState,
+    setAvatarState,
+    speechText,
+    charIndexRef,
+    speakAssistantLine,
+    handleAvatarReady,
+  } = useConversationSession();
   const bottomRef = useRef<HTMLDivElement>(null);
-  // The avatar's ~30MB of GLB/FBX assets take real time to load - without
-  // this gate, speech (an entirely separate pipeline, unaware of the
-  // avatar's own Suspense loading state) could start talking while the
-  // avatar box is still empty. Any speech requested before AvatarScene's
-  // onReady fires is held here and replayed exactly once, the moment it does.
-  const avatarReadyRef = useRef(false);
-  const pendingSpeechRef = useRef<(() => void) | null>(null);
-
-  function speakAssistantLine(text: string) {
-    charIndexRef.current = null;
-    setSpeechText(text);
-    // Reads the store directly (not the reactive `user` above) so this
-    // stays usable from effects that only depend on [id] - the avatar's
-    // gender can't meaningfully change mid-session anyway.
-    const avatarType = useAuthStore.getState().user?.avatarType ?? "male";
-    const speak = () =>
-      void speakEnglishWithAvatar(text, avatarType, { framesRef: visemeFramesRef, startTimeRef: visemeStartTimeRef }, {
-        onStart: () => setAvatarState("speaking"),
-        onBoundary: (event) => {
-          charIndexRef.current = event.charIndex;
-        },
-        onEnd: () => {
-          setAvatarState("idle");
-          setSpeechText(null);
-        },
-      });
-
-    if (avatarReadyRef.current) {
-      speak();
-    } else {
-      pendingSpeechRef.current = speak;
-    }
-  }
-
-  function handleAvatarReady() {
-    avatarReadyRef.current = true;
-    const pending = pendingSpeechRef.current;
-    if (pending) {
-      pendingSpeechRef.current = null;
-      pending();
-    }
-  }
 
   useEffect(() => {
     // Guard against React StrictMode's dev-mode double effect invocation:
@@ -92,6 +55,9 @@ export function SessionPage() {
     return () => {
       ignore = true;
     };
+    // speakAssistantLine comes from useConversationSession() and must not
+    // retrigger this fetch - it only ever needs to run once per session id.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -154,6 +120,14 @@ export function SessionPage() {
     );
   }
 
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant")?.content ?? null;
+  // Extracted verbatim from the AI's own last line, never rewritten - a
+  // full reply can run several sentences/too long to usefully repeat aloud,
+  // see selectPracticeSentence.ts. null when nothing in it is usable.
+  const practiceSentence = lastAssistantMessage
+    ? selectPracticeSentence(lastAssistantMessage, user?.level.code)
+    : null;
+
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col p-8 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -176,13 +150,35 @@ export function SessionPage() {
           avatarType={user?.avatarType ?? "male"}
           speechText={speechText}
           charIndexRef={charIndexRef}
-          visemeFramesRef={visemeFramesRef}
-          visemeStartTimeRef={visemeStartTimeRef}
           onReady={handleAvatarReady}
         />
       </div>
 
-      <ConversationLog messages={messages} bottomRef={bottomRef} />
+      <ConversationLog
+        messages={messages}
+        bottomRef={bottomRef}
+        initialShowText={session.cecrlProfile.transcriptMode === "auto"}
+      />
+
+      <HelpPanel
+        profile={session.cecrlProfile}
+        translateEndpoint={`/sessions/${id}/translate`}
+        hintEndpoint={`/sessions/${id}/hint`}
+        textToTranslate={lastAssistantMessage}
+      />
+
+      {practiceSentence && (
+        <div className="mb-4">
+          {/* transcriptMode doubles as the prominence signal here (auto for
+              A0/A1, available for A2, onDemand for B1/B2) - same repurposing
+              pattern HelpPanel already uses for its translate button,
+              instead of adding a new CECRL field for this one component. */}
+          <PronunciationPractice
+            targetText={practiceSentence}
+            prominence={session.cecrlProfile.transcriptMode}
+          />
+        </div>
+      )}
 
       {/* The mic must stay off while the AI is talking, otherwise it can
           pick its own voice back up through the speakers and "answer its

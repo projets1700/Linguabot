@@ -68,6 +68,19 @@ export type SessionMessage = {
   content: string;
 };
 
+/**
+ * How much help a learner gets by default, resolved server-side from their
+ * CECRL level (CecrlProfileService::publicPayload). Aids not shown by
+ * default (e.g. translation for a B2 learner) stay reachable manually -
+ * this only shapes what's surfaced up front, see HelpPanel.
+ */
+export type CecrlProfile = {
+  transcriptMode: "auto" | "available" | "onDemand";
+  translationMode: "visible" | "onDemand" | "rare" | "off";
+  keywordHelpEnabled: boolean;
+  sentenceStarterEnabled: boolean;
+};
+
 export type SessionDetail = {
   id: number;
   status: "in_progress" | "completed" | "abandoned";
@@ -76,6 +89,7 @@ export type SessionDetail = {
     title: string;
     characterName: string;
   };
+  cecrlProfile: CecrlProfile;
   messages: SessionMessage[];
 };
 
@@ -144,6 +158,7 @@ export type DailyChallenge = {
   xpReward: number;
   started: boolean;
   completed: boolean;
+  cecrlProfile: CecrlProfile;
 };
 
 export type DailyChallengeFinishResult = {

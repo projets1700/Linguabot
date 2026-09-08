@@ -8,8 +8,7 @@ import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
-import { speakEnglishWithAvatar } from "../lib/speech";
-import type { AzureVisemeFrame } from "../lib/azureSpeech";
+import { speakText } from "../lib/speech";
 import { useAuthStore } from "../stores/authStore";
 import type {
   PlacementTestDetail,
@@ -34,8 +33,6 @@ export function PlacementTestPage() {
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
   const [speechText, setSpeechText] = useState<string | null>(null);
   const charIndexRef = useRef<number | null>(null);
-  const visemeFramesRef = useRef<AzureVisemeFrame[]>([]);
-  const visemeStartTimeRef = useRef<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   // The avatar's ~30MB of GLB/FBX assets take real time to load - without
   // this gate, speech (an entirely separate pipeline, unaware of the
@@ -48,13 +45,9 @@ export function PlacementTestPage() {
   function speakAssistantLine(text: string) {
     charIndexRef.current = null;
     setSpeechText(text);
-    // Reads the store directly (not the reactive `user` above) so this
-    // stays usable from the initial effect, which keeps its empty
-    // dependency array - the avatar's gender can't meaningfully change
-    // mid-test anyway.
-    const avatarType = useAuthStore.getState().user?.avatarType ?? "male";
     const speak = () =>
-      void speakEnglishWithAvatar(text, avatarType, { framesRef: visemeFramesRef, startTimeRef: visemeStartTimeRef }, {
+      speakText(text, {
+        lang: "en-US",
         onStart: () => setAvatarState("speaking"),
         onBoundary: (event) => {
           charIndexRef.current = event.charIndex;
@@ -205,8 +198,6 @@ export function PlacementTestPage() {
           avatarType={user?.avatarType ?? "male"}
           speechText={speechText}
           charIndexRef={charIndexRef}
-          visemeFramesRef={visemeFramesRef}
-          visemeStartTimeRef={visemeStartTimeRef}
           onReady={handleAvatarReady}
         />
       </div>

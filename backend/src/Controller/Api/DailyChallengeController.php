@@ -5,8 +5,10 @@ namespace App\Controller\Api;
 use App\Entity\ChallengeSession;
 use App\Entity\User;
 use App\Repository\ChallengeSessionRepository;
+use App\Service\CecrlProfileService;
 use App\Service\DailyChallengeService;
 use App\Service\GamificationService;
+use App\Service\LearningAidService;
 use App\Service\VoiceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,6 +23,7 @@ final class DailyChallengeController
         #[CurrentUser] User $user,
         DailyChallengeService $dailyChallengeService,
         ChallengeSessionRepository $challengeSessionRepository,
+        CecrlProfileService $cecrlProfileService,
     ): JsonResponse {
         $challenge = $dailyChallengeService->findOrCreateTodaysChallenge($user->getLevel());
         $participation = $challengeSessionRepository->findOneForUserAndChallenge($user, $challenge);
@@ -36,6 +39,7 @@ final class DailyChallengeController
             'xpReward' => $dailyChallengeService->baseXpForLevel($user->getLevel()->getCode()) * 2,
             'started' => null !== $participation,
             'completed' => $participation?->isCompleted() ?? false,
+            'cecrlProfile' => $cecrlProfileService->publicPayload($user->getLevel()->getCode()),
         ]);
     }
 
@@ -71,6 +75,7 @@ final class DailyChallengeController
         VoiceService $voiceService,
         #[CurrentUser] User $user,
         DailyChallengeService $dailyChallengeService,
+        CecrlProfileService $cecrlProfileService,
     ): JsonResponse {
         $data = json_decode($request->getContent(), true) ?? [];
         $transcript = $voiceService->transcribeAudio((string) ($data['message'] ?? ''));
@@ -86,13 +91,7 @@ final class DailyChallengeController
         // endpoint (turnNumber alone drives the simulated fallback), so the
         // frontend - which already renders the full transcript locally -
         // is the one source of truth for what was actually said so far.
-        $history = \is_array($data['history'] ?? null) ? $data['history'] : [];
-        $conversationHistory = [];
-        foreach ($history as $entry) {
-            if (\is_array($entry) && \in_array($entry['role'] ?? null, ['user', 'assistant'], true) && \is_string($entry['content'] ?? null)) {
-                $conversationHistory[] = ['role' => $entry['role'], 'content' => $entry['content']];
-            }
-        }
+        $conversationHistory = self::parseHistory($data);
 
         $lastAssistantMessage = null;
         for ($i = \count($conversationHistory) - 1; $i >= 0; --$i) {
@@ -124,10 +123,39 @@ final class DailyChallengeController
             $challenge->getObjective(),
         );
 
+        $levelInstruction = $cecrlProfileService->buildSystemPromptPrefix($user->getLevel()->getCode(), $turnNumber);
+
         return new JsonResponse([
             'userTranscript' => $transcript,
-            'assistantMessage' => $voiceService->generateAnswer($systemPrompt, $conversationHistory, $turnNumber),
+            'assistantMessage' => $voiceService->generateAnswer($systemPrompt, $conversationHistory, $turnNumber, $levelInstruction),
         ]);
+    }
+
+    #[Route('/api/daily-challenge/hint', name: 'api_daily_challenge_hint', methods: ['POST'])]
+    public function hint(Request $request, LearningAidService $learningAidService): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $tier = (int) ($data['tier'] ?? 1);
+        if ($tier < 1 || $tier > 3) {
+            return new JsonResponse(['message' => 'Palier d\'aide invalide.'], 422);
+        }
+
+        return new JsonResponse([
+            'tier' => $tier,
+            'content' => $learningAidService->hint(self::parseHistory($data), $tier),
+        ]);
+    }
+
+    #[Route('/api/daily-challenge/translate', name: 'api_daily_challenge_translate', methods: ['POST'])]
+    public function translate(Request $request, LearningAidService $learningAidService): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $text = trim((string) ($data['text'] ?? ''));
+        if ('' === $text) {
+            return new JsonResponse(['message' => 'Texte manquant.'], 422);
+        }
+
+        return new JsonResponse(['translation' => $learningAidService->translate($text)]);
     }
 
     #[Route('/api/daily-challenge/finish', name: 'api_daily_challenge_finish', methods: ['POST'])]
@@ -168,5 +196,28 @@ final class DailyChallengeController
             'newBadges' => array_map(static fn ($b) => ['code' => $b->getCode(), 'name' => $b->getName(), 'icon' => $b->getIcon()], $newBadges),
             'newTrophies' => array_map(static fn ($t) => ['code' => $t->getCode(), 'name' => $t->getName(), 'rarity' => $t->getRarity()->value], $newTrophies),
         ]);
+    }
+
+    /**
+     * No ChallengeMessage entity is persisted for this stateless flow, so
+     * the frontend - which already renders the full transcript locally - is
+     * the one source of truth for what was said so far, for message(), and
+     * for the context hint() needs to build a relevant hint.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return array<int, array{role: string, content: string}>
+     */
+    private static function parseHistory(array $data): array
+    {
+        $history = \is_array($data['history'] ?? null) ? $data['history'] : [];
+        $conversationHistory = [];
+        foreach ($history as $entry) {
+            if (\is_array($entry) && \in_array($entry['role'] ?? null, ['user', 'assistant'], true) && \is_string($entry['content'] ?? null)) {
+                $conversationHistory[] = ['role' => $entry['role'], 'content' => $entry['content']];
+            }
+        }
+
+        return $conversationHistory;
     }
 }

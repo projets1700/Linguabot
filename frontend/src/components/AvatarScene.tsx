@@ -4,7 +4,6 @@ import { OrbitControls, useFBX, useGLTF } from "@react-three/drei";
 import { AnimationClip, AnimationMixer, Box3, LoopRepeat, type Group, type Mesh, type Object3D } from "three";
 import { LipsyncController } from "../lib/lipsync/lipsyncController";
 import { ALL_VISEME_MORPH_TARGETS, VISEME_WEIGHTS, type VisemeMorphTarget } from "../lib/lipsync/visemeTypes";
-import { findVisemeFrameIndex, type AzureVisemeFrame } from "../lib/azureSpeech";
 import { IDLE_ANIMATION_PATHS, MODEL_PATHS } from "../lib/avatarAssets";
 import type { AvatarType } from "../types";
 
@@ -134,16 +133,12 @@ function AvatarModel({
   state,
   speechText,
   charIndexRef,
-  visemeFramesRef,
-  visemeStartTimeRef,
   onReady,
 }: {
   avatarType: AvatarType;
   state: AvatarState;
   speechText: string | null;
   charIndexRef: MutableRefObject<number | null> | undefined;
-  visemeFramesRef: MutableRefObject<AzureVisemeFrame[]> | undefined;
-  visemeStartTimeRef: MutableRefObject<number | null> | undefined;
   onReady: (() => void) | undefined;
 }) {
   const { scene } = useGLTF(MODEL_PATHS[avatarType]);
@@ -160,11 +155,6 @@ function AvatarModel({
   const lastSeenCharIndexRef = useRef<number | null>(null);
   const blinkTargetsRef = useRef<Map<BlinkMorphTarget, MorphTarget[]>>(new Map());
   const blinkStateRef = useRef(createBlinkState());
-  // Tracks which Azure utterance (identified by its startTime) the cursor
-  // below belongs to, so a new utterance restarts the walk from frame 0
-  // instead of continuing from wherever the previous one left off.
-  const azureUtteranceStartRef = useRef<number | null>(null);
-  const azureFrameCursorRef = useRef(0);
   // Kept in sync on every render via this effect (never mutated during
   // render itself) so the model-ready effect below can always call the
   // latest onReady without re-running - and thus without re-firing it - on
@@ -299,19 +289,7 @@ function AvatarModel({
     const controller = lipsyncControllerRef.current;
     let targetWeights: Partial<Record<VisemeMorphTarget, number>> = VISEME_WEIGHTS.REST;
 
-    const azureStartTime = visemeStartTimeRef?.current;
-    if (state === "speaking" && azureStartTime != null) {
-      // Real Azure timeline available for this utterance - takes priority
-      // over the heuristic controller below, which never even starts.
-      if (azureUtteranceStartRef.current !== azureStartTime) {
-        azureUtteranceStartRef.current = azureStartTime;
-        azureFrameCursorRef.current = 0;
-      }
-      const frames = visemeFramesRef?.current ?? [];
-      const elapsedMs = performance.now() - azureStartTime;
-      azureFrameCursorRef.current = findVisemeFrameIndex(frames, elapsedMs, azureFrameCursorRef.current);
-      targetWeights = frames[azureFrameCursorRef.current]?.weights ?? VISEME_WEIGHTS.REST;
-    } else if (state === "speaking") {
+    if (state === "speaking") {
       // A fresh boundary value from the page's onBoundary callback beats
       // the time-based estimate - only report it once per new value (not
       // every frame) so staleness detection inside the controller can
@@ -358,25 +336,15 @@ export function AvatarScene({
   avatarType,
   speechText = null,
   charIndexRef,
-  visemeFramesRef,
-  visemeStartTimeRef,
   onReady,
 }: {
   state: AvatarState;
   avatarType: AvatarType;
   // The line currently being spoken (set when speech starts, cleared to
   // null when it ends) - drives text-based lip-sync. Both optional: pages
-  // that don't pass them just get REST/no mouth movement while
-  // "speaking", same as before this feature existed for them.
+  // that don't pass them just get REST/no mouth movement while "speaking".
   speechText?: string | null;
   charIndexRef?: MutableRefObject<number | null>;
-  // Real Azure-provided viseme timeline (English pages only) - when
-  // visemeStartTimeRef.current is set, this takes over from the heuristic
-  // speechText/charIndexRef path above for as long as speech continues.
-  // Both optional and independent from speechText/charIndexRef: pages that
-  // don't pass them behave exactly as before Azure support existed.
-  visemeFramesRef?: MutableRefObject<AzureVisemeFrame[]>;
-  visemeStartTimeRef?: MutableRefObject<number | null>;
   // Fires once the avatar's GLB/FBX assets (~30MB) have actually finished
   // loading and it's mounted - pages should hold off calling speakText/
   // speakEnglishWithAvatar until this fires, otherwise speech can start
@@ -411,8 +379,6 @@ export function AvatarScene({
             speechText={speechText}
             charIndexRef={charIndexRef}
             onReady={handleReady}
-            visemeFramesRef={visemeFramesRef}
-            visemeStartTimeRef={visemeStartTimeRef}
           />
         </Suspense>
         <OrbitControls enableZoom={false} />

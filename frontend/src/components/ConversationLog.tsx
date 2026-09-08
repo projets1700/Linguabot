@@ -5,6 +5,8 @@ type Message = { id: number; role: "user" | "assistant"; content: string };
 type Props = {
   messages: Message[];
   bottomRef?: React.RefObject<HTMLDivElement | null>;
+  /** Auto-open for A0/A1 (CecrlProfile.transcriptMode === "auto") - the V1 spec's transcription rule (§8): shown by default for beginners, hidden behind the toggle otherwise. */
+  initialShowText?: boolean;
 };
 
 /**
@@ -13,8 +15,8 @@ type Props = {
  * placeholder. "Je n'ai pas compris" reveals it on demand for a learner who
  * missed something, without turning the whole app back into a chat log.
  */
-export function ConversationLog({ messages, bottomRef }: Props) {
-  const [showText, setShowText] = useState(false);
+export function ConversationLog({ messages, bottomRef, initialShowText = false }: Props) {
+  const [showText, setShowText] = useState(initialShowText);
 
   return (
     <div className="flex flex-col gap-2 mb-4">
