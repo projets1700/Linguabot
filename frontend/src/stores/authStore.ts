@@ -16,6 +16,11 @@ type AuthState = {
   user: Me | null;
   loading: boolean;
   error: string | null;
+  // Separate from `error` above (login/register/verifyEmail's own field,
+  // read by LoginPage) - fetchMe() failing for a reason other than a
+  // request-rejected 401 (a network blip, a 500) shouldn't leak an
+  // unrelated message into the login form the next time it's read.
+  fetchMeError: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   verifyEmail: (token: string) => Promise<void>;
@@ -28,6 +33,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   loading: false,
   error: null,
+  fetchMeError: false,
 
   async login(email, password) {
     set({ loading: true, error: null });
@@ -73,18 +79,28 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   async fetchMe() {
-    const response = await api.get<Me>("/me");
-    set({ user: response.data });
-    // Warms the loader cache for this learner's avatar (~30MB of GLB/FBX)
-    // as early as possible - by the time they actually reach a page that
-    // renders AvatarScene, it can mount near-instantly instead of leaving
-    // the avatar blank for a couple of seconds while speech (unaware of
-    // the avatar's own loading state) has already started.
-    preloadAvatarAssets(response.data.avatarType);
+    set({ fetchMeError: false });
+    try {
+      const response = await api.get<Me>("/me");
+      set({ user: response.data });
+      // Warms the loader cache for this learner's avatar (~30MB of GLB/FBX)
+      // as early as possible - by the time they actually reach a page that
+      // renders AvatarScene, it can mount near-instantly instead of leaving
+      // the avatar blank for a couple of seconds while speech (unaware of
+      // the avatar's own loading state) has already started.
+      preloadAvatarAssets(response.data.avatarType);
+    } catch {
+      // A 401 here already triggers the api client's own logout+redirect
+      // (see api/client.ts's response interceptor) - this only matters for
+      // everything else (network blip, 500): without it, `user` never
+      // resolves and RequireAuth was stuck on "Chargement..." forever, with
+      // no way to know why or retry.
+      set({ fetchMeError: true });
+    }
   },
 
   logout() {
     localStorage.removeItem("token");
-    set({ token: null, user: null });
+    set({ token: null, user: null, fetchMeError: false });
   },
 }));

@@ -12,7 +12,7 @@ vi.mock("../api/client", () => ({
 describe("authStore", () => {
   beforeEach(() => {
     localStorage.clear();
-    useAuthStore.setState({ token: null, user: null, loading: false, error: null });
+    useAuthStore.setState({ token: null, user: null, loading: false, error: null, fetchMeError: false });
     vi.clearAllMocks();
   });
 
@@ -112,6 +112,29 @@ describe("authStore", () => {
     await useAuthStore.getState().fetchMe();
 
     expect(api.get).toHaveBeenCalledWith("/me");
+    expect(useAuthStore.getState().user).toEqual(me);
+  });
+
+  it("fetchMe sets fetchMeError instead of throwing when the request fails", async () => {
+    // Regression: fetchMe() had no error handling at all - a network/API
+    // failure left `user` unresolved forever with nothing to signal it,
+    // and RequireAuth's "Chargement..." screen never went away.
+    vi.mocked(api.get).mockRejectedValueOnce(new Error("network error"));
+
+    await expect(useAuthStore.getState().fetchMe()).resolves.toBeUndefined();
+
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(useAuthStore.getState().fetchMeError).toBe(true);
+  });
+
+  it("fetchMe clears a previous fetchMeError on a successful retry", async () => {
+    const me = { id: 1, prenom: "Adam", email: "adam@test.fr", level: { code: "A0" } };
+    useAuthStore.setState({ fetchMeError: true });
+    vi.mocked(api.get).mockResolvedValueOnce({ data: me });
+
+    await useAuthStore.getState().fetchMe();
+
+    expect(useAuthStore.getState().fetchMeError).toBe(false);
     expect(useAuthStore.getState().user).toEqual(me);
   });
 

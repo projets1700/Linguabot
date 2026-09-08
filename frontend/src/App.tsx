@@ -13,6 +13,7 @@ import { BadgesPage } from "./pages/BadgesPage";
 import { TrophiesPage } from "./pages/TrophiesPage";
 import { DailyChallengePage } from "./pages/DailyChallengePage";
 import { VoiceSettingsPage } from "./pages/VoiceSettingsPage";
+import { AccountPage } from "./pages/AccountPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminScenariosPage } from "./pages/admin/AdminScenariosPage";
@@ -107,6 +108,14 @@ export default function App() {
           element={
             <RequireAuth>
               <VoiceSettingsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/mon-compte"
+          element={
+            <RequireAuth>
+              <AccountPage />
             </RequireAuth>
           }
         />

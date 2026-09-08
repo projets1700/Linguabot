@@ -1,5 +1,8 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useAuthStore } from "../stores/authStore";
 
 export function DashboardPage() {
@@ -18,11 +21,7 @@ export function DashboardPage() {
   }
 
   if (!user) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white p-8">
-        <p>Chargement...</p>
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -40,6 +39,9 @@ export function DashboardPage() {
           <Link to="/voix" className="text-sm text-slate-400 hover:text-white">
             🔊 Voix de l'IA
           </Link>
+          <Link to="/mon-compte" className="text-sm text-slate-400 hover:text-white">
+            👤 Mon compte
+          </Link>
           <button onClick={handleLogout} className="text-sm text-slate-400 hover:text-white">
             Déconnexion
           </button>
@@ -47,36 +49,31 @@ export function DashboardPage() {
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-slate-800 p-6 rounded-xl">
+        <Card variant="stat">
           <p className="text-slate-400 text-sm">Niveau</p>
           <p className="text-2xl font-bold">{user.level.code} — {user.level.name}</p>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-xl">
+        </Card>
+        <Card variant="stat">
           <p className="text-slate-400 text-sm">XP total</p>
           <p className="text-2xl font-bold">{user.totalXp} XP</p>
-        </div>
-        <div className="bg-slate-800 p-6 rounded-xl">
+        </Card>
+        <Card variant="stat">
           <p className="text-slate-400 text-sm">Sessions complétées</p>
           <p className="text-2xl font-bold">{user.sessionsCount}</p>
-        </div>
+        </Card>
       </div>
 
       <div className="flex gap-4 flex-wrap">
+        {/* Kept as a plain Link (not the shared Button): amber is a
+            one-off highlight color for this single CTA, not one of
+            Button's standard variants. */}
         <Link to="/defi-du-jour" className="inline-block bg-amber-600 px-6 py-3 rounded-lg font-semibold">
           🔥 Défi du jour
         </Link>
-        <Link to="/quiz" className="inline-block bg-blue-600 px-6 py-3 rounded-lg">
-          Quiz vocal A0
-        </Link>
-        <Link to="/catalog" className="inline-block bg-slate-800 px-6 py-3 rounded-lg">
-          Voir le catalogue de scénarios
-        </Link>
-        <Link to="/badges" className="inline-block bg-slate-800 px-6 py-3 rounded-lg">
-          🌟 Mes badges
-        </Link>
-        <Link to="/trophees" className="inline-block bg-slate-800 px-6 py-3 rounded-lg">
-          🏆 Mes trophées
-        </Link>
+        <Button to="/quiz" size="lg">Quiz vocal A0</Button>
+        <Button to="/catalog" variant="secondary" size="lg">Voir le catalogue de scénarios</Button>
+        <Button to="/badges" variant="secondary" size="lg">🌟 Mes badges</Button>
+        <Button to="/trophees" variant="secondary" size="lg">🏆 Mes trophées</Button>
       </div>
     </main>
   );

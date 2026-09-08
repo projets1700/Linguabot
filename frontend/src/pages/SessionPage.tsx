@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene, type AvatarState } from "../components/AvatarScene";
 import { ConversationLog } from "../components/ConversationLog";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { speakEnglishWithAvatar } from "../lib/speech";
 import type { AzureVisemeFrame } from "../lib/azureSpeech";
 import { useAuthStore } from "../stores/authStore";
@@ -16,6 +20,7 @@ export function SessionPage() {
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<SessionFinishResult | null>(null);
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
@@ -95,6 +100,7 @@ export function SessionPage() {
 
   async function handleVoiceResult(transcript: string) {
     setSending(true);
+    setSendError(false);
     setAvatarState("thinking");
     const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
     setMessages((current) => [...current, userMessage]);
@@ -111,6 +117,7 @@ export function SessionPage() {
       speakAssistantLine(response.data.assistantMessage);
     } catch {
       setAvatarState("idle");
+      setSendError(true);
     } finally {
       setSending(false);
     }
@@ -127,30 +134,22 @@ export function SessionPage() {
   }
 
   if (!session) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white p-8">
-        <p>Chargement...</p>
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
   if (result) {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
-        <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md text-center">
+        <Card className="w-full max-w-md text-center">
           <h1 className="text-3xl font-bold mb-4">Session terminée</h1>
           <RewardBanner badges={result.newBadges} trophies={result.newTrophies} levelUp={result.levelUp} />
           <p className="text-slate-300 mb-2">Score : {result.score}/100</p>
           <p className="text-slate-300 mb-6">+{result.xpEarned} XP</p>
           <div className="flex gap-4 justify-center">
-            <Link to="/catalog" className="bg-blue-600 px-4 py-2 rounded-lg">
-              Rejouer un scénario
-            </Link>
-            <Link to="/dashboard" className="bg-slate-800 px-4 py-2 rounded-lg">
-              Dashboard
-            </Link>
+            <Button to="/catalog">Rejouer un scénario</Button>
+            <Button to="/dashboard" variant="secondary">Dashboard</Button>
           </div>
-        </div>
+        </Card>
       </main>
     );
   }
@@ -162,13 +161,13 @@ export function SessionPage() {
           <h1 className="text-2xl font-bold">{session.scenario.title}</h1>
           <p className="text-slate-400 text-sm">Avec {session.scenario.characterName}</p>
         </div>
-        <button
+        <Button
           onClick={handleFinish}
           disabled={finishing || messages.filter((m) => m.role === "user").length === 0}
-          className="bg-green-600 px-4 py-2 rounded-lg disabled:opacity-50"
+          variant="success"
         >
           {finishing ? "..." : "Terminer la session"}
-        </button>
+        </Button>
       </div>
 
       <div className="mb-4">
@@ -189,6 +188,8 @@ export function SessionPage() {
           pick its own voice back up through the speakers and "answer its
           own question". */}
       <VoiceInput onResult={handleVoiceResult} disabled={sending || avatarState === "speaking"} />
+
+      {sendError && <ErrorBanner message="Échec de l'envoi du message. Réessaie en parlant à nouveau." />}
     </main>
   );
 }

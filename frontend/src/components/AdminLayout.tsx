@@ -20,6 +20,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <Link
             key={item.to}
             to={item.to}
+            aria-current={location.pathname === item.to ? "page" : undefined}
             className={`px-3 py-2 rounded-lg text-sm ${
               location.pathname === item.to
                 ? "bg-blue-600 text-white"

@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { AdminLayout } from "../../components/AdminLayout";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorBanner } from "../../components/ui/ErrorBanner";
+import { LoadingText } from "../../components/ui/LoadingScreen";
 import type { AdminUser } from "../../types";
 
 export function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState(false);
 
   function load() {
     setLoading(true);
@@ -18,22 +22,40 @@ export function AdminUsersPage() {
   useEffect(load, []);
 
   async function toggleActive(user: AdminUser) {
-    const response = await api.patch<AdminUser>(`/admin/users/${user.id}/toggle-active`);
-    setUsers((current) => current.map((u) => (u.id === user.id ? response.data : u)));
+    setActionError(false);
+    try {
+      const response = await api.patch<AdminUser>(`/admin/users/${user.id}/toggle-active`);
+      setUsers((current) => current.map((u) => (u.id === user.id ? response.data : u)));
+    } catch {
+      setActionError(true);
+    }
   }
 
   async function deleteUser(user: AdminUser) {
     if (!confirm(`Supprimer le compte de ${user.email} (RGPD) ?`)) return;
-    await api.delete(`/admin/users/${user.id}`);
-    load();
+    setActionError(false);
+    try {
+      await api.delete(`/admin/users/${user.id}`);
+      load();
+    } catch {
+      setActionError(true);
+    }
   }
 
   return (
     <AdminLayout>
       <h1 className="text-3xl font-bold mb-8">Utilisateurs ({users.length})</h1>
 
+      {actionError && (
+        <div className="mb-4">
+          <ErrorBanner message="Échec de l'action. Réessaie." />
+        </div>
+      )}
+
       {loading ? (
-        <p>Chargement...</p>
+        <LoadingText />
+      ) : users.length === 0 ? (
+        <EmptyState message="Aucun utilisateur." />
       ) : (
         <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden">
           <thead className="bg-slate-800 text-slate-400 text-left">
@@ -65,12 +87,14 @@ export function AdminUsersPage() {
                 <td className="p-3 flex gap-2">
                   <button
                     onClick={() => toggleActive(user)}
+                    aria-label={`${user.isActive ? "Désactiver" : "Activer"} ${user.email}`}
                     className="text-xs bg-slate-800 px-2 py-1 rounded"
                   >
                     {user.isActive ? "Désactiver" : "Activer"}
                   </button>
                   <button
                     onClick={() => deleteUser(user)}
+                    aria-label={`Supprimer ${user.email}`}
                     className="text-xs bg-red-900 px-2 py-1 rounded"
                   >
                     Supprimer

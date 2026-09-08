@@ -4,6 +4,10 @@ import { api } from "../api/client";
 import { AvatarScene, type AvatarState } from "../components/AvatarScene";
 import { ConversationLog } from "../components/ConversationLog";
 import { VoiceInput } from "../components/VoiceInput";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { speakEnglishWithAvatar } from "../lib/speech";
 import type { AzureVisemeFrame } from "../lib/azureSpeech";
 import { useAuthStore } from "../stores/authStore";
@@ -24,6 +28,7 @@ export function PlacementTestPage() {
   const [totalQuestions, setTotalQuestions] = useState(5);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<PlacementTestFinishResult | null>(null);
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
@@ -136,6 +141,7 @@ export function PlacementTestPage() {
     if (!test) return;
 
     setSending(true);
+    setSendError(false);
     setAvatarState("thinking");
     const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
     setMessages((current) => [...current, userMessage]);
@@ -157,34 +163,28 @@ export function PlacementTestPage() {
       }
     } catch {
       setAvatarState("idle");
+      setSendError(true);
     } finally {
       setSending(false);
     }
   }
 
   if (!test) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white p-8">
-        <p>Chargement...</p>
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
   if (result) {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
-        <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md text-center">
+        <Card className="w-full max-w-md text-center">
           <h1 className="text-3xl font-bold mb-4">Test terminé !</h1>
           <p className="text-slate-300 mb-2">Ton niveau estimé :</p>
           <p className="text-4xl font-bold text-blue-400 mb-6">{result.level.code}</p>
           <p className="text-slate-400 mb-6">{result.level.name}</p>
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="bg-blue-600 px-6 py-2 rounded-lg"
-          >
+          <Button onClick={() => navigate("/dashboard")} size="lg">
             Accéder à mon tableau de bord
-          </button>
-        </div>
+          </Button>
+        </Card>
       </main>
     );
   }
@@ -217,6 +217,8 @@ export function PlacementTestPage() {
           pick its own voice back up through the speakers and "answer its
           own question". */}
       <VoiceInput onResult={handleVoiceResult} disabled={sending || finishing || avatarState === "speaking"} />
+
+      {sendError && <ErrorBanner message="Échec de l'envoi de la réponse. Réessaie en parlant à nouveau." />}
 
       <p className="text-xs text-slate-500 text-center mt-4">
         Ce test est obligatoire une seule fois, juste après ton inscription.

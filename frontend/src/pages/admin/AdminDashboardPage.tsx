@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { AdminLayout } from "../../components/AdminLayout";
+import { LoadingText } from "../../components/ui/LoadingScreen";
 import type { AdminStats } from "../../types";
 
 export function AdminDashboardPage() {
@@ -13,7 +14,7 @@ export function AdminDashboardPage() {
   if (!stats) {
     return (
       <AdminLayout>
-        <p>Chargement...</p>
+        <LoadingText />
       </AdminLayout>
     );
   }

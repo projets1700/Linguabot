@@ -91,6 +91,7 @@ export function CatalogPage() {
                 <button
                   onClick={() => handleStart(scenario.id)}
                   disabled={startingId === scenario.id}
+                  aria-label={`Démarrer le scénario ${scenario.title}`}
                   className="inline-block mt-4 bg-blue-600 px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   {startingId === scenario.id ? "Démarrage..." : "Démarrer"}

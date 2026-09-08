@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { AdminLayout } from "../../components/AdminLayout";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorBanner } from "../../components/ui/ErrorBanner";
+import { LoadingText } from "../../components/ui/LoadingScreen";
 import type { AdminScenario } from "../../types";
 
 export function AdminScenariosPage() {
   const [scenarios, setScenarios] = useState<AdminScenario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState(false);
 
   useEffect(() => {
     api
@@ -15,16 +19,29 @@ export function AdminScenariosPage() {
   }, []);
 
   async function toggleActive(scenario: AdminScenario) {
-    const response = await api.patch<AdminScenario>(`/admin/scenarios/${scenario.id}/toggle-active`);
-    setScenarios((current) => current.map((s) => (s.id === scenario.id ? response.data : s)));
+    setActionError(false);
+    try {
+      const response = await api.patch<AdminScenario>(`/admin/scenarios/${scenario.id}/toggle-active`);
+      setScenarios((current) => current.map((s) => (s.id === scenario.id ? response.data : s)));
+    } catch {
+      setActionError(true);
+    }
   }
 
   return (
     <AdminLayout>
       <h1 className="text-3xl font-bold mb-8">Scénarios ({scenarios.length})</h1>
 
+      {actionError && (
+        <div className="mb-4">
+          <ErrorBanner message="Échec de l'action. Réessaie." />
+        </div>
+      )}
+
       {loading ? (
-        <p>Chargement...</p>
+        <LoadingText />
+      ) : scenarios.length === 0 ? (
+        <EmptyState message="Aucun scénario." />
       ) : (
         <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden">
           <thead className="bg-slate-800 text-slate-400 text-left">
@@ -56,6 +73,7 @@ export function AdminScenariosPage() {
                 <td className="p-3">
                   <button
                     onClick={() => toggleActive(scenario)}
+                    aria-label={`${scenario.isActive ? "Désactiver" : "Activer"} le scénario ${scenario.title}`}
                     className="text-xs bg-slate-800 px-2 py-1 rounded"
                   >
                     {scenario.isActive ? "Désactiver" : "Activer"}

@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { AdminLayout } from "../../components/AdminLayout";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorBanner } from "../../components/ui/ErrorBanner";
+import { LoadingText } from "../../components/ui/LoadingScreen";
 import type { AdminDailyChallenge } from "../../types";
 
 const LEVELS = ["A0", "A1", "A2", "B1", "B2"];
@@ -9,6 +12,7 @@ export function AdminChallengesPage() {
   const [challenges, setChallenges] = useState<AdminDailyChallenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState<string | null>(null);
+  const [actionError, setActionError] = useState(false);
 
   function load() {
     setLoading(true);
@@ -22,9 +26,12 @@ export function AdminChallengesPage() {
 
   async function regenerate(level: string) {
     setRegenerating(level);
+    setActionError(false);
     try {
       await api.post("/admin/daily-challenges/regenerate", { level });
       load();
+    } catch {
+      setActionError(true);
     } finally {
       setRegenerating(null);
     }
@@ -38,6 +45,12 @@ export function AdminChallengesPage() {
     <AdminLayout>
       <h1 className="text-3xl font-bold mb-8">Défis du jour</h1>
 
+      {actionError && (
+        <div className="mb-4">
+          <ErrorBanner message="Échec de la régénération. Réessaie." />
+        </div>
+      )}
+
       <h2 className="text-lg font-bold mb-4">Aujourd'hui ({today})</h2>
       <div className="grid md:grid-cols-3 gap-4 mb-10">
         {LEVELS.map((level) => {
@@ -49,6 +62,7 @@ export function AdminChallengesPage() {
                 <button
                   onClick={() => regenerate(level)}
                   disabled={regenerating === level}
+                  aria-label={`Régénérer le défi du jour niveau ${level}`}
                   className="text-xs bg-slate-800 px-2 py-1 rounded disabled:opacity-50"
                 >
                   {regenerating === level ? "..." : "Régénérer"}
@@ -72,7 +86,9 @@ export function AdminChallengesPage() {
 
       <h2 className="text-lg font-bold mb-4">Historique</h2>
       {loading ? (
-        <p>Chargement...</p>
+        <LoadingText />
+      ) : history.length === 0 ? (
+        <EmptyState message="Aucun historique." />
       ) : (
         <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden">
           <thead className="bg-slate-800 text-slate-400 text-left">

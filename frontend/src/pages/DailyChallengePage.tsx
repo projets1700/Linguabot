@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { ConversationLog } from "../components/ConversationLog";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { speakEnglishWithAvatar } from "../lib/speech";
 import type { AzureVisemeFrame } from "../lib/azureSpeech";
 import { useAuthStore } from "../stores/authStore";
@@ -18,6 +21,7 @@ export function DailyChallengePage() {
   const [chatStarted, setChatStarted] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<DailyChallengeFinishResult | null>(null);
   const [aiSpeaking, setAiSpeaking] = useState(false);
@@ -80,6 +84,7 @@ export function DailyChallengePage() {
 
   async function handleVoiceResult(transcript: string) {
     setSending(true);
+    setSendError(false);
     const userMessage: ChatMessage = { id: Date.now(), role: "user", content: transcript };
     const turnNumber = messages.filter((m) => m.role === "user").length;
     // The backend doesn't persist this conversation, so it has no way to
@@ -100,9 +105,15 @@ export function DailyChallengePage() {
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
       speakAssistantLine(response.data.assistantMessage);
-    } catch {
-      // Rejected (e.g. echo detection): nothing to say, the mic just
-      // resumes listening for a real answer.
+    } catch (error) {
+      // A 422 is an expected rejection (e.g. echo detection): nothing to
+      // say, the mic just resumes listening for a real answer. Anything
+      // else (network/API failure) gets a visible error instead of failing
+      // silently.
+      const status = (error as { response?: { status?: number } }).response?.status;
+      if (status !== 422) {
+        setSendError(true);
+      }
     } finally {
       setSending(false);
     }
@@ -119,17 +130,13 @@ export function DailyChallengePage() {
   }
 
   if (!challenge) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white p-8">
-        <p>Chargement...</p>
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
   if (result || challenge.completed) {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
-        <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md text-center">
+        <Card className="w-full max-w-md text-center">
           <h1 className="text-3xl font-bold mb-4">Défi relevé ! 🎉</h1>
           {result && (
             <RewardBanner badges={result.newBadges} trophies={result.newTrophies} levelUp={result.levelUp} />
@@ -137,10 +144,8 @@ export function DailyChallengePage() {
           <p className="text-slate-300 mb-6">
             +{result?.xpEarned ?? challenge.xpReward} XP (bonus x2 défi du jour)
           </p>
-          <Link to="/dashboard" className="bg-blue-600 px-4 py-2 rounded-lg">
-            Dashboard
-          </Link>
-        </div>
+          <Button to="/dashboard">Dashboard</Button>
+        </Card>
       </main>
     );
   }
@@ -160,9 +165,7 @@ export function DailyChallengePage() {
       </div>
 
       {!chatStarted ? (
-        <button onClick={handleStart} className="bg-blue-600 px-6 py-3 rounded-lg">
-          Relever le défi
-        </button>
+        <Button onClick={handleStart} size="lg">Relever le défi</Button>
       ) : (
         <>
           <div className="mb-4">
@@ -186,13 +189,19 @@ export function DailyChallengePage() {
             <VoiceInput onResult={handleVoiceResult} disabled={sending || aiSpeaking} />
           </div>
 
-          <button
+          {sendError && (
+            <div className="mb-4">
+              <ErrorBanner message="Échec de l'envoi du message. Réessaie en parlant à nouveau." />
+            </div>
+          )}
+
+          <Button
             onClick={handleFinish}
             disabled={finishing || messages.filter((m) => m.role === "user").length === 0}
-            className="bg-green-600 px-4 py-2 rounded-lg disabled:opacity-50"
+            variant="success"
           >
             {finishing ? "..." : "Terminer le défi"}
-          </button>
+          </Button>
         </>
       )}
     </main>

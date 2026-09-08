@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { AdminLayout } from "../../components/AdminLayout";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { LoadingText } from "../../components/ui/LoadingScreen";
 import type { AdminLog } from "../../types";
 
 export function AdminLogsPage() {
@@ -19,9 +21,9 @@ export function AdminLogsPage() {
       <h1 className="text-3xl font-bold mb-8">Logs d'administration ({logs.length})</h1>
 
       {loading ? (
-        <p>Chargement...</p>
+        <LoadingText />
       ) : logs.length === 0 ? (
-        <p className="text-slate-400">Aucune action enregistrée pour le moment.</p>
+        <EmptyState message="Aucune action enregistrée pour le moment." />
       ) : (
         <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden">
           <thead className="bg-slate-800 text-slate-400 text-left">

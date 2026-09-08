@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { AdminLayout } from "../../components/AdminLayout";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorBanner } from "../../components/ui/ErrorBanner";
+import { LoadingText } from "../../components/ui/LoadingScreen";
 import type { AdminBadge, AdminTrophy } from "../../types";
 
 export function AdminGamificationPage() {
   const [badges, setBadges] = useState<AdminBadge[]>([]);
   const [trophies, setTrophies] = useState<AdminTrophy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -21,18 +25,23 @@ export function AdminGamificationPage() {
   }, []);
 
   async function toggleBadge(badge: AdminBadge) {
-    const response = await api.patch<{ id: number; isActive: boolean }>(
-      `/admin/badges/${badge.id}/toggle-active`,
-    );
-    setBadges((current) =>
-      current.map((b) => (b.id === badge.id ? { ...b, isActive: response.data.isActive } : b)),
-    );
+    setActionError(false);
+    try {
+      const response = await api.patch<{ id: number; isActive: boolean }>(
+        `/admin/badges/${badge.id}/toggle-active`,
+      );
+      setBadges((current) =>
+        current.map((b) => (b.id === badge.id ? { ...b, isActive: response.data.isActive } : b)),
+      );
+    } catch {
+      setActionError(true);
+    }
   }
 
   if (loading) {
     return (
       <AdminLayout>
-        <p>Chargement...</p>
+        <LoadingText />
       </AdminLayout>
     );
   }
@@ -41,7 +50,16 @@ export function AdminGamificationPage() {
     <AdminLayout>
       <h1 className="text-3xl font-bold mb-8">Gamification</h1>
 
+      {actionError && (
+        <div className="mb-4">
+          <ErrorBanner message="Échec de l'action. Réessaie." />
+        </div>
+      )}
+
       <h2 className="text-lg font-bold mb-4">Badges ({badges.length})</h2>
+      {badges.length === 0 ? (
+        <EmptyState message="Aucun badge." />
+      ) : (
       <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden mb-10">
         <thead className="bg-slate-800 text-slate-400 text-left">
           <tr>
@@ -70,6 +88,7 @@ export function AdminGamificationPage() {
               <td className="p-3">
                 <button
                   onClick={() => toggleBadge(badge)}
+                  aria-label={`${badge.isActive ? "Désactiver" : "Activer"} le badge ${badge.name}`}
                   className="text-xs bg-slate-800 px-2 py-1 rounded"
                 >
                   {badge.isActive ? "Désactiver" : "Activer"}
@@ -79,8 +98,12 @@ export function AdminGamificationPage() {
           ))}
         </tbody>
       </table>
+      )}
 
       <h2 className="text-lg font-bold mb-4">Trophées ({trophies.length})</h2>
+      {trophies.length === 0 ? (
+        <EmptyState message="Aucun trophée." />
+      ) : (
       <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden">
         <thead className="bg-slate-800 text-slate-400 text-left">
           <tr>
@@ -105,6 +128,7 @@ export function AdminGamificationPage() {
           ))}
         </tbody>
       </table>
+      )}
     </AdminLayout>
   );
 }

@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { speakText } from "../lib/speech";
 import { buildSpokenQuizQuestion } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
@@ -109,17 +113,13 @@ export function QuizModulePage() {
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white p-8">
-        <p>Chargement...</p>
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
   if (result) {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
-        <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md text-center">
+        <Card className="w-full max-w-md text-center">
           {result.levelUp && (
             <p className="bg-blue-600 rounded-lg py-2 mb-4 font-bold">
               🎉 Niveau {result.userLevel} débloqué !
@@ -134,14 +134,10 @@ export function QuizModulePage() {
           </p>
           <p className="text-slate-300 mb-6">+{result.xpEarned} XP</p>
           <div className="flex gap-4 justify-center">
-            <Link to="/quiz" className="bg-blue-600 px-4 py-2 rounded-lg">
-              Retour aux modules
-            </Link>
-            <Link to="/dashboard" className="bg-slate-800 px-4 py-2 rounded-lg">
-              Dashboard
-            </Link>
+            <Button to="/quiz">Retour aux modules</Button>
+            <Button to="/dashboard" variant="secondary">Dashboard</Button>
           </div>
-        </div>
+        </Card>
       </main>
     );
   }
@@ -150,7 +146,7 @@ export function QuizModulePage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
-      <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md flex flex-col gap-4">
+      <Card className="w-full max-w-md flex flex-col gap-4">
         <AvatarScene
           state={aiSpeaking ? "speaking" : submitting ? "thinking" : "idle"}
           avatarType={user?.avatarType ?? "male"}
@@ -182,12 +178,8 @@ export function QuizModulePage() {
         <VoiceInput onResult={handleVoiceAnswer} disabled={submitting || aiSpeaking} />
 
         {submitting && <p className="text-slate-400 text-sm text-center">Envoi...</p>}
-        {submitError && (
-          <p className="text-red-400 text-sm text-center">
-            Échec de l'envoi. Réponds à nouveau pour réessayer.
-          </p>
-        )}
-      </div>
+        {submitError && <ErrorBanner message="Échec de l'envoi. Réponds à nouveau pour réessayer." />}
+      </Card>
     </main>
   );
 }

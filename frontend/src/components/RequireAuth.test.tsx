@@ -1,9 +1,15 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { RequireAuth } from "./RequireAuth";
 import type { Me } from "../types";
+
+vi.mock("../api/client", () => ({
+  api: { get: vi.fn() },
+}));
 
 const BASE_USER: Me = {
   id: 1,
@@ -40,7 +46,8 @@ function renderWithRouter(initialPath = "/dashboard") {
 
 describe("RequireAuth", () => {
   beforeEach(() => {
-    useAuthStore.setState({ token: null, user: null, loading: false, error: null });
+    useAuthStore.setState({ token: null, user: null, loading: false, error: null, fetchMeError: false });
+    vi.mocked(api.get).mockReset();
   });
 
   it("redirects to /login when there is no token", () => {
@@ -79,5 +86,23 @@ describe("RequireAuth", () => {
     renderWithRouter();
 
     expect(screen.getByText("Protected content")).toBeInTheDocument();
+  });
+
+  it("shows a retry-able error instead of a permanent loading screen when fetchMe fails", async () => {
+    // Regression: fetchMe() had no error handling, so a network/API
+    // failure (not a 401 - that path already redirects via the api client's
+    // own interceptor) left `user` unresolved forever - the protected route
+    // was stuck on "Chargement..." indefinitely, with no way to recover.
+    vi.mocked(api.get).mockRejectedValueOnce(new Error("network error")).mockResolvedValueOnce({ data: BASE_USER });
+    useAuthStore.setState({ token: "jwt-123", user: null });
+
+    renderWithRouter();
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.queryByText("Protected content")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+
+    await waitFor(() => expect(screen.getByText("Protected content")).toBeInTheDocument());
   });
 });
