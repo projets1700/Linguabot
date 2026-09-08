@@ -16,10 +16,27 @@ namespace App\Service;
  *     translationMode: 'visible'|'onDemand'|'rare'|'off',
  *     keywordHelpEnabled: bool,
  *     sentenceStarterEnabled: bool,
+ *     summaryStrengths: int,
+ *     summaryReviewPoints: int,
+ *     summaryExpressions: int,
+ *     supportGuidance: string,
  * }
  */
 final class CecrlProfileService
 {
+    /**
+     * Appended to supportGuidance only for the specific turn where the
+     * learner explicitly signaled they're stuck (frontend's
+     * detectLearnerBlock()) - same wording at every level, since it's the
+     * level's own aiComplexityInstruction (already part of the combined
+     * prompt) that keeps the example itself at the right vocabulary.
+     */
+    private const BLOCKED_INSTRUCTION = 'The learner just indicated they do not know how to answer or do not '.
+        'understand the question (V1 explicit "I don\'t know" detection). Briefly and kindly acknowledge this '.
+        'without making them feel bad - never say "wrong" or similar. Then give exactly ONE example sentence '.
+        'they could say to answer the previous question, clearly presented as one possible answer among others, '.
+        'not the only correct one. Then continue the conversation naturally.';
+
     /**
      * @var array<string, Profile>
      */
@@ -33,6 +50,12 @@ final class CecrlProfileService
             'translationMode' => 'visible',
             'keywordHelpEnabled' => true,
             'sentenceStarterEnabled' => true,
+            'summaryStrengths' => 1,
+            'summaryReviewPoints' => 1,
+            'summaryExpressions' => 2,
+            'supportGuidance' => 'If the learner seems stuck or gives an unclear answer, offer help often and '.
+                'warmly with a very short, simple example sentence. If their answer has a grammar error, do not '.
+                'point it out unless it truly blocks understanding - keep the conversation moving.',
         ],
         'A1' => [
             'questionCountMax' => 7,
@@ -43,6 +66,12 @@ final class CecrlProfileService
             'translationMode' => 'onDemand',
             'keywordHelpEnabled' => true,
             'sentenceStarterEnabled' => true,
+            'summaryStrengths' => 2,
+            'summaryReviewPoints' => 1,
+            'summaryExpressions' => 2,
+            'supportGuidance' => 'Offer help often when the learner seems stuck, with a simple example sentence. '.
+                'Only gently reformulate an answer when the error is obvious and simple to fix, in one short '.
+                'natural sentence, then move on.',
         ],
         'A2' => [
             'questionCountMax' => 9,
@@ -53,6 +82,11 @@ final class CecrlProfileService
             'translationMode' => 'onDemand',
             'keywordHelpEnabled' => true,
             'sentenceStarterEnabled' => false,
+            'summaryStrengths' => 2,
+            'summaryReviewPoints' => 2,
+            'summaryExpressions' => 3,
+            'supportGuidance' => 'Offer help when the learner seems stuck, with a short example. Reformulate an '.
+                'obvious error briefly, without dwelling on it, then continue.',
         ],
         'B1' => [
             'questionCountMax' => 12,
@@ -62,6 +96,11 @@ final class CecrlProfileService
             'translationMode' => 'rare',
             'keywordHelpEnabled' => false,
             'sentenceStarterEnabled' => false,
+            'summaryStrengths' => 3,
+            'summaryReviewPoints' => 2,
+            'summaryExpressions' => 3,
+            'supportGuidance' => 'Only step in with a correction or an example when it truly adds value - do not '.
+                'interrupt for minor issues. Keep any reformulation short and natural.',
         ],
         'B2' => [
             'questionCountMax' => 15,
@@ -72,6 +111,11 @@ final class CecrlProfileService
             'translationMode' => 'off',
             'keywordHelpEnabled' => false,
             'sentenceStarterEnabled' => false,
+            'summaryStrengths' => 3,
+            'summaryReviewPoints' => 3,
+            'summaryExpressions' => 4,
+            'supportGuidance' => 'Rarely interrupt. Only offer a correction for a genuinely significant error or '.
+                'a distinctly unnatural phrasing, phrased briefly, then continue the conversation naturally.',
         ],
     ];
 
@@ -103,6 +147,26 @@ final class CecrlProfileService
     }
 
     /**
+     * How much detail SessionSummaryService should ask the AI for in an
+     * end-of-session bilan - more for a more advanced learner, matching the
+     * V1 spec's "A0/A1: 1 à 2 points positifs, 1 point à revoir... B1/B2:
+     * feedback plus précis". Backend-only (prompt-building detail, not
+     * exposed to the frontend, same as aiComplexityInstruction).
+     *
+     * @return array{strengths: int, reviewPoints: int, expressions: int}
+     */
+    public function summaryDepth(string $levelCode): array
+    {
+        $profile = $this->forLevelCode($levelCode);
+
+        return [
+            'strengths' => $profile['summaryStrengths'],
+            'reviewPoints' => $profile['summaryReviewPoints'],
+            'expressions' => $profile['summaryExpressions'],
+        ];
+    }
+
+    /**
      * The instruction block prepended to a scenario/challenge's system
      * prompt (see VoiceService::generateAnswer()) - adapts vocabulary,
      * sentence length and question complexity to the learner's level, and
@@ -116,6 +180,28 @@ final class CecrlProfileService
 
         if ($turnNumber >= $profile['questionCountMax']) {
             $instruction .= ' This conversation has been going on for a while now - naturally start wrapping it up in your next message.';
+        }
+
+        return $instruction;
+    }
+
+    /**
+     * How much LinguaBot should step in to help/correct, adapted to level
+     * (V1 spec: "plus le niveau augmente, moins LinguaBot interrompt
+     * automatiquement") and, for this specific turn, whether the learner
+     * just explicitly signaled they're stuck (frontend's
+     * detectLearnerBlock()). Combined with buildSystemPromptPrefix() in the
+     * caller's system prompt - kept separate from it since one is about
+     * vocabulary/sentence complexity and this one is about when/how much to
+     * intervene, two different concerns.
+     */
+    public function buildSupportInstruction(string $levelCode, bool $learnerBlocked): string
+    {
+        $profile = $this->forLevelCode($levelCode);
+        $instruction = $profile['supportGuidance'];
+
+        if ($learnerBlocked) {
+            $instruction .= ' '.self::BLOCKED_INSTRUCTION;
         }
 
         return $instruction;

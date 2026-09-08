@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene, type AvatarState } from "../components/AvatarScene";
+import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
 import { ConversationLog } from "../components/ConversationLog";
 import { VoiceInput } from "../components/VoiceInput";
 import { Button } from "../components/ui/Button";
@@ -192,7 +193,9 @@ export function PlacementTestPage() {
         </p>
       </div>
 
-      <div className="mb-4">
+      {/* relative wrapper, not AvatarScene's own root div - see the comment
+          in SessionPage.tsx for why. */}
+      <div className="relative mb-4">
         <AvatarScene
           state={avatarState}
           avatarType={user?.avatarType ?? "male"}
@@ -200,6 +203,7 @@ export function PlacementTestPage() {
           charIndexRef={charIndexRef}
           onReady={handleAvatarReady}
         />
+        <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
       </div>
 
       <ConversationLog messages={messages} bottomRef={bottomRef} />

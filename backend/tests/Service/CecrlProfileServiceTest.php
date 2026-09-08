@@ -37,10 +37,20 @@ final class CecrlProfileServiceTest extends TestCase
 
         self::assertArrayNotHasKey('aiComplexityInstruction', $payload);
         self::assertArrayNotHasKey('questionCountMax', $payload);
+        self::assertArrayNotHasKey('summaryStrengths', $payload);
         self::assertArrayHasKey('transcriptMode', $payload);
         self::assertArrayHasKey('translationMode', $payload);
         self::assertArrayHasKey('keywordHelpEnabled', $payload);
         self::assertArrayHasKey('sentenceStarterEnabled', $payload);
+    }
+
+    public function testSummaryDepthGrowsWithLevel(): void
+    {
+        $a0 = $this->service->summaryDepth('A0');
+        $b2 = $this->service->summaryDepth('B2');
+
+        self::assertSame(['strengths' => 1, 'reviewPoints' => 1, 'expressions' => 2], $a0);
+        self::assertSame(['strengths' => 3, 'reviewPoints' => 3, 'expressions' => 4], $b2);
     }
 
     public function testBuildSystemPromptPrefixMentionsWrappingUpOnceThePerLevelQuestionCeilingIsReached(): void
@@ -57,5 +67,42 @@ final class CecrlProfileServiceTest extends TestCase
         $prefix = $this->service->buildSystemPromptPrefix('B2', 0);
 
         self::assertStringContainsString('CEFR B2', $prefix);
+    }
+
+    public function testSupportInstructionWithoutBlockingIsJustTheLevelsOwnGuidance(): void
+    {
+        $a0 = $this->service->buildSupportInstruction('A0', false);
+        $b2 = $this->service->buildSupportInstruction('B2', false);
+
+        self::assertStringNotContainsString('do not know how to answer', $a0);
+        self::assertStringNotContainsString('do not know how to answer', $b2);
+        self::assertNotSame($a0, $b2);
+    }
+
+    public function testSupportInstructionMentionsInterruptingLessAtHigherLevels(): void
+    {
+        $a0 = $this->service->buildSupportInstruction('A0', false);
+        $b2 = $this->service->buildSupportInstruction('B2', false);
+
+        self::assertStringContainsString('often', $a0);
+        self::assertStringContainsString('Rarely interrupt', $b2);
+    }
+
+    public function testSupportInstructionAppendsTheBlockedGuidanceOnlyWhenLearnerIsBlocked(): void
+    {
+        $notBlocked = $this->service->buildSupportInstruction('A1', false);
+        $blocked = $this->service->buildSupportInstruction('A1', true);
+
+        self::assertStringNotContainsString('exactly ONE example sentence', $notBlocked);
+        self::assertStringContainsString('exactly ONE example sentence', $blocked);
+        // Never presented as the single correct answer.
+        self::assertStringContainsString('not the only correct one', $blocked);
+    }
+
+    public function testBlockedInstructionNeverTellsTheAiToSayWrong(): void
+    {
+        $blocked = $this->service->buildSupportInstruction('A0', true);
+
+        self::assertStringContainsString('never say "wrong"', $blocked);
     }
 }

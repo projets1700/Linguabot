@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
+import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
 import { ConversationLog } from "../components/ConversationLog";
 import { HelpPanel } from "../components/HelpPanel";
 import { RewardBanner } from "../components/RewardBanner";
@@ -136,7 +137,9 @@ export function DailyChallengePage() {
         <Button onClick={handleStart} size="lg">Relever le défi</Button>
       ) : (
         <>
-          <div className="mb-4">
+          {/* relative wrapper, not AvatarScene's own root div - see the
+              comment in SessionPage.tsx for why. */}
+          <div className="relative mb-4">
             <AvatarScene
               state={avatarState}
               avatarType={user?.avatarType ?? "male"}
@@ -144,6 +147,7 @@ export function DailyChallengePage() {
               charIndexRef={charIndexRef}
               onReady={handleAvatarReady}
             />
+            <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
           </div>
 
           <ConversationLog

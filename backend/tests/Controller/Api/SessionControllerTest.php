@@ -88,6 +88,64 @@ final class SessionControllerTest extends ApiTestCase
         self::assertCount(1, $this->decodeResponse($client)['messages']);
     }
 
+    public function testMessageWorksNormallyWhenTheLearnerIsNotBlocked(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, [
+            'message' => 'I usually eat eggs and toast for breakfast.',
+            'learnerBlocked' => false,
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertNotEmpty($this->decodeResponse($client)['assistantMessage']);
+    }
+
+    public function testMessageStillRepliesUsingTheExistingFallbackWhenTheLearnerIsFlaggedAsBlocked(): void
+    {
+        // AI_API_KEY is forced empty in the test env, so this exercises the
+        // same simulated-reply fallback as every other message() test - the
+        // new learnerBlocked field must never break that existing contract,
+        // even though its effect on a *real* AI reply can't be observed here
+        // (see CecrlProfileServiceTest for the actual prompt content).
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, [
+            'message' => "I don't know.",
+            'learnerBlocked' => true,
+        ]);
+
+        self::assertResponseIsSuccessful();
+        $result = $this->decodeResponse($client);
+        self::assertSame("I don't know.", $result['userTranscript']);
+        self::assertNotEmpty($result['assistantMessage']);
+    }
+
+    public function testMessageDefaultsLearnerBlockedToFalseWhenTheFieldIsOmitted(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        // No learnerBlocked key at all - older/other clients must keep working.
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, ['message' => 'Hello!']);
+
+        self::assertResponseIsSuccessful();
+    }
+
     public function testCannotStartAScenarioAboveTheLearnersOwnLevel(): void
     {
         $client = static::createClient();
@@ -127,6 +185,87 @@ final class SessionControllerTest extends ApiTestCase
         // reachable - the level actually changed, not just the response field.
         $this->jsonRequest($client, 'GET', '/api/scenarios?level=A2', $token);
         self::assertFalse($this->decodeResponse($client)[0]['locked']);
+    }
+
+    public function testFinishReturnsABilanWithCorrectObjectiveDataAndTheDeterministicFallbackSummary(): void
+    {
+        // AI_API_KEY is forced empty in the test env (phpunit.dist.xml), so
+        // this also exercises SessionSummaryService's fallback path - the
+        // same one used when Groq/OpenAI is genuinely unavailable in prod.
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, ['message' => 'Hello there!']);
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, ['message' => "I'd like a table for two, please."]);
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/finish", $token);
+        self::assertResponseIsSuccessful();
+        $result = $this->decodeResponse($client);
+
+        self::assertArrayHasKey('summary', $result);
+        $summary = $result['summary'];
+        self::assertSame(2, $summary['exchangeCount']);
+        self::assertSame($result['xpEarned'], $summary['xpEarned']);
+        self::assertSame('completed', $summary['status']);
+        self::assertNotEmpty($summary['scenarioTitle']);
+        self::assertStringContainsString('Session terminée', $summary['summary']);
+        self::assertStringContainsString('2 échanges', $summary['summary']);
+        self::assertSame([], $summary['strengths']);
+        self::assertSame([], $summary['reviewPoints']);
+        self::assertSame([], $summary['usefulExpressions']);
+        self::assertNotEmpty($summary['nextStep']);
+
+        // No invented linguistic score anywhere in the bilan.
+        self::assertArrayNotHasKey('grammarScore', $summary);
+        self::assertArrayNotHasKey('pronunciationScore', $summary);
+        self::assertArrayNotHasKey('vocabularyScore', $summary);
+    }
+
+    public function testFinishWithNoExchangesAtAllStillReturnsASoberBilanInsteadOfInventingOne(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        // Finish immediately, without ever sending a message.
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/finish", $token);
+        self::assertResponseIsSuccessful();
+        $summary = $this->decodeResponse($client)['summary'];
+
+        self::assertSame(0, $summary['exchangeCount']);
+        self::assertStringContainsString('sans échange', $summary['summary']);
+        self::assertSame([], $summary['strengths']);
+    }
+
+    public function testFinishBilanWorksAtTheLowestAndHighestCecrlLevels(): void
+    {
+        $client = static::createClient();
+
+        $a1Token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $a1ScenarioId = $this->findAnyScenarioId($client, $a1Token);
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$a1ScenarioId}/sessions", $a1Token);
+        $a1SessionId = $this->decodeResponse($client)['id'];
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$a1SessionId}/message", $a1Token, ['message' => 'Hi!']);
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$a1SessionId}/finish", $a1Token);
+        $a1Summary = $this->decodeResponse($client)['summary'];
+        self::assertSame(1, $a1Summary['exchangeCount']);
+
+        $b2Token = $this->registerAndGetTokenAtLevel($client, 'B2');
+        $b2ScenarioId = $this->findAnyScenarioId($client, $b2Token);
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$b2ScenarioId}/sessions", $b2Token);
+        $b2SessionId = $this->decodeResponse($client)['id'];
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$b2SessionId}/message", $b2Token, ['message' => 'Good morning!']);
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$b2SessionId}/finish", $b2Token);
+        $b2Summary = $this->decodeResponse($client)['summary'];
+        self::assertSame(1, $b2Summary['exchangeCount']);
+        self::assertSame('completed', $b2Summary['status']);
     }
 
     public function testSessionResponseExposesTheLearnersCecrlProfile(): void

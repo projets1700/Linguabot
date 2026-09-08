@@ -116,6 +116,22 @@ export type PlacementTestFinishResult = {
   };
 };
 
+/**
+ * The qualitative + objective end-of-session bilan (SessionSummaryService).
+ * No numeric/phonetic score anywhere on purpose - see backend comments.
+ */
+export type SessionSummary = {
+  summary: string;
+  exchangeCount: number;
+  xpEarned: number;
+  status: "completed";
+  scenarioTitle: string;
+  strengths: string[];
+  reviewPoints: string[];
+  usefulExpressions: string[];
+  nextStep: string;
+};
+
 export type SessionFinishResult = {
   score: number;
   xpEarned: number;
@@ -124,6 +140,7 @@ export type SessionFinishResult = {
   levelUp: LevelUpResult | null;
   newBadges: EarnedBadge[];
   newTrophies: EarnedTrophy[];
+  summary: SessionSummary;
 };
 
 export type EarnedBadge = {

@@ -12,6 +12,7 @@ use App\Repository\SessionRepository;
 use App\Service\CecrlProfileService;
 use App\Service\GamificationService;
 use App\Service\LearningAidService;
+use App\Service\SessionSummaryService;
 use App\Service\VoiceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -85,6 +86,11 @@ final class SessionController
 
         $data = json_decode($request->getContent(), true) ?? [];
         $transcript = $voiceService->transcribeAudio((string) ($data['message'] ?? ''));
+        // Set by the frontend's detectLearnerBlock() - a deterministic "the
+        // learner explicitly said they don't know/understand" signal for
+        // this one turn, not a grammar/quality judgment. Defaults to false
+        // so older/other clients omitting the field behave exactly as before.
+        $learnerBlocked = (bool) ($data['learnerBlocked'] ?? false);
 
         if ('' === $transcript) {
             return new JsonResponse(['message' => 'Message vide.'], 422);
@@ -118,7 +124,12 @@ final class SessionController
             static fn (SessionMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
             $session->getMessages()->toArray(),
         );
-        $levelInstruction = $cecrlProfileService->buildSystemPromptPrefix($user->getLevel()->getCode(), $turnNumber);
+        $levelCode = $user->getLevel()->getCode();
+        // Two separate concerns composed together: complexity/pacing
+        // (unchanged) and how much LinguaBot should step in to help or
+        // correct this specific turn (new - see CecrlProfileService).
+        $levelInstruction = $cecrlProfileService->buildSystemPromptPrefix($levelCode, $turnNumber).' '.
+            $cecrlProfileService->buildSupportInstruction($levelCode, $learnerBlocked);
         $reply = $voiceService->generateAnswer($session->getScenario()->getPromptTemplate(), $conversationHistory, $turnNumber, $levelInstruction);
 
         $assistantMessage = (new SessionMessage())
@@ -188,6 +199,7 @@ final class SessionController
         Session $session,
         #[CurrentUser] User $user,
         GamificationService $gamificationService,
+        SessionSummaryService $sessionSummaryService,
         SessionRepository $sessionRepository,
         EntityManagerInterface $em,
     ): JsonResponse {
@@ -208,6 +220,17 @@ final class SessionController
         $score = min(100, 40 + $userTurns * 15);
 
         $xpEarned = $gamificationService->calculateXp($session->getScenario()->getBaseXp(), $score);
+
+        $conversationHistory = array_map(
+            static fn (SessionMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
+            $session->getMessages()->toArray(),
+        );
+        $bilan = $sessionSummaryService->summarize(
+            $conversationHistory,
+            $user->getLevel()->getCode(),
+            $userTurns,
+            $session->getScenario()->getTitle(),
+        );
 
         $startedAt = $session->getStartedAt();
         $endedAt = new \DateTimeImmutable();
@@ -239,6 +262,17 @@ final class SessionController
             'levelUp' => null !== $newLevel ? ['code' => $newLevel->getCode(), 'name' => $newLevel->getName()] : null,
             'newBadges' => array_map(static fn ($b) => ['code' => $b->getCode(), 'name' => $b->getName(), 'icon' => $b->getIcon()], $newBadges),
             'newTrophies' => array_map(static fn ($t) => ['code' => $t->getCode(), 'name' => $t->getName(), 'rarity' => $t->getRarity()->value], $newTrophies),
+            'summary' => [
+                'summary' => $bilan['summary'],
+                'exchangeCount' => $userTurns,
+                'xpEarned' => $xpEarned,
+                'status' => $session->getStatus()->value,
+                'scenarioTitle' => $session->getScenario()->getTitle(),
+                'strengths' => $bilan['strengths'],
+                'reviewPoints' => $bilan['reviewPoints'],
+                'usefulExpressions' => $bilan['usefulExpressions'],
+                'nextStep' => $bilan['nextStep'],
+            ],
         ]);
     }
 

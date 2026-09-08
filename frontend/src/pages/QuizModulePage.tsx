@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
+import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
 import { Button } from "../components/ui/Button";
@@ -147,12 +148,17 @@ export function QuizModulePage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
       <Card className="w-full max-w-md flex flex-col gap-4">
-        <AvatarScene
-          state={aiSpeaking ? "speaking" : submitting ? "thinking" : "idle"}
-          avatarType={user?.avatarType ?? "male"}
-          speechText={speechText}
-          charIndexRef={charIndexRef}
-        />
+        {/* relative wrapper, not AvatarScene's own root div - see the
+            comment in SessionPage.tsx for why. */}
+        <div className="relative">
+          <AvatarScene
+            state={aiSpeaking ? "speaking" : submitting ? "thinking" : "idle"}
+            avatarType={user?.avatarType ?? "male"}
+            speechText={speechText}
+            charIndexRef={charIndexRef}
+          />
+          <AvatarSpeechBubble text={speechText} active={aiSpeaking} charIndexRef={charIndexRef} />
+        </div>
 
         <p className="text-slate-400 text-sm">
           Question {currentIndex + 1} / {questions.length}

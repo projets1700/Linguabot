@@ -2,16 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
+import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
 import { ConversationLog } from "../components/ConversationLog";
 import { HelpPanel } from "../components/HelpPanel";
 import { PronunciationPractice } from "../components/PronunciationPractice";
 import { RewardBanner } from "../components/RewardBanner";
+import { SessionSummaryCard } from "../components/SessionSummaryCard";
 import { VoiceInput } from "../components/VoiceInput";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
+import { detectLearnerBlock } from "../lib/detectLearnerBlock";
 import { selectPracticeSentence } from "../lib/selectPracticeSentence";
 import { useAuthStore } from "../stores/authStore";
 import type { SessionDetail, SessionFinishResult, SessionMessage } from "../types";
@@ -71,10 +74,15 @@ export function SessionPage() {
     const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
     setMessages((current) => [...current, userMessage]);
 
+    // A deterministic "I'm stuck" detection, not a grammar/quality judgment
+    // (see detectLearnerBlock.ts) - tells the backend to have the AI offer
+    // one example answer for this turn instead of just moving on.
+    const { blocked } = detectLearnerBlock(transcript);
+
     try {
       const response = await api.post<{ userTranscript: string; assistantMessage: string }>(
         `/sessions/${id}/message`,
-        { message: userMessage.content },
+        { message: userMessage.content, learnerBlocked: blocked },
       );
       setMessages((current) => [
         ...current,
@@ -106,11 +114,10 @@ export function SessionPage() {
   if (result) {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
-        <Card className="w-full max-w-md text-center">
+        <Card className="w-full max-w-lg text-center">
           <h1 className="text-3xl font-bold mb-4">Session terminée</h1>
           <RewardBanner badges={result.newBadges} trophies={result.newTrophies} levelUp={result.levelUp} />
-          <p className="text-slate-300 mb-2">Score : {result.score}/100</p>
-          <p className="text-slate-300 mb-6">+{result.xpEarned} XP</p>
+          <SessionSummaryCard summary={result.summary} />
           <div className="flex gap-4 justify-center">
             <Button to="/catalog">Rejouer un scénario</Button>
             <Button to="/dashboard" variant="secondary">Dashboard</Button>
@@ -144,7 +151,15 @@ export function SessionPage() {
         </Button>
       </div>
 
-      <div className="mb-4">
+      {/* relative wrapper, not AvatarScene's own root div: AvatarScene's
+          canvas box uses overflow-hidden, which would clip a bubble wider
+          than the 3D viewport - rendering the bubble as a sibling here
+          instead keeps AvatarScene itself untouched. speechText only ever
+          comes from useConversationSession's speakAssistantLine(), which
+          SessionPage only ever calls with the AI's own reply - the
+          learner's transcript never reaches this prop, so the bubble can
+          never be mistaken for the learner's own words. */}
+      <div className="relative mb-4">
         <AvatarScene
           state={avatarState}
           avatarType={user?.avatarType ?? "male"}
@@ -152,6 +167,7 @@ export function SessionPage() {
           charIndexRef={charIndexRef}
           onReady={handleAvatarReady}
         />
+        <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
       </div>
 
       <ConversationLog
