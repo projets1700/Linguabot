@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api } from "../api/client";
+import { preloadAvatarAssets } from "../lib/avatarAssets";
 import type { AvatarType, Me } from "../types";
 
 type RegisterPayload = {
@@ -74,6 +75,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   async fetchMe() {
     const response = await api.get<Me>("/me");
     set({ user: response.data });
+    // Warms the loader cache for this learner's avatar (~30MB of GLB/FBX)
+    // as early as possible - by the time they actually reach a page that
+    // renders AvatarScene, it can mount near-instantly instead of leaving
+    // the avatar blank for a couple of seconds while speech (unaware of
+    // the avatar's own loading state) has already started.
+    preloadAvatarAssets(response.data.avatarType);
   },
 
   logout() {

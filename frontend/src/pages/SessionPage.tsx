@@ -5,7 +5,8 @@ import { AvatarScene, type AvatarState } from "../components/AvatarScene";
 import { ConversationLog } from "../components/ConversationLog";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
-import { speakText } from "../lib/speech";
+import { speakEnglishWithAvatar } from "../lib/speech";
+import type { AzureVisemeFrame } from "../lib/azureSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { SessionDetail, SessionFinishResult, SessionMessage } from "../types";
 
@@ -18,7 +19,53 @@ export function SessionPage() {
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<SessionFinishResult | null>(null);
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
+  const [speechText, setSpeechText] = useState<string | null>(null);
+  const charIndexRef = useRef<number | null>(null);
+  const visemeFramesRef = useRef<AzureVisemeFrame[]>([]);
+  const visemeStartTimeRef = useRef<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // The avatar's ~30MB of GLB/FBX assets take real time to load - without
+  // this gate, speech (an entirely separate pipeline, unaware of the
+  // avatar's own Suspense loading state) could start talking while the
+  // avatar box is still empty. Any speech requested before AvatarScene's
+  // onReady fires is held here and replayed exactly once, the moment it does.
+  const avatarReadyRef = useRef(false);
+  const pendingSpeechRef = useRef<(() => void) | null>(null);
+
+  function speakAssistantLine(text: string) {
+    charIndexRef.current = null;
+    setSpeechText(text);
+    // Reads the store directly (not the reactive `user` above) so this
+    // stays usable from effects that only depend on [id] - the avatar's
+    // gender can't meaningfully change mid-session anyway.
+    const avatarType = useAuthStore.getState().user?.avatarType ?? "male";
+    const speak = () =>
+      void speakEnglishWithAvatar(text, avatarType, { framesRef: visemeFramesRef, startTimeRef: visemeStartTimeRef }, {
+        onStart: () => setAvatarState("speaking"),
+        onBoundary: (event) => {
+          charIndexRef.current = event.charIndex;
+        },
+        onEnd: () => {
+          setAvatarState("idle");
+          setSpeechText(null);
+        },
+      });
+
+    if (avatarReadyRef.current) {
+      speak();
+    } else {
+      pendingSpeechRef.current = speak;
+    }
+  }
+
+  function handleAvatarReady() {
+    avatarReadyRef.current = true;
+    const pending = pendingSpeechRef.current;
+    if (pending) {
+      pendingSpeechRef.current = null;
+      pending();
+    }
+  }
 
   useEffect(() => {
     // Guard against React StrictMode's dev-mode double effect invocation:
@@ -32,10 +79,7 @@ export function SessionPage() {
         setMessages(response.data.messages);
         const opening = response.data.messages.at(-1);
         if (opening) {
-          speakText(opening.content, {
-            onStart: () => setAvatarState("speaking"),
-            onEnd: () => setAvatarState("idle"),
-          });
+          speakAssistantLine(opening.content);
         }
       }
     });
@@ -64,10 +108,7 @@ export function SessionPage() {
         ...current,
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
-      speakText(response.data.assistantMessage, {
-        onStart: () => setAvatarState("speaking"),
-        onEnd: () => setAvatarState("idle"),
-      });
+      speakAssistantLine(response.data.assistantMessage);
     } catch {
       setAvatarState("idle");
     } finally {
@@ -131,7 +172,15 @@ export function SessionPage() {
       </div>
 
       <div className="mb-4">
-        <AvatarScene state={avatarState} avatarType={user?.avatarType ?? "male"} />
+        <AvatarScene
+          state={avatarState}
+          avatarType={user?.avatarType ?? "male"}
+          speechText={speechText}
+          charIndexRef={charIndexRef}
+          visemeFramesRef={visemeFramesRef}
+          visemeStartTimeRef={visemeStartTimeRef}
+          onReady={handleAvatarReady}
+        />
       </div>
 
       <ConversationLog messages={messages} bottomRef={bottomRef} />

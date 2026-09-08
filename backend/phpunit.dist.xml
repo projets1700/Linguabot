@@ -28,6 +28,9 @@
              in tests regardless - deterministic, no network dependency, no
              real API cost per test run. -->
         <env name="AI_API_KEY" value="" force="true" />
+        <!-- Same reasoning as AI_API_KEY above: AzureSpeechTokenService must
+             always take its null fallback path in tests. -->
+        <env name="AZURE_SPEECH_KEY" value="" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 

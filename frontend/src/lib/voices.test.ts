@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { classifyVoiceGender, groupEnglishVoicesByGender, pickVoiceForGender } from "./voices";
 
-function fakeVoice(name: string, lang: string): SpeechSynthesisVoice {
+function fakeVoice(name: string, lang: string, localService = true): SpeechSynthesisVoice {
   return {
     name,
     lang,
     voiceURI: name,
     default: false,
-    localService: true,
+    localService,
   } as SpeechSynthesisVoice;
 }
 
@@ -88,5 +88,22 @@ describe("pickVoiceForGender", () => {
     const voices = [fakeVoice("Microsoft Zira Desktop", "en-US")];
 
     expect(pickVoiceForGender(voices, "fr", "male")).toBeNull();
+  });
+
+  it("prefers a local voice over a network one when both match", () => {
+    // Regression: an auto-picked network ("Online (Natural)") voice
+    // doesn't reliably fire the "boundary" event lip-sync depends on,
+    // silently degrading it - a local voice is the safer default.
+    const networkVoice = fakeVoice("Microsoft Guy Online (Natural)", "en-US", false);
+    const localVoice = fakeVoice("Microsoft David Desktop", "en-US", true);
+    const voices = [networkVoice, localVoice];
+
+    expect(pickVoiceForGender(voices, "en", "male")).toBe(localVoice);
+  });
+
+  it("falls back to a network voice if no local one matches", () => {
+    const networkVoice = fakeVoice("Microsoft Guy Online (Natural)", "en-US", false);
+
+    expect(pickVoiceForGender([networkVoice], "en", "male")).toBe(networkVoice);
   });
 });

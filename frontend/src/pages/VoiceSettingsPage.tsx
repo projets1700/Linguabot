@@ -65,9 +65,10 @@ export function VoiceSettingsPage() {
       </div>
 
       <p className="text-slate-400 mb-8 max-w-2xl">
-        Choisis la voix utilisée pendant les sessions, le défi du jour et le test de niveau. Les
-        voix proposées correspondent à l'avatar choisi à l'inscription ({CATEGORY_LABELS[avatarType].toLowerCase()}).
-        Ce choix ne change pas la voix du quiz A0, qui reste en français.
+        Choisis la voix utilisée pendant les sessions, le défi du jour, le test de niveau et le
+        quiz A0. Les voix proposées correspondent à l'avatar choisi à l'inscription (
+        {CATEGORY_LABELS[avatarType].toLowerCase()}). Le texte du quiz A0 reste en français, mais
+        est lu avec cette voix anglaise (aucune voix française fiable n'est disponible).
       </p>
 
       {loading && <p className="text-slate-400">Chargement des voix disponibles...</p>}

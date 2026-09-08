@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { ConversationLog } from "../components/ConversationLog";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
-import { speakText } from "../lib/speech";
+import { speakEnglishWithAvatar } from "../lib/speech";
+import type { AzureVisemeFrame } from "../lib/azureSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge, DailyChallengeFinishResult } from "../types";
 
@@ -20,20 +21,61 @@ export function DailyChallengePage() {
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<DailyChallengeFinishResult | null>(null);
   const [aiSpeaking, setAiSpeaking] = useState(false);
+  const [speechText, setSpeechText] = useState<string | null>(null);
+  const charIndexRef = useRef<number | null>(null);
+  const visemeFramesRef = useRef<AzureVisemeFrame[]>([]);
+  const visemeStartTimeRef = useRef<number | null>(null);
+  // AvatarScene isn't even mounted until chatStarted (see the JSX below) -
+  // its ~30MB of GLB/FBX assets only start loading right as handleStart
+  // fires, which is also exactly when this page wants to speak the opening
+  // line, making this page the worst case for the race this gate fixes.
+  // Any speech requested before onReady fires is held here and replayed
+  // exactly once, the moment it does.
+  const avatarReadyRef = useRef(false);
+  const pendingSpeechRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     api.get<DailyChallenge>("/daily-challenge").then((response) => setChallenge(response.data));
   }, []);
+
+  function speakAssistantLine(text: string) {
+    charIndexRef.current = null;
+    setSpeechText(text);
+    const avatarType = useAuthStore.getState().user?.avatarType ?? "male";
+    const speak = () =>
+      void speakEnglishWithAvatar(text, avatarType, { framesRef: visemeFramesRef, startTimeRef: visemeStartTimeRef }, {
+        onStart: () => setAiSpeaking(true),
+        onBoundary: (event) => {
+          charIndexRef.current = event.charIndex;
+        },
+        onEnd: () => {
+          setAiSpeaking(false);
+          setSpeechText(null);
+        },
+      });
+
+    if (avatarReadyRef.current) {
+      speak();
+    } else {
+      pendingSpeechRef.current = speak;
+    }
+  }
+
+  function handleAvatarReady() {
+    avatarReadyRef.current = true;
+    const pending = pendingSpeechRef.current;
+    if (pending) {
+      pendingSpeechRef.current = null;
+      pending();
+    }
+  }
 
   async function handleStart() {
     if (!challenge) return;
     const response = await api.post<{ openingMessage: string }>("/daily-challenge/start");
     setMessages([{ id: Date.now(), role: "assistant", content: response.data.openingMessage }]);
     setChatStarted(true);
-    speakText(response.data.openingMessage, {
-      onStart: () => setAiSpeaking(true),
-      onEnd: () => setAiSpeaking(false),
-    });
+    speakAssistantLine(response.data.openingMessage);
   }
 
   async function handleVoiceResult(transcript: string) {
@@ -57,10 +99,7 @@ export function DailyChallengePage() {
         ...current,
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
-      speakText(response.data.assistantMessage, {
-        onStart: () => setAiSpeaking(true),
-        onEnd: () => setAiSpeaking(false),
-      });
+      speakAssistantLine(response.data.assistantMessage);
     } catch {
       // Rejected (e.g. echo detection): nothing to say, the mic just
       // resumes listening for a real answer.
@@ -130,6 +169,11 @@ export function DailyChallengePage() {
             <AvatarScene
               state={aiSpeaking ? "speaking" : sending ? "thinking" : "idle"}
               avatarType={user?.avatarType ?? "male"}
+              speechText={speechText}
+              charIndexRef={charIndexRef}
+              visemeFramesRef={visemeFramesRef}
+              visemeStartTimeRef={visemeStartTimeRef}
+              onReady={handleAvatarReady}
             />
           </div>
 

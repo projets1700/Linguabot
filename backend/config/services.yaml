@@ -35,3 +35,11 @@ services:
             $apiKey: '%env(AI_API_KEY)%'
             $baseUrl: '%env(AI_API_BASE_URL)%'
             $model: '%env(AI_MODEL)%'
+
+    App\Service\AzureSpeechTokenService:
+        arguments:
+            # Same convention as AI_API_KEY above: empty by default, so
+            # issueToken() always returns null and /api/speech/token replies
+            # 204 - the frontend then falls back to speechSynthesis.
+            $subscriptionKey: '%env(AZURE_SPEECH_KEY)%'
+            $region: '%env(AZURE_SPEECH_REGION)%'

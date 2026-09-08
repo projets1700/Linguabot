@@ -72,10 +72,19 @@ export function pickVoiceForGender(
   langPrefix: string,
   gender: VoiceGender,
 ): SpeechSynthesisVoice | null {
-  const match = voices.find(
+  const candidates = voices.filter(
     (voice) => voice.lang.toLowerCase().startsWith(langPrefix) && classifyVoiceGender(voice) === gender,
   );
-  return match ?? null;
+  if (candidates.length === 0) return null;
+
+  // Prefer a local/on-device voice over a network one when both match:
+  // local voices start speaking with less delay and are the ones that
+  // reliably fire SpeechSynthesisUtterance's "boundary" event, which
+  // lip-sync depends on - some browsers' network ("Online (Natural)")
+  // voices fire it rarely or not at all, silently degrading lip-sync to
+  // its time-based fallback for no visible reason. Not wrong, just a
+  // worse default when there's a choice.
+  return candidates.find((voice) => voice.localService) ?? candidates[0];
 }
 
 // Chrome/Edge load the voice list asynchronously - getVoices() can return

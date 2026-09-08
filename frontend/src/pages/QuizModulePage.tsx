@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { RewardBanner } from "../components/RewardBanner";
 import { VoiceInput } from "../components/VoiceInput";
 import { speakText } from "../lib/speech";
+import { buildSpokenQuizQuestion } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
@@ -19,27 +20,60 @@ export function QuizModulePage() {
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
   const [showQuestionText, setShowQuestionText] = useState(false);
   const [aiSpeaking, setAiSpeaking] = useState(false);
+  const [speechText, setSpeechText] = useState<string | null>(null);
+  const charIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // Guard against React StrictMode's dev-mode double effect invocation,
+    // same reasoning as SessionPage/PlacementTestPage: without `ignore`,
+    // both requests resolve and each calls setQuestions with its own freshly
+    // parsed (referentially distinct) array - even though the content is
+    // identical, that reference change made the speak-effect below think
+    // `questions` had genuinely changed and re-fire speakText a second time
+    // mid-utterance, which is what left the avatar's mouth stuck frozen.
+    let ignore = false;
+
     api
       .get<QuizQuestion[]>(`/quiz/modules/${moduleId}/questions`)
-      .then((response) => setQuestions(response.data))
-      .finally(() => setLoading(false));
+      .then((response) => {
+        if (!ignore) setQuestions(response.data);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [moduleId]);
 
   useEffect(() => {
     if (questions.length > 0) {
-      // Unlike every other voice screen, the A0 quiz's prompts are
-      // deliberately in French ("Comment dit-on...?" - QuizFixtures) since
-      // it's testing basic French-to-English vocabulary for absolute
-      // beginners. Reading French text with the default en-US voice came
-      // out as "French with an English accent" - forcing fr-FR here (and
-      // only here) fixes the pronunciation without touching every other
-      // scenario/challenge/placement-test screen, which stay English.
-      speakText(questions[currentIndex].questionText, {
-        lang: "fr-FR",
+      // The A0 quiz's prompts are stored in French ("Comment dit-on
+      // "X" ?" - QuizFixtures) since it's testing basic French-to-English
+      // vocabulary for absolute beginners, and the on-screen text (revealed
+      // on request below) stays exactly that. But reading the French
+      // sentence aloud with an English voice - a local French voice turned
+      // out unreliable, cutting audio short mid-sentence with no way to
+      // detect that from the Web Speech API - produced hard-to-understand
+      // "franglish". Spoken aloud, the question is translated to its
+      // English wrapper instead ("How do you say X?"), keeping only the
+      // quoted French word itself - the vocabulary being tested - unchanged.
+      // Reset before speaking: a stale charIndex left over from a previous
+      // question must not be mistaken for a fresh one on the very first
+      // frame of this one.
+      charIndexRef.current = null;
+      const spokenQuestion = buildSpokenQuizQuestion(questions[currentIndex].questionText);
+      setSpeechText(spokenQuestion);
+      speakText(spokenQuestion, {
         onStart: () => setAiSpeaking(true),
-        onEnd: () => setAiSpeaking(false),
+        onBoundary: (event) => {
+          charIndexRef.current = event.charIndex;
+        },
+        onEnd: () => {
+          setAiSpeaking(false);
+          setSpeechText(null);
+        },
       });
       setShowQuestionText(false);
     }
@@ -110,6 +144,8 @@ export function QuizModulePage() {
         <AvatarScene
           state={aiSpeaking ? "speaking" : submitting ? "thinking" : "idle"}
           avatarType={user?.avatarType ?? "male"}
+          speechText={speechText}
+          charIndexRef={charIndexRef}
         />
 
         <p className="text-slate-400 text-sm">
