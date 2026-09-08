@@ -24,6 +24,11 @@ export function DashboardPage() {
     return <LoadingScreen />;
   }
 
+  // No activity recorded yet at all - the level/XP/session cards below would
+  // just be three zeroes in a row, which tells a first-time learner nothing
+  // useful. Point them at a concrete first step instead.
+  const isNewLearner = user.totalXp === 0 && user.sessionsCount === 0;
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
       <div className="flex justify-between items-center mb-8">
@@ -47,6 +52,17 @@ export function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {isNewLearner && (
+        <Card className="mb-8">
+          <h2 className="text-xl font-bold mb-2">Bienvenue, {user.prenom} !</h2>
+          <p className="text-slate-300 mb-4">
+            Tu démarres au niveau {user.level.code}. La façon la plus simple de commencer : le quiz
+            vocal A0, pour apprendre du vocabulaire de base en répondant à voix haute.
+          </p>
+          <Button to="/quiz" size="lg">Commencer le quiz A0</Button>
+        </Card>
+      )}
 
       <div className="grid md:grid-cols-3 gap-6 mb-8">
         <Card variant="stat">
