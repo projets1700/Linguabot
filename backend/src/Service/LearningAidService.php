@@ -39,10 +39,14 @@ final class LearningAidService
 
     /**
      * @param array<int, array{role: string, content: string}> $conversationHistory Recent turns, oldest first, normally ending with the AI's own last question
+     * @param ?string $levelInstruction The learner's CECRL vocabulary/sentence-complexity guidance (CecrlProfileService::complexityInstruction()) - without this, a hint used to come back at the same complexity for an A0 beginner and a B2 advanced learner alike
      */
-    public function hint(array $conversationHistory, int $tier): string
+    public function hint(array $conversationHistory, int $tier, ?string $levelInstruction = null): string
     {
         $instruction = self::HINT_INSTRUCTIONS[$tier] ?? self::HINT_INSTRUCTIONS[1];
+        if (null !== $levelInstruction) {
+            $instruction = $levelInstruction.' '.$instruction;
+        }
 
         // Only the last few turns are needed for context - keeps the hint
         // call small and fast regardless of how long the conversation is.

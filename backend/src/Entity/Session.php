@@ -46,6 +46,18 @@ class Session
     #[ORM\Column(name: 'ended_at', type: 'datetimetz_immutable', nullable: true)]
     private ?\DateTimeImmutable $endedAt = null;
 
+    /**
+     * The qualitative end-of-session bilan (SessionSummaryService::summarize()'s
+     * return shape: summary/strengths/reviewPoints/usefulExpressions/nextStep) -
+     * persisted so a learner who refreshes or revisits a completed session
+     * can still see it, instead of it only ever existing in the one HTTP
+     * response from finish(). Null until the session is finished.
+     *
+     * @var array{summary: string, strengths: string[], reviewPoints: string[], usefulExpressions: string[], nextStep: string}|null
+     */
+    #[ORM\Column(name: 'summary_data', type: 'json', nullable: true)]
+    private ?array $summaryData = null;
+
     /** @var Collection<int, SessionMessage> */
     #[ORM\OneToMany(targetEntity: SessionMessage::class, mappedBy: 'session', orphanRemoval: true)]
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
@@ -147,6 +159,20 @@ class Session
     public function setEndedAt(?\DateTimeImmutable $endedAt): static
     {
         $this->endedAt = $endedAt;
+
+        return $this;
+    }
+
+    /** @return array{summary: string, strengths: string[], reviewPoints: string[], usefulExpressions: string[], nextStep: string}|null */
+    public function getSummaryData(): ?array
+    {
+        return $this->summaryData;
+    }
+
+    /** @param array{summary: string, strengths: string[], reviewPoints: string[], usefulExpressions: string[], nextStep: string} $summaryData */
+    public function setSummaryData(array $summaryData): static
+    {
+        $this->summaryData = $summaryData;
 
         return $this;
     }

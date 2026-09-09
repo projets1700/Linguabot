@@ -26,18 +26,27 @@ final class QuizService
     }
 
     /**
-     * @param array<int, string> $answers questionId => user's typed answer
+     * @param array<int, string> $answers          questionId => user's typed answer
+     * @param array<int, bool>   $helpedQuestionIds questionId => true if the correct answer was
+     *                                               revealed to the learner (blocked-learner help,
+     *                                               see QuizController::answer()) before this
+     *                                               attempt was submitted for that question
      *
      * @return array{score: int, passed: bool, xpEarned: int, levelUp: bool}
      */
-    public function submitAttempt(User $user, QuizModule $module, array $answers): array
+    public function submitAttempt(User $user, QuizModule $module, array $answers, array $helpedQuestionIds = []): array
     {
         $questions = $this->questionRepository->findBy(['module' => $module]);
 
         $score = 0;
         foreach ($questions as $question) {
             $given = $answers[$question->getId()] ?? '';
-            if ($this->normalize($given) === $this->normalize($question->getCorrectAnswer())) {
+            $wasHelped = $helpedQuestionIds[$question->getId()] ?? false;
+            // A correct answer only earns its point if reached unaided - once
+            // the correct answer has been revealed (learner said "I don't
+            // know"), repeating it back is still allowed and still ends the
+            // question, but it must not score the same as finding it alone.
+            if (!$wasHelped && $this->normalize($given) === $this->normalize($question->getCorrectAnswer())) {
                 ++$score;
             }
         }

@@ -90,7 +90,17 @@ final class QuizController
             $answers[(int) $questionId] = (string) $answer;
         }
 
-        $result = $quizService->submitAttempt($user, $module, $answers);
+        // Question IDs for which the frontend revealed the correct answer
+        // after a detected "I don't know" (see /quiz/questions/{id}/answer) -
+        // trusted client-side like the rest of this payload (the same trust
+        // boundary as $answers itself), since nothing sensitive hinges on it
+        // beyond the XP of the learner's own attempt.
+        $helpedQuestionIds = [];
+        foreach ((array) ($data['helpedQuestionIds'] ?? []) as $questionId) {
+            $helpedQuestionIds[(int) $questionId] = true;
+        }
+
+        $result = $quizService->submitAttempt($user, $module, $answers, $helpedQuestionIds);
 
         $newBadges = $gamificationService->checkAndAwardBadges($user);
         $newTrophies = $gamificationService->checkAndAwardTrophies($user);

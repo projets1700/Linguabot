@@ -14,8 +14,7 @@ namespace App\Service;
  *     aiComplexityInstruction: string,
  *     transcriptMode: 'auto'|'available'|'onDemand',
  *     translationMode: 'visible'|'onDemand'|'rare'|'off',
- *     keywordHelpEnabled: bool,
- *     sentenceStarterEnabled: bool,
+ *     hintMode: 'fullAnswer'|'keywords'|'progressive',
  *     summaryStrengths: int,
  *     summaryReviewPoints: int,
  *     summaryExpressions: int,
@@ -70,8 +69,7 @@ final class CecrlProfileService
                 'reassuring tone and ask exactly one short question at a time.',
             'transcriptMode' => 'auto',
             'translationMode' => 'visible',
-            'keywordHelpEnabled' => true,
-            'sentenceStarterEnabled' => true,
+            'hintMode' => 'fullAnswer',
             'summaryStrengths' => 1,
             'summaryReviewPoints' => 1,
             'summaryExpressions' => 2,
@@ -87,8 +85,7 @@ final class CecrlProfileService
                 'learner seems stuck.',
             'transcriptMode' => 'auto',
             'translationMode' => 'onDemand',
-            'keywordHelpEnabled' => true,
-            'sentenceStarterEnabled' => true,
+            'hintMode' => 'fullAnswer',
             'summaryStrengths' => 2,
             'summaryReviewPoints' => 1,
             'summaryExpressions' => 2,
@@ -103,8 +100,7 @@ final class CecrlProfileService
                 'of information rather than a single word.',
             'transcriptMode' => 'available',
             'translationMode' => 'onDemand',
-            'keywordHelpEnabled' => true,
-            'sentenceStarterEnabled' => false,
+            'hintMode' => 'keywords',
             'summaryStrengths' => 2,
             'summaryReviewPoints' => 2,
             'summaryExpressions' => 3,
@@ -118,8 +114,7 @@ final class CecrlProfileService
                 'everyday sentences and ask follow-up questions that invite an opinion or a short justification.',
             'transcriptMode' => 'onDemand',
             'translationMode' => 'rare',
-            'keywordHelpEnabled' => false,
-            'sentenceStarterEnabled' => false,
+            'hintMode' => 'keywords',
             'summaryStrengths' => 3,
             'summaryReviewPoints' => 2,
             'summaryExpressions' => 3,
@@ -134,8 +129,7 @@ final class CecrlProfileService
                 'that invite argumentation, examples and nuance.',
             'transcriptMode' => 'onDemand',
             'translationMode' => 'off',
-            'keywordHelpEnabled' => false,
-            'sentenceStarterEnabled' => false,
+            'hintMode' => 'progressive',
             'summaryStrengths' => 3,
             'summaryReviewPoints' => 3,
             'summaryExpressions' => 4,
@@ -158,7 +152,7 @@ final class CecrlProfileService
      * to show by default - internal prompting details
      * (aiComplexityInstruction, questionCountMax) stay server-side.
      *
-     * @return array{transcriptMode: string, translationMode: string, keywordHelpEnabled: bool, sentenceStarterEnabled: bool}
+     * @return array{transcriptMode: string, translationMode: string, hintMode: string}
      */
     public function publicPayload(string $levelCode): array
     {
@@ -167,9 +161,19 @@ final class CecrlProfileService
         return [
             'transcriptMode' => $profile['transcriptMode'],
             'translationMode' => $profile['translationMode'],
-            'keywordHelpEnabled' => $profile['keywordHelpEnabled'],
-            'sentenceStarterEnabled' => $profile['sentenceStarterEnabled'],
+            'hintMode' => $profile['hintMode'],
         ];
+    }
+
+    /**
+     * The level's vocabulary/sentence-complexity guidance alone, without the
+     * turn-count-driven "start wrapping up" nudge buildSystemPromptPrefix()
+     * adds - used by LearningAidService::hint(), which isn't part of the
+     * conversation's own turn count and has no use for that nudge.
+     */
+    public function complexityInstruction(string $levelCode): string
+    {
+        return $this->forLevelCode($levelCode)['aiComplexityInstruction'];
     }
 
     /**

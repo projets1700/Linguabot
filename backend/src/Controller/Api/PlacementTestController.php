@@ -12,13 +12,17 @@ use App\Repository\PlacementTestRepository;
 use App\Service\PlacementTestService;
 use App\Service\VoiceService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class PlacementTestController
 {
+    use EnforcesAiRateLimit;
+
     /**
      * Creates the (single, per-user) placement test on first call, or
      * resumes the existing in_progress one - a page reload or a re-login
@@ -158,6 +162,7 @@ final class PlacementTestController
         PlacementTestService $placementTestService,
         LevelRepository $levelRepository,
         EntityManagerInterface $em,
+        #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
         if ($placementTest->getUser()->getId() !== $user->getId()) {
             return new JsonResponse(['message' => 'Accès refusé.'], 403);
@@ -169,6 +174,14 @@ final class PlacementTestController
 
         if ($placementTest->countUserAnswers() < $placementTestService->totalQuestions()) {
             return new JsonResponse(['message' => 'Réponds à toutes les questions avant de terminer.'], 422);
+        }
+
+        // The only real AI call in the placement-test flow lives in
+        // evaluateLevel() below - message() itself is fully scripted
+        // (PlacementTestService::nextQuestion()), so it isn't rate-limited.
+        $rejected = $this->rejectIfAiRateLimited($aiCallsLimiter, $user);
+        if (null !== $rejected) {
+            return $rejected;
         }
 
         $userAnswers = array_map(

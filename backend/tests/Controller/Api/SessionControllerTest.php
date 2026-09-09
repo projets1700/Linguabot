@@ -225,6 +225,50 @@ final class SessionControllerTest extends ApiTestCase
         self::assertArrayNotHasKey('vocabularyScore', $summary);
     }
 
+    public function testBilanIsPersistedAndReturnedAgainOnAFreshGetAfterFinish(): void
+    {
+        // P2 stabilization fix: the bilan used to exist only in finish()'s
+        // own HTTP response - a learner refreshing the page or revisiting
+        // the session afterwards saw the live conversation UI again with no
+        // way to see the summary a second time.
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, ['message' => 'Hello there!']);
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/finish", $token);
+        $finishResult = $this->decodeResponse($client);
+
+        // Simulates a page refresh: a brand new GET, no state carried over
+        // from the finish() call above beyond the session id in the URL.
+        $this->jsonRequest($client, 'GET', "/api/sessions/{$sessionId}", $token);
+        self::assertResponseIsSuccessful();
+        $reloaded = $this->decodeResponse($client);
+
+        self::assertSame('completed', $reloaded['status']);
+        self::assertNotNull($reloaded['summary']);
+        self::assertSame($finishResult['summary']['summary'], $reloaded['summary']['summary']);
+        self::assertSame($finishResult['summary']['nextStep'], $reloaded['summary']['nextStep']);
+        self::assertSame($finishResult['summary']['xpEarned'], $reloaded['summary']['xpEarned']);
+    }
+
+    public function testInProgressSessionHasNoSummaryYet(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'GET', "/api/sessions/{$sessionId}", $token);
+
+        self::assertNull($this->decodeResponse($client)['summary']);
+    }
+
     public function testFinishWithNoExchangesAtAllStillReturnsASoberBilanInsteadOfInventingOne(): void
     {
         $client = static::createClient();

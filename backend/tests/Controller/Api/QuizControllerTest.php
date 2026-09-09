@@ -120,6 +120,45 @@ final class QuizControllerTest extends ApiTestCase
         self::assertSame(0, $secondResult['xpEarned'], 'A retry of an already-passed module must not earn any XP.');
     }
 
+    public function testHelpedAnswerDoesNotScoreLikeAnUnaidedOne(): void
+    {
+        // P0 stabilization fix: revealing the correct answer after a
+        // detected "I don't know" (GET /quiz/questions/{id}/answer) must not
+        // let the learner then repeat it back and have it scored identically
+        // to a question answered without help.
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $moduleId = $this->findModuleId($client, $token, 'M0-1');
+
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
+        $questions = $this->decodeResponse($client);
+
+        $answers = [];
+        foreach ($questions as $index => $question) {
+            $answers[(string) $question['id']] = self::M0_1_ANSWERS[$index];
+        }
+        $helpedQuestionId = $questions[0]['id'];
+
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answers,
+            'helpedQuestionIds' => [$helpedQuestionId],
+        ]);
+
+        self::assertResponseStatusCodeSame(201);
+        $result = $this->decodeResponse($client);
+
+        // 9 correct-unaided answers, not 10: the helped one scores nothing
+        // even though the repeated answer is objectively correct. Still
+        // clears the 7-correct pass threshold on its own.
+        self::assertSame(9, $result['score']);
+        self::assertTrue($result['passed']);
+        // 9 correct * 10 XP + 50 XP module bonus = 140, i.e. 10 XP less than
+        // the 150 a fully-unaided perfect attempt earns (see the perfect-
+        // attempt test above) - exactly the one helped question's share.
+        self::assertSame(140, $result['xpEarned']);
+    }
+
     public function testFourthPassedModuleUnlocksLevelA1(): void
     {
         $client = static::createClient();

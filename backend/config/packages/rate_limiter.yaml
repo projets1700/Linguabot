@@ -1,0 +1,43 @@
+framework:
+    rate_limiter:
+        # Registration abuse (mass fake-account creation) - keyed by client
+        # IP in AuthController::register(). A real person registers once;
+        # 5/hour comfortably covers "tried a typo'd email, retried" without
+        # opening the door to scripted account farming.
+        register:
+            policy: 'sliding_window'
+            limit: 5
+            interval: '1 hour'
+
+        # Every endpoint that calls out to the external AI provider (session
+        # message/hint/translate, daily-challenge equivalents, placement-test
+        # message) shares this single bucket, keyed by user id - one shared
+        # limit rather than one per route, so a loop hitting several of these
+        # endpoints back to back can't multiply its effective quota. 20/minute
+        # is well above any real conversation pace (each turn already takes a
+        # few seconds for STT+LLM+TTS to round-trip) but stops a runaway
+        # frontend retry loop or a double-click storm from generating dozens
+        # of paid API calls in a few seconds.
+        ai_calls:
+            policy: 'sliding_window'
+            limit: 20
+            interval: '1 minute'
+
+# The real limits above would otherwise throttle the test suite itself: every
+# ApiTestCase-based test registers its own fresh user from the same
+# client IP (register is IP-keyed) and a single conversation test can easily
+# exceed 20 AI calls across its assertions - same reasoning as
+# security.yaml's when@test override for the password hasher cost.
+# RateLimiterTest is the one place that exercises the real production limits
+# directly (via the container in a non-test-suffixed way), not through HTTP.
+when@test:
+    framework:
+        rate_limiter:
+            register:
+                policy: 'sliding_window'
+                limit: 1000
+                interval: '1 minute'
+            ai_calls:
+                policy: 'sliding_window'
+                limit: 1000
+                interval: '1 minute'

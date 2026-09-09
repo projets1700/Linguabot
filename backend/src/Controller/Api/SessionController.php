@@ -15,13 +15,17 @@ use App\Service\LearningAidService;
 use App\Service\SessionSummaryService;
 use App\Service\VoiceService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class SessionController
 {
+    use EnforcesAiRateLimit;
+
     #[Route('/api/scenarios/{id}/sessions', name: 'api_scenario_start_session', methods: ['POST'])]
     public function start(
         Scenario $scenario,
@@ -75,6 +79,7 @@ final class SessionController
         VoiceService $voiceService,
         CecrlProfileService $cecrlProfileService,
         EntityManagerInterface $em,
+        #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
         if ($session->getUser()->getId() !== $user->getId()) {
             return new JsonResponse(['message' => 'Accès refusé.'], 403);
@@ -82,6 +87,11 @@ final class SessionController
 
         if (SessionStatus::IN_PROGRESS !== $session->getStatus()) {
             return new JsonResponse(['message' => 'Cette session est déjà terminée.'], 422);
+        }
+
+        $rejected = $this->rejectIfAiRateLimited($aiCallsLimiter, $user);
+        if (null !== $rejected) {
+            return $rejected;
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -158,9 +168,16 @@ final class SessionController
         Request $request,
         #[CurrentUser] User $user,
         LearningAidService $learningAidService,
+        CecrlProfileService $cecrlProfileService,
+        #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
         if ($session->getUser()->getId() !== $user->getId()) {
             return new JsonResponse(['message' => 'Accès refusé.'], 403);
+        }
+
+        $rejected = $this->rejectIfAiRateLimited($aiCallsLimiter, $user);
+        if (null !== $rejected) {
+            return $rejected;
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -173,10 +190,11 @@ final class SessionController
             static fn (SessionMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
             $session->getMessages()->toArray(),
         );
+        $levelInstruction = $cecrlProfileService->complexityInstruction($user->getLevel()->getCode());
 
         return new JsonResponse([
             'tier' => $tier,
-            'content' => $learningAidService->hint($conversationHistory, $tier),
+            'content' => $learningAidService->hint($conversationHistory, $tier, $levelInstruction),
         ]);
     }
 
@@ -186,9 +204,15 @@ final class SessionController
         Request $request,
         #[CurrentUser] User $user,
         LearningAidService $learningAidService,
+        #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
         if ($session->getUser()->getId() !== $user->getId()) {
             return new JsonResponse(['message' => 'Accès refusé.'], 403);
+        }
+
+        $rejected = $this->rejectIfAiRateLimited($aiCallsLimiter, $user);
+        if (null !== $rejected) {
+            return $rejected;
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -246,7 +270,8 @@ final class SessionController
             ->setXpEarned($xpEarned)
             ->setDurationSeconds($endedAt->getTimestamp() - $startedAt->getTimestamp())
             ->setStatus(SessionStatus::COMPLETED)
-            ->setEndedAt($endedAt);
+            ->setEndedAt($endedAt)
+            ->setSummaryData($bilan);
 
         $user->setTotalXp($user->getTotalXp() + $xpEarned);
         $user->setSessionsCount($user->getSessionsCount() + 1);
@@ -284,6 +309,11 @@ final class SessionController
 
     private function serializeSession(Session $session, CecrlProfileService $cecrlProfileService): array
     {
+        $summaryData = $session->getSummaryData();
+        $userTurns = $session->getMessages()->filter(
+            static fn (SessionMessage $m) => MessageRole::USER === $m->getRole(),
+        )->count();
+
         return [
             'id' => $session->getId(),
             'status' => $session->getStatus()->value,
@@ -301,6 +331,22 @@ final class SessionController
                 ],
                 $session->getMessages()->toArray(),
             ),
+            // Only present once the session is finished and a bilan was
+            // actually persisted (null for any session finished before the
+            // summary_data column existed) - lets a learner who refreshes or
+            // revisits a completed session still see it (finish() otherwise
+            // returns this bilan exactly once, in its own HTTP response).
+            'summary' => null !== $summaryData ? [
+                'summary' => $summaryData['summary'],
+                'exchangeCount' => $userTurns,
+                'xpEarned' => $session->getXpEarned(),
+                'status' => $session->getStatus()->value,
+                'scenarioTitle' => $session->getScenario()->getTitle(),
+                'strengths' => $summaryData['strengths'],
+                'reviewPoints' => $summaryData['reviewPoints'],
+                'usefulExpressions' => $summaryData['usefulExpressions'],
+                'nextStep' => $summaryData['nextStep'],
+            ] : null,
         ];
     }
 }

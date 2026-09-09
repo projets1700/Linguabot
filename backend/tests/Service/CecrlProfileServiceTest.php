@@ -40,8 +40,33 @@ final class CecrlProfileServiceTest extends TestCase
         self::assertArrayNotHasKey('summaryStrengths', $payload);
         self::assertArrayHasKey('transcriptMode', $payload);
         self::assertArrayHasKey('translationMode', $payload);
-        self::assertArrayHasKey('keywordHelpEnabled', $payload);
-        self::assertArrayHasKey('sentenceStarterEnabled', $payload);
+        self::assertArrayHasKey('hintMode', $payload);
+    }
+
+    // --- hintMode: how "Je suis bloqué ?" behaves per level ---
+
+    public function testA0AndA1GetTheFullAnswerHintMode(): void
+    {
+        self::assertSame('fullAnswer', $this->service->publicPayload('A0')['hintMode']);
+        self::assertSame('fullAnswer', $this->service->publicPayload('A1')['hintMode']);
+    }
+
+    public function testA2AndB1GetTheKeywordsOnlyHintMode(): void
+    {
+        self::assertSame('keywords', $this->service->publicPayload('A2')['hintMode']);
+        self::assertSame('keywords', $this->service->publicPayload('B1')['hintMode']);
+    }
+
+    public function testB2KeepsTheProgressiveHintLadder(): void
+    {
+        self::assertSame('progressive', $this->service->publicPayload('B2')['hintMode']);
+    }
+
+    public function testComplexityInstructionMatchesTheOneUsedInTheConversationPrompt(): void
+    {
+        $prefix = $this->service->buildSystemPromptPrefix('A2', 0);
+
+        self::assertSame($this->service->complexityInstruction('A2'), $prefix);
     }
 
     public function testSummaryDepthGrowsWithLevel(): void

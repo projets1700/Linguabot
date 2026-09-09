@@ -13,9 +13,11 @@ use App\Repository\PendingRegistrationRepository;
 use App\Repository\UserRepository;
 use App\Service\RegistrationMailer;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -48,7 +50,12 @@ final class AuthController
         PendingRegistrationRepository $pendingRepository,
         UserPasswordHasherInterface $passwordHasher,
         RegistrationMailer $registrationMailer,
+        #[Autowire(service: 'limiter.register')] RateLimiterFactory $registerLimiter,
     ): JsonResponse {
+        if (!$registerLimiter->create($request->getClientIp())->consume()->isAccepted()) {
+            return new JsonResponse(['message' => 'Trop de tentatives d\'inscription, réessaie plus tard.'], 429);
+        }
+
         try {
             $dto = $serializer->deserialize($request->getContent(), RegisterDTO::class, 'json');
         } catch (\Throwable) {

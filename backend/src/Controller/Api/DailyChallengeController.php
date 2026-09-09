@@ -11,13 +11,17 @@ use App\Service\GamificationService;
 use App\Service\LearningAidService;
 use App\Service\VoiceService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class DailyChallengeController
 {
+    use EnforcesAiRateLimit;
+
     #[Route('/api/daily-challenge', name: 'api_daily_challenge_show', methods: ['GET'])]
     public function show(
         #[CurrentUser] User $user,
@@ -76,7 +80,13 @@ final class DailyChallengeController
         #[CurrentUser] User $user,
         DailyChallengeService $dailyChallengeService,
         CecrlProfileService $cecrlProfileService,
+        #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
+        $rejected = $this->rejectIfAiRateLimited($aiCallsLimiter, $user);
+        if (null !== $rejected) {
+            return $rejected;
+        }
+
         $data = json_decode($request->getContent(), true) ?? [];
         $transcript = $voiceService->transcribeAudio((string) ($data['message'] ?? ''));
         $turnNumber = (int) ($data['turnNumber'] ?? 0);
@@ -139,23 +149,44 @@ final class DailyChallengeController
     }
 
     #[Route('/api/daily-challenge/hint', name: 'api_daily_challenge_hint', methods: ['POST'])]
-    public function hint(Request $request, LearningAidService $learningAidService): JsonResponse
-    {
+    public function hint(
+        Request $request,
+        #[CurrentUser] User $user,
+        LearningAidService $learningAidService,
+        CecrlProfileService $cecrlProfileService,
+        #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
+    ): JsonResponse {
+        $rejected = $this->rejectIfAiRateLimited($aiCallsLimiter, $user);
+        if (null !== $rejected) {
+            return $rejected;
+        }
+
         $data = json_decode($request->getContent(), true) ?? [];
         $tier = (int) ($data['tier'] ?? 1);
         if ($tier < 1 || $tier > 3) {
             return new JsonResponse(['message' => 'Palier d\'aide invalide.'], 422);
         }
 
+        $levelInstruction = $cecrlProfileService->complexityInstruction($user->getLevel()->getCode());
+
         return new JsonResponse([
             'tier' => $tier,
-            'content' => $learningAidService->hint(self::parseHistory($data), $tier),
+            'content' => $learningAidService->hint(self::parseHistory($data), $tier, $levelInstruction),
         ]);
     }
 
     #[Route('/api/daily-challenge/translate', name: 'api_daily_challenge_translate', methods: ['POST'])]
-    public function translate(Request $request, LearningAidService $learningAidService): JsonResponse
-    {
+    public function translate(
+        Request $request,
+        LearningAidService $learningAidService,
+        #[CurrentUser] User $user,
+        #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
+    ): JsonResponse {
+        $rejected = $this->rejectIfAiRateLimited($aiCallsLimiter, $user);
+        if (null !== $rejected) {
+            return $rejected;
+        }
+
         $data = json_decode($request->getContent(), true) ?? [];
         $text = trim((string) ($data['text'] ?? ''));
         if ('' === $text) {
