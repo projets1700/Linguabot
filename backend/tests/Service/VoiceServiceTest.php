@@ -82,6 +82,38 @@ final class VoiceServiceTest extends TestCase
         self::assertSame($first, $sameAsFirst);
     }
 
+    public function testGenerateAnswerUsesTheGenericBlockedFallbackInsteadOfTheCyclingPoolWhenNoApiKeyAndLearnerBlocked(): void
+    {
+        $reply = $this->service->generateAnswer('system prompt', [], 0, null, true);
+
+        self::assertStringNotContainsString('interesting', $reply); // not one of the ordinary SIMULATED_REPLIES
+        self::assertStringContainsString('short', $reply);
+    }
+
+    public function testGenerateAnswerBlockedFallbackIsAlwaysTheSameGenericReplyRegardlessOfTurnNumber(): void
+    {
+        $first = $this->service->generateAnswer('system prompt', [], 0, null, true);
+        $later = $this->service->generateAnswer('system prompt', [], 4, null, true);
+
+        self::assertSame($first, $later);
+    }
+
+    public function testGenerateAnswerLearnerBlockedHasNoEffectWhenTheRealAiReplySucceeds(): void
+    {
+        $mockClient = new MockHttpClient([
+            new MockResponse(json_encode([
+                'choices' => [['message' => ['content' => 'A real, contextual reply about breakfast.']]],
+            ])),
+        ]);
+        $service = new VoiceService(new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'));
+
+        $reply = $service->generateAnswer('system prompt', [
+            ['role' => 'user', 'content' => "I don't know."],
+        ], 0, null, true);
+
+        self::assertSame('A real, contextual reply about breakfast.', $reply);
+    }
+
     public function testGenerateAnswerUsesTheRealAiReplyWhenTheApiCallSucceeds(): void
     {
         $mockClient = new MockHttpClient([

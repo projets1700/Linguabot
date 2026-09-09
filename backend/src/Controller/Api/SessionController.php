@@ -125,12 +125,18 @@ final class SessionController
             $session->getMessages()->toArray(),
         );
         $levelCode = $user->getLevel()->getCode();
-        // Two separate concerns composed together: complexity/pacing
-        // (unchanged) and how much LinguaBot should step in to help or
-        // correct this specific turn (new - see CecrlProfileService).
-        $levelInstruction = $cecrlProfileService->buildSystemPromptPrefix($levelCode, $turnNumber).' '.
-            $cecrlProfileService->buildSupportInstruction($levelCode, $learnerBlocked);
-        $reply = $voiceService->generateAnswer($session->getScenario()->getPromptTemplate(), $conversationHistory, $turnNumber, $levelInstruction);
+        // Complexity/pacing + correction policy + how much to help/correct
+        // this turn (including the blocked-learner behavior when
+        // applicable), composed as labeled sections by CecrlProfileService
+        // - see buildConversationInstruction() for the full structure.
+        $levelInstruction = $cecrlProfileService->buildConversationInstruction($levelCode, $turnNumber, $learnerBlocked);
+        $reply = $voiceService->generateAnswer(
+            $session->getScenario()->getPromptTemplate(),
+            $conversationHistory,
+            $turnNumber,
+            $levelInstruction,
+            $learnerBlocked,
+        );
 
         $assistantMessage = (new SessionMessage())
             ->setRole(MessageRole::ASSISTANT)

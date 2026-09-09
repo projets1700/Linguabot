@@ -30,12 +30,34 @@ final class CecrlProfileService
      * detectLearnerBlock()) - same wording at every level, since it's the
      * level's own aiComplexityInstruction (already part of the combined
      * prompt) that keeps the example itself at the right vocabulary.
+     *
+     * Explicitly states its own priority over the correction policy below
+     * (V1 spec: a blocked learner must be helped to answer, never
+     * corrected on how they phrased "I don't know" instead).
      */
     private const BLOCKED_INSTRUCTION = 'The learner just indicated they do not know how to answer or do not '.
-        'understand the question (V1 explicit "I don\'t know" detection). Briefly and kindly acknowledge this '.
-        'without making them feel bad - never say "wrong" or similar. Then give exactly ONE example sentence '.
-        'they could say to answer the previous question, clearly presented as one possible answer among others, '.
-        'not the only correct one. Then continue the conversation naturally.';
+        'understand the question (V1 explicit "I don\'t know" detection). This takes priority over the '.
+        'correction policy below for this turn - focus entirely on helping them answer, not on correcting how '.
+        'they phrased their "I don\'t know". Briefly and kindly acknowledge this without making them feel bad - '.
+        'never say "wrong" or similar. Then give exactly ONE example sentence they could say to answer '.
+        'the previous question, at the vocabulary level described above, clearly presented as one possible '.
+        'answer among others, not the only correct one. Keep your whole reply short. Then continue the '.
+        'conversation naturally.';
+
+    /**
+     * Level-independent phrasing policy for any correction/reformulation
+     * (V1 spec §3: distinguish an error worth reformulating from one to
+     * let go, and never phrase it like a grading remark). Always included
+     * in the composed prompt, regardless of level or blocking - the
+     * per-level supportGuidance below controls WHETHER/how often to
+     * correct, this controls HOW to phrase it when it does.
+     */
+    private const CORRECTION_POLICY_INSTRUCTION = 'When you do offer a correction or reformulation, keep it '.
+        'short, natural, and encouraging - never mention a grade, a score, or a technical grammar term, and '.
+        'never say things like "you made a grammar error" or "that is wrong". Prefer a natural rephrasing such '.
+        'as "A more natural way to say it is: ...". Only correct when it genuinely helps understanding or '.
+        'sounds significantly more natural - never for every small mistake. Always continue the conversation '.
+        'naturally afterward.';
 
     /**
      * @var array<string, Profile>
@@ -54,8 +76,9 @@ final class CecrlProfileService
             'summaryReviewPoints' => 1,
             'summaryExpressions' => 2,
             'supportGuidance' => 'If the learner seems stuck or gives an unclear answer, offer help often and '.
-                'warmly with a very short, simple example sentence. If their answer has a grammar error, do not '.
-                'point it out unless it truly blocks understanding - keep the conversation moving.',
+                'warmly with a very short, simple example sentence - never leave them stuck for long. If their '.
+                'answer has a grammar error, do not point it out unless it truly blocks understanding - keep '.
+                'the conversation moving.',
         ],
         'A1' => [
             'questionCountMax' => 7,
@@ -70,8 +93,8 @@ final class CecrlProfileService
             'summaryReviewPoints' => 1,
             'summaryExpressions' => 2,
             'supportGuidance' => 'Offer help often when the learner seems stuck, with a simple example sentence. '.
-                'Only gently reformulate an answer when the error is obvious and simple to fix, in one short '.
-                'natural sentence, then move on.',
+                'Reformulate an answer fairly visibly, as a short teaching moment, when the error is obvious and '.
+                'simple to fix, then move on.',
         ],
         'A2' => [
             'questionCountMax' => 9,
@@ -85,8 +108,9 @@ final class CecrlProfileService
             'summaryStrengths' => 2,
             'summaryReviewPoints' => 2,
             'summaryExpressions' => 3,
-            'supportGuidance' => 'Offer help when the learner seems stuck, with a short example. Reformulate an '.
-                'obvious error briefly, without dwelling on it, then continue.',
+            'supportGuidance' => 'Offer help when the learner seems stuck, with a short example. Let the '.
+                'learner develop their own answer rather than jumping in - reformulate mainly when the error is '.
+                'significant, briefly and without dwelling on it.',
         ],
         'B1' => [
             'questionCountMax' => 12,
@@ -99,8 +123,9 @@ final class CecrlProfileService
             'summaryStrengths' => 3,
             'summaryReviewPoints' => 2,
             'summaryExpressions' => 3,
-            'supportGuidance' => 'Only step in with a correction or an example when it truly adds value - do not '.
-                'interrupt for minor issues. Keep any reformulation short and natural.',
+            'supportGuidance' => 'Offer help mostly when asked, rather than proactively. Only correct an error '.
+                'that is significant or that keeps recurring in this turn - prioritize the flow of the '.
+                'conversation over precision.',
         ],
         'B2' => [
             'questionCountMax' => 15,
@@ -114,8 +139,9 @@ final class CecrlProfileService
             'summaryStrengths' => 3,
             'summaryReviewPoints' => 3,
             'summaryExpressions' => 4,
-            'supportGuidance' => 'Rarely interrupt. Only offer a correction for a genuinely significant error or '.
-                'a distinctly unnatural phrasing, phrased briefly, then continue the conversation naturally.',
+            'supportGuidance' => 'Rarely interrupt. Only offer a correction for a genuinely significant error, a '.
+                'distinctly unnatural phrasing, or real ambiguity, phrased briefly. Prioritize natural, fluent '.
+                'conversation over correction.',
         ],
     ];
 
@@ -193,17 +219,41 @@ final class CecrlProfileService
      * detectLearnerBlock()). Combined with buildSystemPromptPrefix() in the
      * caller's system prompt - kept separate from it since one is about
      * vocabulary/sentence complexity and this one is about when/how much to
-     * intervene, two different concerns.
+     * intervene, two different concerns. Labeled sections (not one fragile
+     * paragraph) so the underlying instructions stay easy to read/audit -
+     * see buildConversationInstruction() for the fully composed prompt.
      */
     public function buildSupportInstruction(string $levelCode, bool $learnerBlocked): string
     {
         $profile = $this->forLevelCode($levelCode);
-        $instruction = $profile['supportGuidance'];
+        $instruction = 'Learner support: '.$profile['supportGuidance'];
 
         if ($learnerBlocked) {
-            $instruction .= ' '.self::BLOCKED_INSTRUCTION;
+            $instruction .= "\n\nBlocked learner behavior: ".self::BLOCKED_INSTRUCTION;
         }
 
         return $instruction;
+    }
+
+    /**
+     * The full CECRL-driven conversation instruction for one turn of a
+     * scenario/challenge session: complexity/pacing (buildSystemPromptPrefix),
+     * the level-independent correction phrasing policy, and how much to
+     * help/correct this turn (buildSupportInstruction, including the
+     * blocked-learner behavior when applicable) - each its own labeled
+     * section rather than one large paragraph, per the V1 spec's request
+     * for a structured system prompt ("Conversation style / Learner
+     * support / Correction policy / Blocked learner behavior / CECRL
+     * behavior"). Prepended, never replacing, the scenario's own
+     * promptTemplate (see VoiceService::generateAnswer()), which already
+     * covers character/role - not duplicated here.
+     */
+    public function buildConversationInstruction(string $levelCode, int $turnNumber, bool $learnerBlocked): string
+    {
+        return implode("\n\n", [
+            'CECRL behavior: '.$this->buildSystemPromptPrefix($levelCode, $turnNumber),
+            'Correction policy: '.self::CORRECTION_POLICY_INSTRUCTION,
+            $this->buildSupportInstruction($levelCode, $learnerBlocked),
+        ]);
     }
 }

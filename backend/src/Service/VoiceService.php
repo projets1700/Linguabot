@@ -57,6 +57,16 @@ final class VoiceService
         'I understand. Can you describe that a bit more?',
     ];
 
+    /**
+     * Used instead of SIMULATED_REPLIES when the AI is unavailable AND the
+     * learner was flagged as blocked (CecrlProfileService::BLOCKED_INSTRUCTION
+     * is what the real AI would follow) - deliberately generic rather than a
+     * fabricated answer to whatever the question actually was: this
+     * fallback has no way to read/understand the question, so pretending to
+     * would be worse than a plain, honest nudge.
+     */
+    private const BLOCKED_FALLBACK_REPLY = 'No problem! Try giving a short, simple answer - even one sentence is fine.';
+
     public function __construct(
         private readonly AiChatService $aiChatService,
     ) {
@@ -94,9 +104,10 @@ final class VoiceService
      * set or the call fails for any reason.
      *
      * @param array<int, array{role: string, content: string}> $conversationHistory {role, content} pairs, oldest first, already including the learner's latest message
-     * @param ?string $levelInstruction CECRL-level prompt prefix from CecrlProfileService::buildSystemPromptPrefix() - prepended, never replacing $systemPrompt, so scenario authors' prompts keep working unchanged
+     * @param ?string $levelInstruction CECRL-level prompt prefix from CecrlProfileService::buildSystemPromptPrefix()/buildConversationInstruction() - prepended, never replacing $systemPrompt, so scenario authors' prompts keep working unchanged
+     * @param bool $learnerBlocked Whether this turn was flagged by the frontend's detectLearnerBlock() - only changes which fallback is used when the AI itself is unavailable (see BLOCKED_FALLBACK_REPLY); has no effect when a real AI reply comes back
      */
-    public function generateAnswer(string $systemPrompt, array $conversationHistory, int $turnNumber, ?string $levelInstruction = null): string
+    public function generateAnswer(string $systemPrompt, array $conversationHistory, int $turnNumber, ?string $levelInstruction = null, bool $learnerBlocked = false): string
     {
         $fullSystemPrompt = null !== $levelInstruction
             ? $levelInstruction."\n\n".$systemPrompt
@@ -107,7 +118,13 @@ final class VoiceService
             ...$conversationHistory,
         ]);
 
-        return $reply ?? self::SIMULATED_REPLIES[$turnNumber % \count(self::SIMULATED_REPLIES)];
+        if (null !== $reply) {
+            return $reply;
+        }
+
+        return $learnerBlocked
+            ? self::BLOCKED_FALLBACK_REPLY
+            : self::SIMULATED_REPLIES[$turnNumber % \count(self::SIMULATED_REPLIES)];
     }
 
     /**

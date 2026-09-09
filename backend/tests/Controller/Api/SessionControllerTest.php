@@ -106,13 +106,13 @@ final class SessionControllerTest extends ApiTestCase
         self::assertNotEmpty($this->decodeResponse($client)['assistantMessage']);
     }
 
-    public function testMessageStillRepliesUsingTheExistingFallbackWhenTheLearnerIsFlaggedAsBlocked(): void
+    public function testMessageUsesTheGenericBlockedFallbackWhenTheLearnerIsFlaggedAsBlocked(): void
     {
-        // AI_API_KEY is forced empty in the test env, so this exercises the
-        // same simulated-reply fallback as every other message() test - the
-        // new learnerBlocked field must never break that existing contract,
-        // even though its effect on a *real* AI reply can't be observed here
-        // (see CecrlProfileServiceTest for the actual prompt content).
+        // AI_API_KEY is forced empty in the test env, so this exercises
+        // VoiceService's fallback path - now deterministic for a blocked
+        // turn (BLOCKED_FALLBACK_REPLY, see VoiceServiceTest for the unit
+        // coverage), unlike the ordinary cycling pool, so this can assert
+        // the exact reply rather than just "something came back".
         $client = static::createClient();
         $token = $this->registerAndGetTokenAtLevel($client, 'A1');
         $scenarioId = $this->findAnyScenarioId($client, $token);
@@ -128,7 +128,7 @@ final class SessionControllerTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         $result = $this->decodeResponse($client);
         self::assertSame("I don't know.", $result['userTranscript']);
-        self::assertNotEmpty($result['assistantMessage']);
+        self::assertSame('No problem! Try giving a short, simple answer - even one sentence is fine.', $result['assistantMessage']);
     }
 
     public function testMessageDefaultsLearnerBlockedToFalseWhenTheFieldIsOmitted(): void
