@@ -14,6 +14,7 @@ import { TrophiesPage } from "./pages/TrophiesPage";
 import { DailyChallengePage } from "./pages/DailyChallengePage";
 import { VoiceSettingsPage } from "./pages/VoiceSettingsPage";
 import { AccountPage } from "./pages/AccountPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminScenariosPage } from "./pages/admin/AdminScenariosPage";
@@ -179,6 +180,7 @@ export default function App() {
             </RequireAuth>
           }
         />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

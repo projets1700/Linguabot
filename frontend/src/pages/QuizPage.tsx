@@ -1,23 +1,31 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
+import { LearnerNav } from "../components/LearnerNav";
+import { ErrorBanner } from "../components/ui/ErrorBanner";
 import type { QuizModule } from "../types";
 
 export function QuizPage() {
   const [modules, setModules] = useState<QuizModule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    setLoadError(false);
     api
       .get<QuizModule[]>("/quiz/modules")
       .then((response) => setModules(response.data))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [retryCount]);
 
   const passedCount = modules.filter((m) => m.passed).length;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
+    <div className="min-h-screen bg-slate-950">
+      <LearnerNav />
+      <main className="text-white p-8">
       <h1 className="text-3xl font-bold mb-2">Quiz vocal A0</h1>
       <p className="text-slate-400 mb-8">
         Validez 4 modules sur 6 (score ≥ 7/10) pour débloquer le niveau A1.{" "}
@@ -27,6 +35,11 @@ export function QuizPage() {
 
       {loading ? (
         <p>Chargement...</p>
+      ) : loadError ? (
+        <ErrorBanner
+          message="Impossible de charger les modules du quiz."
+          onRetry={() => setRetryCount((count) => count + 1)}
+        />
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
           {modules.map((module) => (
@@ -50,6 +63,7 @@ export function QuizPage() {
           ))}
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }

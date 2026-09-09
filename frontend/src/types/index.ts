@@ -77,8 +77,11 @@ export type SessionMessage = {
 export type CecrlProfile = {
   transcriptMode: "auto" | "available" | "onDemand";
   translationMode: "visible" | "onDemand" | "rare" | "off";
-  keywordHelpEnabled: boolean;
-  sentenceStarterEnabled: boolean;
+  // How "Je suis bloqué ?" behaves: fullAnswer (A0/A1) gives the complete
+  // example sentence directly, for the learner to repeat aloud; keywords
+  // (A2/B1) gives only key words, nothing more; progressive (B2) keeps the
+  // original 3-tier ladder (keywords -> sentence starter -> full example).
+  hintMode: "fullAnswer" | "keywords" | "progressive";
 };
 
 export type SessionDetail = {
@@ -91,6 +94,11 @@ export type SessionDetail = {
   };
   cecrlProfile: CecrlProfile;
   messages: SessionMessage[];
+  // Present once the session is finished and a bilan was persisted - lets a
+  // learner who refreshes or revisits a completed session still see it.
+  // Null for a session still in progress, or one finished before this field
+  // existed.
+  summary: SessionSummary | null;
 };
 
 export type PlacementTestDetail = {

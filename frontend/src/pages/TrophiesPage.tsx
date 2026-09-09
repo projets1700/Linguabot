@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import { LearnerNav } from "../components/LearnerNav";
+import { ErrorBanner } from "../components/ui/ErrorBanner";
 import type { Trophy } from "../types";
 
 const RARITY_LABEL: Record<Trophy["rarity"], string> = {
@@ -19,27 +21,41 @@ const RARITY_COLOR: Record<Trophy["rarity"], string> = {
 export function TrophiesPage() {
   const [trophies, setTrophies] = useState<Trophy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    setLoadError(false);
     api
       .get<Trophy[]>("/trophies")
       .then((response) => setTrophies(response.data))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [retryCount]);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
+    <div className="min-h-screen bg-slate-950">
+      <LearnerNav />
+      <main className="text-white p-8">
       <h1 className="text-3xl font-bold mb-8">Mes trophées</h1>
 
       {loading ? (
         <p>Chargement...</p>
+      ) : loadError ? (
+        <ErrorBanner
+          message="Impossible de charger tes trophées."
+          onRetry={() => setRetryCount((count) => count + 1)}
+        />
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
           {trophies.map((trophy) => {
-            const percent = Math.min(
-              100,
-              Math.round((trophy.progressCurrent / trophy.progressTotal) * 100),
-            );
+            // progressTotal is always a positive seed value in practice, but
+            // guarding division by it means a malformed/zero value renders
+            // "0%" instead of a NaN-width progress bar.
+            const percent =
+              trophy.progressTotal > 0
+                ? Math.min(100, Math.round((trophy.progressCurrent / trophy.progressTotal) * 100))
+                : 0;
 
             return (
               <article
@@ -70,6 +86,7 @@ export function TrophiesPage() {
           })}
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }

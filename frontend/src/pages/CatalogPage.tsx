@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { LearnerNav } from "../components/LearnerNav";
+import { ErrorBanner } from "../components/ui/ErrorBanner";
 import type { Scenario, SessionDetail } from "../types";
 
 const LEVELS = ["A1", "A2", "B1", "B2"] as const;
@@ -15,15 +17,19 @@ export function CatalogPage() {
   const [level, setLevel] = useState<string>("");
   const [category, setCategory] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [startingId, setStartingId] = useState<number | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     setLoading(true);
+    setLoadError(false);
     api
       .get<Scenario[]>("/scenarios", { params: { level, category } })
       .then((response) => setScenarios(response.data))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, [level, category]);
+  }, [level, category, retryCount]);
 
   async function handleStart(scenarioId: number) {
     setStartingId(scenarioId);
@@ -36,7 +42,9 @@ export function CatalogPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
+    <div className="min-h-screen bg-slate-950">
+      <LearnerNav />
+      <main className="text-white p-8">
       <h1 className="text-3xl font-bold mb-6">Catalogue</h1>
 
       <div className="flex gap-4 mb-8">
@@ -69,6 +77,11 @@ export function CatalogPage() {
 
       {loading ? (
         <p>Chargement...</p>
+      ) : loadError ? (
+        <ErrorBanner
+          message="Impossible de charger le catalogue."
+          onRetry={() => setRetryCount((count) => count + 1)}
+        />
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
           {scenarios.map((scenario) => (
@@ -101,6 +114,7 @@ export function CatalogPage() {
           ))}
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }

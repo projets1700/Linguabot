@@ -20,8 +20,14 @@ export function QuizModulePage() {
   const user = useAuthStore((state) => state.user);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  // Question IDs where the correct answer was revealed after a detected
+  // "I don't know" - repeating it back still ends the question, but must
+  // not score the same as answering unaided (see QuizService::submitAttempt).
+  const [helpedQuestionIds, setHelpedQuestionIds] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
@@ -44,11 +50,15 @@ export function QuizModulePage() {
     // `questions` had genuinely changed and re-fire speakText a second time
     // mid-utterance, which is what left the avatar's mouth stuck frozen.
     let ignore = false;
+    setLoadError(false);
 
     api
       .get<QuizQuestion[]>(`/quiz/modules/${moduleId}/questions`)
       .then((response) => {
         if (!ignore) setQuestions(response.data);
+      })
+      .catch(() => {
+        if (!ignore) setLoadError(true);
       })
       .finally(() => {
         if (!ignore) setLoading(false);
@@ -57,7 +67,7 @@ export function QuizModulePage() {
     return () => {
       ignore = true;
     };
-  }, [moduleId]);
+  }, [moduleId, retryCount]);
 
   useEffect(() => {
     if (questions.length > 0) {
@@ -94,6 +104,9 @@ export function QuizModulePage() {
       try {
         const { data } = await api.get<{ answer: string }>(`/quiz/questions/${question.id}/answer`);
         speakAssistantLine(buildBlockedHelpMessage(data.answer));
+        setHelpedQuestionIds((current) =>
+          current.includes(question.id) ? current : [...current, question.id],
+        );
       } catch {
         setAvatarState("idle");
       }
@@ -115,6 +128,7 @@ export function QuizModulePage() {
       const response = await api.post<QuizAttemptResult>("/quiz/attempts", {
         moduleId: Number(moduleId),
         answers: nextAnswers,
+        helpedQuestionIds,
       });
       setResult(response.data);
     } catch {
@@ -130,6 +144,21 @@ export function QuizModulePage() {
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  // Covers both an outright fetch failure and a technically-successful but
+  // empty response (e.g. a module with no questions configured) - either
+  // way, `questions[currentIndex]` below would otherwise be undefined and
+  // crash on `.questionText`.
+  if (loadError || questions.length === 0) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white p-8 flex items-center justify-center">
+        <ErrorBanner
+          message="Impossible de charger les questions de ce module."
+          onRetry={() => setRetryCount((count) => count + 1)}
+        />
+      </main>
+    );
   }
 
   if (result) {

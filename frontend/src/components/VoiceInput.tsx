@@ -3,6 +3,29 @@ import { useEffect, useRef, useState } from "react";
 type Props = {
   onResult: (transcript: string) => void;
   disabled?: boolean;
+  // Defaults to English (every existing caller's conversation is in
+  // English). The Dashboard's guided intro talks to the learner in French,
+  // so it passes "fr-FR" here for better recognition of its own replies.
+  lang?: string;
+  // "default" (red mic, unchanged) matches every existing caller. "brand"
+  // swaps the listening color to LinguaBot's own blue accent instead of a
+  // red that reads as "error/recording" - for the Dashboard intro, which
+  // sits on a warm classroom photo rather than a plain dark panel.
+  variant?: "default" | "brand";
+  // "default" (64px, unchanged) matches every existing caller. "compact"
+  // (44px, tighter status text) is for the Dashboard intro, where the mic
+  // sits attached to the avatar itself rather than in its own full-width row.
+  size?: "default" | "compact";
+  // Optional: lets a caller mirror the mic's own listening state into its
+  // own UI (e.g. the Dashboard's "Disponible pour parler" line swapping to
+  // "Je t'écoute…") without duplicating the recognition logic itself.
+  // Every existing caller omits this and is unaffected.
+  onListeningChange?: (listening: boolean) => void;
+  // When the caller already shows an equivalent status elsewhere (see
+  // onListeningChange above), this suppresses VoiceInput's own status line
+  // so the same state isn't announced twice in two different phrasings.
+  // Defaults to false (unchanged) for every existing caller.
+  hideStatusText?: boolean;
 };
 
 function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | undefined {
@@ -32,13 +55,30 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | undef
  * the always-on mic off - e.g. to think out loud, cough, or take a call -
  * without the app picking that up as an answer.
  */
-export function VoiceInput({ onResult, disabled = false }: Props) {
+export function VoiceInput({
+  onResult,
+  disabled = false,
+  lang = "en-US",
+  variant = "default",
+  size = "default",
+  onListeningChange,
+  hideStatusText = false,
+}: Props) {
   const [micEnabled, setMicEnabled] = useState(true);
   const [listening, setListening] = useState(false);
   const [interimText, setInterimText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const onResultRef = useRef(onResult);
   onResultRef.current = onResult;
+  const onListeningChangeRef = useRef(onListeningChange);
+  onListeningChangeRef.current = onListeningChange;
+
+  // Own effect (not folded into the recognition effect above) purely so a
+  // caller-provided callback can never itself influence when recognition
+  // restarts - it only ever observes `listening` after the fact.
+  useEffect(() => {
+    onListeningChangeRef.current?.(listening);
+  }, [listening]);
 
   const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
   const supported = Boolean(SpeechRecognitionCtor);
@@ -57,7 +97,7 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
 
       const recognition = new SpeechRecognitionCtor();
       activeRecognition = recognition;
-      recognition.lang = "en-US";
+      recognition.lang = lang;
       recognition.interimResults = true;
       recognition.continuous = false;
 
@@ -129,7 +169,7 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
       // left to stop it from eventually firing onend with a transcript.
       activeRecognition?.abort();
     };
-  }, [disabled, micEnabled, SpeechRecognitionCtor]);
+  }, [disabled, micEnabled, SpeechRecognitionCtor, lang]);
 
   if (!supported) {
     return (
@@ -139,28 +179,51 @@ export function VoiceInput({ onResult, disabled = false }: Props) {
     );
   }
 
+  const compact = size === "compact";
+
   return (
-    <div className="flex flex-col items-center gap-2 py-2">
+    <div className={compact ? "flex flex-col items-center gap-1" : "flex flex-col items-center gap-2 py-2"}>
       <button
         type="button"
         onClick={() => setMicEnabled((current) => !current)}
         aria-label={micEnabled ? "Désactiver le micro" : "Activer le micro"}
         aria-pressed={micEnabled}
-        className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-colors ${
+        className={`${compact ? "w-11 h-11 text-lg" : "w-16 h-16 text-2xl"} rounded-full flex items-center justify-center transition-colors ${
           !micEnabled
-            ? "bg-slate-800 hover:bg-slate-700"
+            ? variant === "brand"
+              ? "bg-slate-900/60 hover:bg-slate-800/70 backdrop-blur-sm"
+              : "bg-slate-800 hover:bg-slate-700"
             : listening
-              ? "bg-red-600 animate-pulse"
-              : "bg-slate-700"
+              ? variant === "brand"
+                ? "bg-blue-600 shadow-[0_0_0_6px_rgba(37,99,235,0.25)] animate-pulse"
+                : "bg-red-600 animate-pulse"
+              : variant === "brand"
+                ? "bg-blue-950/60 backdrop-blur-sm"
+                : "bg-slate-700"
         }`}
       >
         {micEnabled ? "🎤" : "🔇"}
       </button>
-      <p className="text-sm text-slate-400 min-h-[1.25rem] text-center max-w-sm">
-        {!micEnabled
-          ? "Micro coupé"
-          : (error ?? (listening ? interimText || "Je t'écoute..." : "..."))}
-      </p>
+      {(() => {
+        const statusText = !micEnabled ? "Micro coupé" : (error ?? (listening ? interimText || "Je t'écoute..." : "..."));
+        // hideStatusText only suppresses the generic idle/listening chatter
+        // (the caller is showing that state itself, right next to this
+        // control - see the Dashboard's own status line) - a real problem
+        // (blocked mic, muted) still surfaces here, since nothing else
+        // would otherwise tell the learner about it.
+        if (hideStatusText && micEnabled && !error) return null;
+        return (
+          <p
+            className={
+              compact
+                ? "text-xs text-slate-300 min-h-[1rem] text-center max-w-[10rem] leading-tight"
+                : "text-sm text-slate-400 min-h-[1.25rem] text-center max-w-sm"
+            }
+          >
+            {statusText}
+          </p>
+        );
+      })()}
     </div>
   );
 }

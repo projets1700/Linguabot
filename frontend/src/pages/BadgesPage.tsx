@@ -1,22 +1,30 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import { LearnerNav } from "../components/LearnerNav";
+import { ErrorBanner } from "../components/ui/ErrorBanner";
 import type { Badge } from "../types";
 
 export function BadgesPage() {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    setLoadError(false);
     api
       .get<Badge[]>("/badges")
       .then((response) => setBadges(response.data))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [retryCount]);
 
   const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
+    <div className="min-h-screen bg-slate-950">
+      <LearnerNav />
+      <main className="text-white p-8">
       <h1 className="text-3xl font-bold mb-2">Mes badges</h1>
       <p className="text-slate-400 mb-8">
         {earnedCount}/{badges.length} débloqués
@@ -24,6 +32,11 @@ export function BadgesPage() {
 
       {loading ? (
         <p>Chargement...</p>
+      ) : loadError ? (
+        <ErrorBanner
+          message="Impossible de charger tes badges."
+          onRetry={() => setRetryCount((count) => count + 1)}
+        />
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
           {badges.map((badge) => (
@@ -44,6 +57,7 @@ export function BadgesPage() {
           ))}
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }

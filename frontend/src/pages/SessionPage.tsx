@@ -23,6 +23,8 @@ export function SessionPage() {
   const { id } = useParams<{ id: string }>();
   const user = useAuthStore((state) => state.user);
   const [session, setSession] = useState<SessionDetail | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(false);
@@ -43,17 +45,49 @@ export function SessionPage() {
     // without `ignore`, the first (discarded) run's late-resolving fetch
     // would overwrite messages already sent under the second run.
     let ignore = false;
+    setLoadError(false);
 
-    api.get<SessionDetail>(`/sessions/${id}`).then((response) => {
-      if (!ignore) {
+    api
+      .get<SessionDetail>(`/sessions/${id}`)
+      .then((response) => {
+        if (ignore) return;
+
         setSession(response.data);
         setMessages(response.data.messages);
+
+        // A previously-finished session being reopened (refresh, or coming
+        // back via the URL): show its persisted bilan directly instead of
+        // the live conversation UI - there's nothing left to talk about, and
+        // without this the learner would see the opening line replayed and
+        // a "Terminer la session" button for a session that's already over.
+        if ("completed" === response.data.status && response.data.summary) {
+          // The score (0-100) and which badges/trophies were newly unlocked
+          // are both point-in-time facts from the original finish() call,
+          // never persisted (see Session::summaryData) - only the fields
+          // this completed view actually renders (summary, and an empty
+          // rewards state) are reconstructed here.
+          setResult({
+            score: 0,
+            xpEarned: response.data.summary.xpEarned,
+            userTotalXp: user?.totalXp ?? 0,
+            userSessionsCount: user?.sessionsCount ?? 0,
+            levelUp: null,
+            newBadges: [],
+            newTrophies: [],
+            summary: response.data.summary,
+          });
+
+          return;
+        }
+
         const opening = response.data.messages.at(-1);
         if (opening) {
           speakAssistantLine(opening.content);
         }
-      }
-    });
+      })
+      .catch(() => {
+        if (!ignore) setLoadError(true);
+      });
 
     return () => {
       ignore = true;
@@ -61,7 +95,7 @@ export function SessionPage() {
     // speakAssistantLine comes from useConversationSession() and must not
     // retrigger this fetch - it only ever needs to run once per session id.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, retryCount]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -108,6 +142,16 @@ export function SessionPage() {
   }
 
   if (!session) {
+    if (loadError) {
+      return (
+        <main className="min-h-screen bg-slate-950 text-white p-8 flex items-center justify-center">
+          <ErrorBanner
+            message="Impossible de charger la session."
+            onRetry={() => setRetryCount((count) => count + 1)}
+          />
+        </main>
+      );
+    }
     return <LoadingScreen />;
   }
 
@@ -181,6 +225,7 @@ export function SessionPage() {
         translateEndpoint={`/sessions/${id}/translate`}
         hintEndpoint={`/sessions/${id}/hint`}
         textToTranslate={lastAssistantMessage}
+        onHintReceived={speakAssistantLine}
       />
 
       {practiceSentence && (

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AvatarState } from "../components/AvatarScene";
 import { speakText } from "../lib/speech";
 
@@ -25,12 +25,22 @@ export function useConversationSession() {
   const avatarReadyRef = useRef(false);
   const pendingSpeechRef = useRef<(() => void) | null>(null);
 
-  function speakAssistantLine(text: string) {
+  // Defaults to English (every existing caller's assistant lines are
+  // English) - callers speaking French (e.g. the Dashboard's intro
+  // greeting) pass lang="fr-FR", same as the A0 quiz's forced-French
+  // prompts already do directly through speakText.
+  function speakAssistantLine(text: string, lang: string = "en-US") {
     charIndexRef.current = null;
     setSpeechText(text);
+    // Set eagerly, not just in onStart below: onStart only fires once the
+    // browser's TTS engine actually begins (after waitForVoicesReady()),
+    // which lags behind this call by one or more ticks. Without this, a
+    // page gating the mic on `avatarState === "speaking"` has a real
+    // window where the mic is still open right as the avatar starts talking.
+    setAvatarState("speaking");
     const speak = () =>
       speakText(text, {
-        lang: "en-US",
+        lang,
         onStart: () => setAvatarState("speaking"),
         onBoundary: (event) => {
           charIndexRef.current = event.charIndex;
@@ -48,6 +58,18 @@ export function useConversationSession() {
     }
   }
 
+  // If the learner navigates away while the avatar is still mid-sentence,
+  // nothing before this stopped it: speechSynthesis is a page-global browser
+  // API, unaware that the React tree that requested it is gone, so it would
+  // otherwise keep talking out loud over whatever page comes next.
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   function handleAvatarReady() {
     avatarReadyRef.current = true;
     const pending = pendingSpeechRef.current;
@@ -57,6 +79,21 @@ export function useConversationSession() {
     }
   }
 
+  // Interrupts whatever the avatar is (or is about to be) saying and
+  // silences the bubble immediately - for a caller that lets the learner
+  // skip past a line entirely (e.g. the Dashboard intro's "Continuer sans
+  // parler"), rather than letting a stale utterance keep talking/showing
+  // over whatever comes next.
+  function stopSpeaking() {
+    pendingSpeechRef.current = null;
+    charIndexRef.current = null;
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setAvatarState("idle");
+    setSpeechText(null);
+  }
+
   return {
     avatarState,
     setAvatarState,
@@ -64,5 +101,6 @@ export function useConversationSession() {
     charIndexRef,
     speakAssistantLine,
     handleAvatarReady,
+    stopSpeaking,
   };
 }

@@ -188,4 +188,28 @@ describe("VoiceInput", () => {
     expect(instances.length).toBe(instanceCountWhileMuted + 1);
     expect(lastInstance().start).toHaveBeenCalled();
   });
+
+  it("reports listening state changes via onListeningChange, for a caller (e.g. the Dashboard's LinguaBot card) that shows that state itself", () => {
+    const onListeningChange = vi.fn();
+    const { rerender } = render(<VoiceInput onResult={vi.fn()} onListeningChange={onListeningChange} />);
+
+    expect(onListeningChange).toHaveBeenLastCalledWith(true);
+
+    rerender(<VoiceInput onResult={vi.fn()} disabled onListeningChange={onListeningChange} />);
+
+    expect(onListeningChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("hides its own idle/listening status text when hideStatusText is set, but still shows a real error", () => {
+    render(<VoiceInput onResult={vi.fn()} hideStatusText />);
+
+    expect(screen.queryByText("...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Je t'écoute...")).not.toBeInTheDocument();
+
+    act(() => {
+      lastInstance().onerror?.({ error: "not-allowed" } as SpeechRecognitionErrorEvent);
+    });
+
+    expect(screen.getByText(/micro est bloqué/)).toBeInTheDocument();
+  });
 });

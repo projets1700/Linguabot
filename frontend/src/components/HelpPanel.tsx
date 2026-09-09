@@ -14,6 +14,10 @@ type Props = {
   textToTranslate: string | null;
   /** Extra fields merged into the hint request body - the daily challenge is stateless server-side, so it needs the conversation `history` sent along; a scenario session doesn't (SessionController already has it). */
   hintBody?: Record<string, unknown>;
+  /** fullAnswer profiles (A0/A1) give a complete example sentence meant to be
+   * repeated aloud, not just read - wired to the page's speakAssistantLine
+   * so the avatar actually says it. Never called for keywords/progressive. */
+  onHintReceived?: (text: string) => void;
 };
 
 const MAX_HINT_TIER = 3;
@@ -21,7 +25,15 @@ const MAX_HINT_TIER = 3;
 const HINT_TIER_LABEL: Record<number, string> = {
   1: "💡 Mots-clés",
   2: "✏️ Amorce de phrase",
-  3: "📝 Exemple complet",
+  3: "📝 Réponse possible",
+};
+
+// fullAnswer/keywords skip straight to a single, fixed tier (the complete
+// example / the keywords, respectively) instead of the progressive ladder -
+// only "progressive" (B2) still escalates 1 -> 2 -> 3 across clicks.
+const FIXED_TIER_FOR_MODE: Partial<Record<CecrlProfile["hintMode"], number>> = {
+  fullAnswer: 3,
+  keywords: 1,
 };
 
 /**
@@ -32,7 +44,14 @@ const HINT_TIER_LABEL: Record<number, string> = {
  * learner's CecrlProfile only changes how prominent a button looks by
  * default, never whether it's there.
  */
-export function HelpPanel({ profile, translateEndpoint, hintEndpoint, textToTranslate, hintBody }: Props) {
+export function HelpPanel({
+  profile,
+  translateEndpoint,
+  hintEndpoint,
+  textToTranslate,
+  hintBody,
+  onHintReceived,
+}: Props) {
   const [translation, setTranslation] = useState<string | null>(null);
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState(false);
@@ -40,6 +59,8 @@ export function HelpPanel({ profile, translateEndpoint, hintEndpoint, textToTran
   const [hints, setHints] = useState<HintTier[]>([]);
   const [hintLoading, setHintLoading] = useState(false);
   const [hintError, setHintError] = useState(false);
+
+  const maxHints = FIXED_TIER_FOR_MODE[profile.hintMode] ? 1 : MAX_HINT_TIER;
 
   async function handleTranslate() {
     if (!textToTranslate) return;
@@ -56,8 +77,8 @@ export function HelpPanel({ profile, translateEndpoint, hintEndpoint, textToTran
   }
 
   async function handleNextHint() {
-    const nextTier = hints.length + 1;
-    if (nextTier > MAX_HINT_TIER) return;
+    if (hints.length >= maxHints) return;
+    const nextTier = FIXED_TIER_FOR_MODE[profile.hintMode] ?? hints.length + 1;
     setHintLoading(true);
     setHintError(false);
     try {
@@ -66,6 +87,9 @@ export function HelpPanel({ profile, translateEndpoint, hintEndpoint, textToTran
         ...hintBody,
       });
       setHints((current) => [...current, { tier: response.data.tier, content: response.data.content }]);
+      // fullAnswer's example sentence is meant to be repeated aloud, not
+      // just read - the avatar says it too (never for keywords/progressive).
+      if ("fullAnswer" === profile.hintMode) onHintReceived?.(response.data.content);
     } catch {
       setHintError(true);
     } finally {
@@ -77,7 +101,7 @@ export function HelpPanel({ profile, translateEndpoint, hintEndpoint, textToTran
     ? "Aide..."
     : hints.length === 0
       ? "Je suis bloqué ?"
-      : hints.length < MAX_HINT_TIER
+      : hints.length < maxHints
         ? "Encore un peu d'aide"
         : "Aide maximale atteinte";
 
@@ -96,8 +120,8 @@ export function HelpPanel({ profile, translateEndpoint, hintEndpoint, textToTran
         )}
         <Button
           onClick={handleNextHint}
-          disabled={hintLoading || hints.length >= MAX_HINT_TIER}
-          variant={profile.keywordHelpEnabled ? "primary" : "secondary"}
+          disabled={hintLoading || hints.length >= maxHints}
+          variant={profile.hintMode === "progressive" ? "secondary" : "primary"}
           size="sm"
         >
           {hintButtonLabel}

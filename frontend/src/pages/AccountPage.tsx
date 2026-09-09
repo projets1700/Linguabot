@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { LearnerNav } from "../components/LearnerNav";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
@@ -62,7 +63,9 @@ export function AccountPage() {
   if (!user) return null;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-slate-950">
+      <LearnerNav />
+      <main className="text-white p-8 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Mon compte</h1>
 
       <Card variant="stat" className="mb-8">
@@ -126,6 +129,7 @@ export function AccountPage() {
           </div>
         )}
       </Card>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -20,6 +20,7 @@ type ChatMessage = { id: number; role: "user" | "assistant"; content: string };
 export function DailyChallengePage() {
   const user = useAuthStore((state) => state.user);
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [chatStarted, setChatStarted] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
@@ -35,8 +36,17 @@ export function DailyChallengePage() {
     handleAvatarReady,
   } = useConversationSession();
 
+  function loadChallenge() {
+    setLoadError(false);
+    api
+      .get<DailyChallenge>("/daily-challenge")
+      .then((response) => setChallenge(response.data))
+      .catch(() => setLoadError(true));
+  }
+
   useEffect(() => {
-    api.get<DailyChallenge>("/daily-challenge").then((response) => setChallenge(response.data));
+    loadChallenge();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleStart() {
@@ -104,6 +114,13 @@ export function DailyChallengePage() {
   }
 
   if (!challenge) {
+    if (loadError) {
+      return (
+        <main className="min-h-screen bg-slate-950 text-white p-8 flex items-center justify-center">
+          <ErrorBanner message="Impossible de charger le défi du jour." onRetry={loadChallenge} />
+        </main>
+      );
+    }
     return <LoadingScreen />;
   }
 
@@ -169,13 +186,20 @@ export function DailyChallengePage() {
             hintEndpoint="/daily-challenge/hint"
             textToTranslate={lastAssistantMessage}
             hintBody={{ history: historyForHint }}
+            onHintReceived={speakAssistantLine}
           />
 
           <div className="mb-4">
-            {/* The mic must stay off while the AI is talking, otherwise it
-                can pick its own voice back up through the speakers and
-                "answer its own question". */}
-            <VoiceInput onResult={handleVoiceResult} disabled={sending || avatarState === "speaking"} />
+            {/* The mic must stay off while the AI is talking or about to
+                talk, otherwise it can pick its own voice back up through
+                the speakers and "answer its own question" - "thinking" is
+                included because avatarState flips to "speaking" only once
+                the browser's TTS actually starts, which lags behind the
+                reply arriving. */}
+            <VoiceInput
+              onResult={handleVoiceResult}
+              disabled={sending || avatarState === "speaking" || avatarState === "thinking"}
+            />
           </div>
 
           {sendError && (

@@ -13,8 +13,7 @@ function profile(overrides: Partial<CecrlProfile> = {}): CecrlProfile {
   return {
     transcriptMode: "onDemand",
     translationMode: "onDemand",
-    keywordHelpEnabled: false,
-    sentenceStarterEnabled: false,
+    hintMode: "progressive",
     ...overrides,
   };
 }
@@ -124,5 +123,56 @@ describe("HelpPanel", () => {
 
     expect(await screen.findByRole("button", { name: /Aide maximale atteinte/ })).toBeDisabled();
     expect(api.post).toHaveBeenCalledTimes(3);
+  });
+
+  it("A0/A1 (fullAnswer): gives the complete example sentence on the first click and stops there", async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { tier: 3, content: "I usually eat bread and eggs." } });
+    const user = userEvent.setup();
+    const onHintReceived = vi.fn();
+
+    render(
+      <HelpPanel
+        profile={profile({ hintMode: "fullAnswer" })}
+        translateEndpoint="/sessions/1/translate"
+        hintEndpoint="/sessions/1/hint"
+        textToTranslate={null}
+        onHintReceived={onHintReceived}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Je suis bloqué/ }));
+
+    // Requests the full-example tier directly - no keywords/starter step first.
+    expect(api.post).toHaveBeenCalledWith("/sessions/1/hint", { tier: 3 });
+    expect(await screen.findByText(/I usually eat bread and eggs/)).toBeInTheDocument();
+    // The learner is meant to repeat it aloud, so the avatar says it too.
+    expect(onHintReceived).toHaveBeenCalledWith("I usually eat bread and eggs.");
+    expect(await screen.findByRole("button", { name: /Aide maximale atteinte/ })).toBeDisabled();
+    expect(api.post).toHaveBeenCalledTimes(1);
+  });
+
+  it("A2/B1 (keywords): gives only keywords on the first click and stops there", async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { tier: 1, content: "bread, eggs, usually" } });
+    const user = userEvent.setup();
+    const onHintReceived = vi.fn();
+
+    render(
+      <HelpPanel
+        profile={profile({ hintMode: "keywords" })}
+        translateEndpoint="/sessions/1/translate"
+        hintEndpoint="/sessions/1/hint"
+        textToTranslate={null}
+        onHintReceived={onHintReceived}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Je suis bloqué/ }));
+
+    expect(api.post).toHaveBeenCalledWith("/sessions/1/hint", { tier: 1 });
+    expect(await screen.findByText(/bread, eggs, usually/)).toBeInTheDocument();
+    // Keywords are read, not spoken for the learner to repeat.
+    expect(onHintReceived).not.toHaveBeenCalled();
+    expect(await screen.findByRole("button", { name: /Aide maximale atteinte/ })).toBeDisabled();
+    expect(api.post).toHaveBeenCalledTimes(1);
   });
 });
