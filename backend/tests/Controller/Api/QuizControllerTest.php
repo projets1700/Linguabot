@@ -153,6 +153,26 @@ final class QuizControllerTest extends ApiTestCase
         self::assertSame('A1', $lastResult['userLevel']);
     }
 
+    public function testAnswerEndpointRevealsTheCorrectAnswerForOneQuestionOnRequest(): void
+    {
+        // A separate, on-demand endpoint from questions() above (which must
+        // keep never exposing correctAnswer in bulk) - this one exists
+        // specifically for the frontend to call when detectLearnerBlock()
+        // flags "I don't know", so the avatar can say "You can say: hello."
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $moduleId = $this->findModuleId($client, $token, 'M0-1');
+
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
+        $questions = $this->decodeResponse($client);
+        $firstQuestionId = $questions[0]['id'];
+
+        $this->jsonRequest($client, 'GET', "/api/quiz/questions/{$firstQuestionId}/answer", $token);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('hello', $this->decodeResponse($client)['answer']);
+    }
+
     private function findModuleId(mixed $client, string $token, string $code): int
     {
         $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import { AvatarScene, type AvatarState } from "../components/AvatarScene";
+import { AvatarScene } from "../components/AvatarScene";
 import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
 import { ConversationLog } from "../components/ConversationLog";
 import { VoiceInput } from "../components/VoiceInput";
@@ -9,7 +9,8 @@ import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
-import { speakText } from "../lib/speech";
+import { useConversationSession } from "../hooks/useConversationSession";
+import { detectLearnerBlock } from "../lib/detectLearnerBlock";
 import { useAuthStore } from "../stores/authStore";
 import type {
   PlacementTestDetail,
@@ -31,49 +32,15 @@ export function PlacementTestPage() {
   const [sendError, setSendError] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<PlacementTestFinishResult | null>(null);
-  const [avatarState, setAvatarState] = useState<AvatarState>("idle");
-  const [speechText, setSpeechText] = useState<string | null>(null);
-  const charIndexRef = useRef<number | null>(null);
+  const {
+    avatarState,
+    setAvatarState,
+    speechText,
+    charIndexRef,
+    speakAssistantLine,
+    handleAvatarReady,
+  } = useConversationSession();
   const bottomRef = useRef<HTMLDivElement>(null);
-  // The avatar's ~30MB of GLB/FBX assets take real time to load - without
-  // this gate, speech (an entirely separate pipeline, unaware of the
-  // avatar's own Suspense loading state) could start talking while the
-  // avatar box is still empty. Any speech requested before AvatarScene's
-  // onReady fires is held here and replayed exactly once, the moment it does.
-  const avatarReadyRef = useRef(false);
-  const pendingSpeechRef = useRef<(() => void) | null>(null);
-
-  function speakAssistantLine(text: string) {
-    charIndexRef.current = null;
-    setSpeechText(text);
-    const speak = () =>
-      speakText(text, {
-        lang: "en-US",
-        onStart: () => setAvatarState("speaking"),
-        onBoundary: (event) => {
-          charIndexRef.current = event.charIndex;
-        },
-        onEnd: () => {
-          setAvatarState("idle");
-          setSpeechText(null);
-        },
-      });
-
-    if (avatarReadyRef.current) {
-      speak();
-    } else {
-      pendingSpeechRef.current = speak;
-    }
-  }
-
-  function handleAvatarReady() {
-    avatarReadyRef.current = true;
-    const pending = pendingSpeechRef.current;
-    if (pending) {
-      pendingSpeechRef.current = null;
-      pending();
-    }
-  }
 
   useEffect(() => {
     // Guard against React StrictMode's dev-mode double effect invocation,
@@ -108,6 +75,10 @@ export function PlacementTestPage() {
     return () => {
       ignore = true;
     };
+    // navigate is stable (react-router) and speakAssistantLine comes from
+    // useConversationSession() - neither should retrigger this fetch, which
+    // only ever needs to run once on mount, same reasoning as SessionPage.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -140,10 +111,17 @@ export function PlacementTestPage() {
     const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
     setMessages((current) => [...current, userMessage]);
 
+    // Same detection as every other AI page (detectLearnerBlock.ts), but the
+    // placement test is a graded evaluation: the backend only adds a warm,
+    // content-free acknowledgment when blocked - it never reveals or hints
+    // an answer here, since that would let the learner inflate their
+    // measured level (see PlacementTestService::BLOCKED_ACKNOWLEDGMENT).
+    const { blocked } = detectLearnerBlock(transcript);
+
     try {
       const response = await api.post<PlacementTestMessageResult>(
         `/placement-test/${test.id}/message`,
-        { message: userMessage.content },
+        { message: userMessage.content, learnerBlocked: blocked },
       );
       setMessages((current) => [
         ...current,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSpokenQuizQuestion } from "./quizSpeech";
+import { buildBlockedHelpMessage, buildSpokenQuizQuestion } from "./quizSpeech";
 
 describe("buildSpokenQuizQuestion", () => {
   it("translates the French wrapper to English, keeping the quoted word as-is", () => {
@@ -16,5 +16,11 @@ describe("buildSpokenQuizQuestion", () => {
 
   it("falls back to the original text when no quoted word is found", () => {
     expect(buildSpokenQuizQuestion("Une question sans guillemets")).toBe("Une question sans guillemets");
+  });
+});
+
+describe("buildBlockedHelpMessage", () => {
+  it("presents the known correct answer as something the learner can say", () => {
+    expect(buildBlockedHelpMessage("hello")).toBe("You can say: hello.");
   });
 });

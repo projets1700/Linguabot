@@ -92,6 +92,13 @@ final class PlacementTestController
 
         $data = json_decode($request->getContent(), true) ?? [];
         $transcript = $voiceService->transcribeAudio((string) ($data['message'] ?? ''));
+        // Set by the frontend's detectLearnerBlock() - unlike Session/Daily
+        // Challenge/Quiz, this never changes which question comes next or
+        // how the transcript is scored (see
+        // PlacementTestService::prefixWithBlockedAcknowledgment): the
+        // placement test is a graded evaluation, and revealing or hinting an
+        // answer here would let the learner inflate their measured level.
+        $learnerBlocked = (bool) ($data['learnerBlocked'] ?? false);
 
         if ('' === $transcript) {
             return new JsonResponse(['message' => 'Message vide.'], 422);
@@ -125,6 +132,7 @@ final class PlacementTestController
         $answeredCount++;
         $nextQuestion = $placementTestService->nextQuestion($answeredCount);
         $reply = $nextQuestion ?? $placementTestService->closingMessage();
+        $reply = $placementTestService->prefixWithBlockedAcknowledgment($reply, $learnerBlocked);
 
         $assistantMessage = (new PlacementTestMessage())
             ->setRole(MessageRole::ASSISTANT)

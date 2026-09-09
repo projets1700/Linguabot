@@ -14,6 +14,20 @@ namespace App\Service;
  */
 final class PlacementTestService
 {
+    /**
+     * The placement test is a graded evaluation, not a teaching moment: RG
+     * says a learner's level must come from what they can actually produce
+     * unprompted, so unlike the quiz (V1 spec §7), a blocked turn here must
+     * NEVER reveal or suggest an answer - that would let the learner parrot
+     * it back and artificially inflate their measured level. This
+     * acknowledgment is the one learner-support concession that's safe: it's
+     * a fixed, content-free string, and nextQuestion()/evaluateLevel() below
+     * never branch on it - the flow (which question comes next, how the
+     * transcript is scored) is completely unaffected by whether this prefix
+     * was added.
+     */
+    private const BLOCKED_ACKNOWLEDGMENT = "That's okay, let's continue.";
+
     private const QUESTIONS = [
         "Hi! Let's start easy: what's your name, and where are you from?",
         'Nice to meet you! Can you tell me about your daily routine? What do you usually do in the morning?',
@@ -50,6 +64,15 @@ final class PlacementTestService
     public function closingMessage(): string
     {
         return "Great, thank you! That's the end of the test - let's see your result.";
+    }
+
+    /**
+     * See BLOCKED_ACKNOWLEDGMENT above for why this is intentionally the
+     * only concession made to a blocked learner during the placement test.
+     */
+    public function prefixWithBlockedAcknowledgment(string $reply, bool $learnerBlocked): string
+    {
+        return $learnerBlocked ? self::BLOCKED_ACKNOWLEDGMENT.' '.$reply : $reply;
     }
 
     /**

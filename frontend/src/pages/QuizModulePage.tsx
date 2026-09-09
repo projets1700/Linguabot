@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
@@ -9,8 +9,9 @@ import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
-import { speakText } from "../lib/speech";
-import { buildSpokenQuizQuestion } from "../lib/quizSpeech";
+import { useConversationSession } from "../hooks/useConversationSession";
+import { detectLearnerBlock } from "../lib/detectLearnerBlock";
+import { buildBlockedHelpMessage, buildSpokenQuizQuestion } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
@@ -25,9 +26,14 @@ export function QuizModulePage() {
   const [submitError, setSubmitError] = useState(false);
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
   const [showQuestionText, setShowQuestionText] = useState(false);
-  const [aiSpeaking, setAiSpeaking] = useState(false);
-  const [speechText, setSpeechText] = useState<string | null>(null);
-  const charIndexRef = useRef<number | null>(null);
+  const {
+    avatarState,
+    setAvatarState,
+    speechText,
+    charIndexRef,
+    speakAssistantLine,
+    handleAvatarReady,
+  } = useConversationSession();
 
   useEffect(() => {
     // Guard against React StrictMode's dev-mode double effect invocation,
@@ -65,28 +71,35 @@ export function QuizModulePage() {
       // "franglish". Spoken aloud, the question is translated to its
       // English wrapper instead ("How do you say X?"), keeping only the
       // quoted French word itself - the vocabulary being tested - unchanged.
-      // Reset before speaking: a stale charIndex left over from a previous
-      // question must not be mistaken for a fresh one on the very first
-      // frame of this one.
-      charIndexRef.current = null;
-      const spokenQuestion = buildSpokenQuizQuestion(questions[currentIndex].questionText);
-      setSpeechText(spokenQuestion);
-      speakText(spokenQuestion, {
-        onStart: () => setAiSpeaking(true),
-        onBoundary: (event) => {
-          charIndexRef.current = event.charIndex;
-        },
-        onEnd: () => {
-          setAiSpeaking(false);
-          setSpeechText(null);
-        },
-      });
+      speakAssistantLine(buildSpokenQuizQuestion(questions[currentIndex].questionText));
       setShowQuestionText(false);
     }
+    // speakAssistantLine comes from useConversationSession() and must not
+    // retrigger this effect on its own.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, questions]);
 
   async function handleVoiceAnswer(transcript: string) {
     const question = questions[currentIndex];
+
+    // A deterministic "I'm stuck" detection, not a grammar/quality judgment
+    // (see detectLearnerBlock.ts). Unlike the open conversation pages, the
+    // quiz already has a known correct answer for this question, so the
+    // avatar can just say it - see QuizController::answer() - instead of
+    // asking the AI to invent one. This turn is NOT recorded as an answer:
+    // no point, question stays active, the learner can retry after.
+    const { blocked } = detectLearnerBlock(transcript);
+    if (blocked) {
+      setAvatarState("thinking");
+      try {
+        const { data } = await api.get<{ answer: string }>(`/quiz/questions/${question.id}/answer`);
+        speakAssistantLine(buildBlockedHelpMessage(data.answer));
+      } catch {
+        setAvatarState("idle");
+      }
+      return;
+    }
+
     const nextAnswers = { ...answers, [question.id]: transcript };
     setAnswers(nextAnswers);
 
@@ -97,6 +110,7 @@ export function QuizModulePage() {
 
     setSubmitting(true);
     setSubmitError(false);
+    setAvatarState("thinking");
     try {
       const response = await api.post<QuizAttemptResult>("/quiz/attempts", {
         moduleId: Number(moduleId),
@@ -108,6 +122,7 @@ export function QuizModulePage() {
       // and the mic (disabled while submitting) never came back - the quiz
       // was permanently stuck on its last question.
       setSubmitError(true);
+      setAvatarState("idle");
     } finally {
       setSubmitting(false);
     }
@@ -152,12 +167,13 @@ export function QuizModulePage() {
             comment in SessionPage.tsx for why. */}
         <div className="relative">
           <AvatarScene
-            state={aiSpeaking ? "speaking" : submitting ? "thinking" : "idle"}
+            state={avatarState}
             avatarType={user?.avatarType ?? "male"}
             speechText={speechText}
             charIndexRef={charIndexRef}
+            onReady={handleAvatarReady}
           />
-          <AvatarSpeechBubble text={speechText} active={aiSpeaking} charIndexRef={charIndexRef} />
+          <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
         </div>
 
         <p className="text-slate-400 text-sm">
@@ -181,7 +197,7 @@ export function QuizModulePage() {
         {/* The mic must stay off while the AI is talking, otherwise it can
             pick its own voice back up through the speakers and "answer its
             own question". */}
-        <VoiceInput onResult={handleVoiceAnswer} disabled={submitting || aiSpeaking} />
+        <VoiceInput onResult={handleVoiceAnswer} disabled={submitting || avatarState === "speaking" || avatarState === "thinking"} />
 
         {submitting && <p className="text-slate-400 text-sm text-center">Envoi...</p>}
         {submitError && <ErrorBanner message="Échec de l'envoi. Réponds à nouveau pour réessayer." />}

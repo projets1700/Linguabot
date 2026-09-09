@@ -136,6 +136,37 @@ final class PlacementTestControllerTest extends ApiTestCase
         self::assertSame(1, $this->decodeResponse($client)['answeredCount']);
     }
 
+    public function testBlockedAcknowledgmentIsPrependedWithoutRevealingAnAnswerOrChangingProgression(): void
+    {
+        // The placement test is a graded evaluation (see
+        // PlacementTestService::BLOCKED_ACKNOWLEDGMENT) - a blocked turn may
+        // get a warm acknowledgment, but must never reveal/hint an answer,
+        // and must advance exactly like any other answered turn.
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $token);
+        $test = $this->decodeResponse($client);
+
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$test['id']}/message", $token, [
+            'message' => "I don't know.",
+            'learnerBlocked' => true,
+        ]);
+
+        self::assertResponseIsSuccessful();
+        $data = $this->decodeResponse($client);
+        self::assertStringStartsWith("That's okay, let's continue.", $data['assistantMessage']);
+        self::assertSame(1, $data['answeredCount']);
+        self::assertFalse($data['readyToFinish']);
+
+        // A normal (non-blocked) turn right after is completely unaffected.
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$test['id']}/message", $token, [
+            'message' => 'My name is Adam and I live in Paris.',
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString("That's okay, let's continue.", $this->decodeResponse($client)['assistantMessage']);
+    }
+
     public function testMessageOnAnotherUsersTestIsForbidden(): void
     {
         $client = static::createClient();

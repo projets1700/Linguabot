@@ -80,6 +80,11 @@ final class DailyChallengeController
         $data = json_decode($request->getContent(), true) ?? [];
         $transcript = $voiceService->transcribeAudio((string) ($data['message'] ?? ''));
         $turnNumber = (int) ($data['turnNumber'] ?? 0);
+        // Set by the frontend's detectLearnerBlock() - see SessionController
+        // for the same signal on scenario sessions; the daily challenge is
+        // also an open-ended conversation, so it gets the exact same
+        // treatment rather than a separate implementation.
+        $learnerBlocked = (bool) ($data['learnerBlocked'] ?? false);
 
         if ('' === $transcript) {
             return new JsonResponse(['message' => 'Message vide.'], 422);
@@ -123,11 +128,13 @@ final class DailyChallengeController
             $challenge->getObjective(),
         );
 
-        $levelInstruction = $cecrlProfileService->buildSystemPromptPrefix($user->getLevel()->getCode(), $turnNumber);
+        // Same labeled CECRL/correction/support/blocked composition as
+        // SessionController - see CecrlProfileService::buildConversationInstruction().
+        $levelInstruction = $cecrlProfileService->buildConversationInstruction($user->getLevel()->getCode(), $turnNumber, $learnerBlocked);
 
         return new JsonResponse([
             'userTranscript' => $transcript,
-            'assistantMessage' => $voiceService->generateAnswer($systemPrompt, $conversationHistory, $turnNumber, $levelInstruction),
+            'assistantMessage' => $voiceService->generateAnswer($systemPrompt, $conversationHistory, $turnNumber, $levelInstruction, $learnerBlocked),
         ]);
     }
 

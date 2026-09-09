@@ -3,15 +3,15 @@ import type { AvatarState } from "../components/AvatarScene";
 import { speakText } from "../lib/speech";
 
 /**
- * The avatar-speech pipeline shared by every AI conversation page (Session,
- * Daily Challenge): avatar idle/thinking/speaking state and the avatar-ready
- * gate. Extracted because SessionPage.tsx and DailyChallengePage.tsx used to
- * carry this near-verbatim, which meant any fix (e.g. the avatar-ready race)
- * had to be applied twice.
- *
- * PlacementTestPage.tsx intentionally does not use this hook: its scripted,
- * no-CECRL-level-yet flow differs enough that sharing this would force an
- * awkward abstraction rather than remove real duplication.
+ * The avatar-speech pipeline shared by every page where the avatar talks to
+ * the learner (Session, Daily Challenge, Placement test, Quiz A0): avatar
+ * idle/thinking/speaking state, speechText for AvatarSpeechBubble, and the
+ * avatar-ready gate. Extracted because these pages used to each carry this
+ * near-verbatim, which meant any fix (e.g. the avatar-ready race) had to be
+ * applied separately in every one of them. This is the one place that
+ * decides text -> speechText -> avatarState=speaking -> speechSynthesis ->
+ * (bubble/lip-sync react to speechText+avatarState themselves) ->
+ * avatarState=idle - callers never manage those steps individually.
  */
 export function useConversationSession() {
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");

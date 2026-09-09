@@ -11,6 +11,7 @@ import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
+import { detectLearnerBlock } from "../lib/detectLearnerBlock";
 import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge, DailyChallengeFinishResult } from "../types";
 
@@ -59,11 +60,18 @@ export function DailyChallengePage() {
     const history = messages.map(({ role, content }) => ({ role, content }));
     setMessages((current) => [...current, userMessage]);
 
+    // A deterministic "I'm stuck" detection, not a grammar/quality judgment
+    // (see detectLearnerBlock.ts) - same signal SessionPage sends, so the
+    // backend can have the AI offer one example answer for this turn
+    // instead of just moving on (CecrlProfileService::BLOCKED_INSTRUCTION).
+    const { blocked } = detectLearnerBlock(transcript);
+
     try {
       const response = await api.post<{ assistantMessage: string }>("/daily-challenge/message", {
         message: userMessage.content,
         turnNumber,
         history,
+        learnerBlocked: blocked,
       });
       setMessages((current) => [
         ...current,

@@ -73,6 +73,31 @@ final class DailyChallengeControllerTest extends ApiTestCase
         self::assertStringContainsString($opening, $this->decodeResponse($client)['assistantMessage']);
     }
 
+    public function testMessageUsesTheGenericBlockedFallbackWhenTheLearnerIsFlaggedAsBlocked(): void
+    {
+        // AI_API_KEY is forced empty in the test env, so this exercises
+        // VoiceService's fallback path - deterministic for a blocked turn
+        // (BLOCKED_FALLBACK_REPLY), same behavior as SessionController's
+        // /message now that both build their level instruction via
+        // CecrlProfileService::buildConversationInstruction().
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/start', $token);
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/message', $token, [
+            'message' => "I don't know.",
+            'turnNumber' => 0,
+            'learnerBlocked' => true,
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            'No problem! Try giving a short, simple answer - even one sentence is fine.',
+            $this->decodeResponse($client)['assistantMessage'],
+        );
+    }
+
     public function testChallengeResponseExposesTheLearnersCecrlProfile(): void
     {
         $client = static::createClient();

@@ -53,6 +53,22 @@ final class QuizController
         ));
     }
 
+    /**
+     * On-demand reveal of a single question's answer - only meant to be
+     * called by the frontend when the learner explicitly said "I don't
+     * know" (detectLearnerBlock), so the avatar can say "You can say: X."
+     * instead of leaving them stuck. Deliberately a separate endpoint from
+     * questions() above, which must keep never exposing correctAnswer in
+     * bulk (see testQuestionsListNeverExposesTheCorrectAnswer) - this one
+     * exists specifically to be revealed, one question at a time, on
+     * request, the same on-demand spirit as /hint and /translate elsewhere.
+     */
+    #[Route('/api/quiz/questions/{id}/answer', name: 'api_quiz_question_answer', methods: ['GET'])]
+    public function answer(QuizQuestion $question): JsonResponse
+    {
+        return new JsonResponse(['answer' => $question->getCorrectAnswer()]);
+    }
+
     #[Route('/api/quiz/attempts', name: 'api_quiz_attempts', methods: ['POST'])]
     public function attempts(
         Request $request,

@@ -12,3 +12,12 @@ export function buildSpokenQuizQuestion(questionText: string): string {
   const match = questionText.match(QUOTED_WORD_PATTERN);
   return match ? `How do you say "${match[1]}"?` : questionText;
 }
+
+// Spoken (and shown in the bubble) when detectLearnerBlock() flags the
+// learner's answer as an explicit "I don't know" - unlike the open
+// conversation pages, the quiz already has a known correct answer for the
+// current question (QuizController's new on-demand /answer endpoint), so
+// there's no need to ask the AI to invent one.
+export function buildBlockedHelpMessage(correctAnswer: string): string {
+  return `You can say: ${correctAnswer}.`;
+}
