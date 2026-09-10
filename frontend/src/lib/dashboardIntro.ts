@@ -3,6 +3,40 @@
 // No AI call needed - same normalize-then-exact-match discipline as
 // detectLearnerBlock.ts, deliberately not a naive `.includes()` search.
 
+// One session = one login, not one browser tab lifetime: DashboardPage
+// reads this once (on mount) to decide whether to skip straight to the
+// cards, and sets it once the intro is actually skipped/completed.
+// authStore's logout() clears it again - so a learner who logs out and
+// back in in the very same tab still gets the guided intro, even though
+// sessionStorage itself would otherwise still be holding the previous
+// login's flag (it's scoped to the tab, not to auth state).
+const DASHBOARD_INTRO_SEEN_KEY = "linguabot:dashboardIntroSeen";
+
+export function hasSeenDashboardIntro(): boolean {
+  try {
+    return typeof window !== "undefined" && sessionStorage.getItem(DASHBOARD_INTRO_SEEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markDashboardIntroSeen(): void {
+  try {
+    sessionStorage.setItem(DASHBOARD_INTRO_SEEN_KEY, "1");
+  } catch {
+    // Storage unavailable (e.g. some private-browsing modes) - worst case
+    // the intro replays next time, which is the safe direction to fail in.
+  }
+}
+
+export function clearDashboardIntroSeen(): void {
+  try {
+    sessionStorage.removeItem(DASHBOARD_INTRO_SEEN_KEY);
+  } catch {
+    // Nothing to clean up either way.
+  }
+}
+
 function normalize(text: string): string {
   return text
     .toLowerCase()

@@ -9,7 +9,12 @@ import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
-import { detectDashboardDestination, detectDashboardReadyIntent } from "../lib/dashboardIntro";
+import {
+  detectDashboardDestination,
+  detectDashboardReadyIntent,
+  hasSeenDashboardIntro,
+  markDashboardIntroSeen,
+} from "../lib/dashboardIntro";
 import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge } from "../types";
 
@@ -76,6 +81,7 @@ function prefersReducedMotion(): boolean {
   }
 }
 
+
 // AvatarScene's ~30MB GLB/FBX load through react-three-fiber's Suspense -
 // nothing today catches a load failure (none of the app's other pages wrap
 // it either), which would otherwise blank the whole Dashboard instead of
@@ -137,12 +143,14 @@ export function DashboardPage() {
   const { avatarState, speechText, charIndexRef, speakAssistantLine, handleAvatarReady, stopSpeaking } =
     useConversationSession();
 
-  // Always starts on the guided intro - the learner sees the greeting and
-  // ready-check every time they arrive on the Dashboard (mount), not just
-  // once per browser session.
-  const [phase, setPhase] = useState<"intro" | "dashboard">("intro");
+  // The guided intro plays once per session (= once per login, see
+  // markDashboardIntroSeen/DASHBOARD_INTRO_SEEN_KEY above) - a learner who
+  // already saw it this session and navigates back to /dashboard (which
+  // remounts this component) lands straight on the cards instead of
+  // replaying the classroom greeting every time.
+  const [phase, setPhase] = useState<"intro" | "dashboard">(() => (hasSeenDashboardIntro() ? "dashboard" : "intro"));
   const [transitioning, setTransitioning] = useState(false);
-  const [cardsRevealed, setCardsRevealed] = useState(false);
+  const [cardsRevealed, setCardsRevealed] = useState(() => hasSeenDashboardIntro());
   const [dailyChallengePreview, setDailyChallengePreview] = useState<DailyChallenge | null>(null);
   // Mirrors the LinguaBot card's own mic listening state, so the status
   // line next to it can say "Je t'écoute…" instead of "Disponible pour
@@ -221,6 +229,7 @@ export function DashboardPage() {
   function beginDashboardTransition() {
     if (transitionStartedRef.current) return;
     transitionStartedRef.current = true;
+    markDashboardIntroSeen();
 
     // A "oui"/skip can arrive while the greeting is still mid-sentence -
     // without this, that line kept talking (and the bubble kept following
@@ -269,6 +278,9 @@ export function DashboardPage() {
   }
 
   function handleLogout() {
+    // logout() itself clears the intro-seen flag (see authStore.ts) - it's
+    // the single place every logout path (this button, and an automatic
+    // 401) goes through.
     logout();
     navigate("/login");
   }

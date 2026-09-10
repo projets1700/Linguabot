@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { api } from "../api/client";
 import { preloadAvatarAssets } from "../lib/avatarAssets";
+import { clearDashboardIntroSeen } from "../lib/dashboardIntro";
 import type { AvatarType, Me } from "../types";
 
 type RegisterPayload = {
@@ -101,6 +102,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout() {
     localStorage.removeItem("token");
+    // The Dashboard's guided intro plays once per session (= once per
+    // login) - clearing it here rather than only from the Dashboard's own
+    // logout button means a session also correctly ends on an automatic
+    // 401 logout (expired token, see api/client.ts's response
+    // interceptor), not just a manual click.
+    clearDashboardIntroSeen();
     set({ token: null, user: null, fetchMeError: false });
   },
 }));

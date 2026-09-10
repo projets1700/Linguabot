@@ -122,11 +122,12 @@ function renderDashboard() {
   );
 }
 
-// Drives the component all the way from a fresh mount (always "intro" - the
-// guided greeting plays on every arrival now, not just once per browser
-// session) through to "dashboard" phase, the same way a learner clicking
-// "Continuer sans parler" would - for tests that only care about the
-// dashboard-phase behavior (destination voice commands, card clicks).
+// Drives the component all the way from a fresh mount (starts on "intro" -
+// beforeEach below clears sessionStorage before every test, so the intro
+// hasn't been seen yet this "session") through to "dashboard" phase, the
+// same way a learner clicking "Continuer sans parler" would - for tests
+// that only care about the dashboard-phase behavior (destination voice
+// commands, card clicks).
 async function enterDashboardPhase(overrides: Partial<Me> = {}): Promise<ReturnType<typeof renderDashboard>> {
   useAuthStore.setState({ user: baseUser(overrides) });
   const result = renderDashboard();
@@ -299,12 +300,33 @@ describe("DashboardPage", () => {
     });
   });
 
-  it("plays the guided intro again on every arrival, even right after leaving the dashboard", async () => {
-    // The intro used to be gated behind a sessionStorage flag (once per
-    // browser session) - it now plays on every mount, since DashboardPage
-    // remounts every time React Router navigates back to /dashboard.
+  it("does not replay the guided intro on a later arrival within the same session", async () => {
+    // One session = one login: once the intro has been skipped/completed
+    // once, navigating away and back to /dashboard (which remounts this
+    // component) lands straight on the cards instead of replaying the
+    // classroom greeting again.
     const first = await enterDashboardPhase();
     first.unmount();
+
+    const speakCallsBeforeSecondMount = speak.mock.calls.length;
+    useAuthStore.setState({ user: baseUser() });
+    renderDashboard();
+    await flushMicrotasks();
+
+    expect(screen.getByRole("heading", { name: /Choisir une activité/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Continuer sans parler/ })).not.toBeInTheDocument();
+    // No greeting, no "what next" question - a silent return to the cards.
+    expect(speak.mock.calls.length).toBe(speakCallsBeforeSecondMount);
+  });
+
+  it("plays the guided intro again after logging out and back in, even in the same tab", async () => {
+    const first = await enterDashboardPhase();
+    first.unmount();
+
+    // logout() itself clears the intro-seen flag (see authStore.ts) - a
+    // fresh login is a fresh session even though sessionStorage is
+    // otherwise still scoped to this same tab.
+    useAuthStore.getState().logout();
 
     const speakCallsBeforeSecondMount = speak.mock.calls.length;
     useAuthStore.setState({ user: baseUser() });
