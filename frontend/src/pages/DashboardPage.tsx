@@ -15,6 +15,7 @@ import {
   hasSeenDashboardIntro,
   markDashboardIntroSeen,
 } from "../lib/dashboardIntro";
+import { classifyOnboardingReadiness, isRecognizableNameReply } from "../lib/onboardingIntro";
 import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge } from "../types";
 
@@ -49,6 +50,11 @@ function progressToNextLevel(levelCode: string, totalXp: number): { percent: num
 const GREETING_QUESTION = "Prêt pour ton cours d'anglais aujourd'hui ?";
 const READY_NOT_UNDERSTOOD_TEXT = "Je n'ai pas bien compris. Tu peux dire oui, ou continuer avec le bouton.";
 const WHAT_NEXT_QUESTION = "Par quoi commençons-nous aujourd'hui ?";
+const ONBOARDING_GREETING = "Hello! I'm LinguaBot, your English teacher. What's your name?";
+const ONBOARDING_READY_QUESTION = "Are you ready to start?";
+const ONBOARDING_REFORMULATED_READY_QUESTION =
+  "I didn't quite catch that. You can say: yes, I'm ready — or no, not yet.";
+const ONBOARDING_DECLINED_MESSAGE = "No problem. Come back when you're ready!";
 const DESTINATION_NOT_UNDERSTOOD_TEXT =
   "Je n'ai pas compris ton choix. Tu peux dire par exemple : Scénarios, Quiz, Défi du jour ou Progression.";
 // Long enough to read as a deliberate move (not a flicker), short enough to
@@ -149,6 +155,7 @@ export function DashboardPage() {
   // remounts this component) lands straight on the cards instead of
   // replaying the classroom greeting every time.
   const [phase, setPhase] = useState<"intro" | "dashboard">(() => (hasSeenDashboardIntro() ? "dashboard" : "intro"));
+  const [introStage, setIntroStage] = useState<"onboarding-name" | "onboarding-ready" | "greeting">("greeting");
   const [transitioning, setTransitioning] = useState(false);
   const [cardsRevealed, setCardsRevealed] = useState(() => hasSeenDashboardIntro());
   const [dailyChallengePreview, setDailyChallengePreview] = useState<DailyChallenge | null>(null);
@@ -204,6 +211,13 @@ export function DashboardPage() {
   useEffect(() => {
     if (!user || phase !== "intro" || greetingSpokenRef.current) return;
     greetingSpokenRef.current = true;
+
+    if (!user.onboardingCompleted) {
+      setIntroStage("onboarding-name");
+      speakAssistantLine(ONBOARDING_GREETING, "en-US");
+      return;
+    }
+
     const greeting = user.prenom ? `Bonjour ${user.prenom}. ${GREETING_QUESTION}` : `Bonjour. ${GREETING_QUESTION}`;
     speakAssistantLine(greeting, "fr-FR");
     // speakAssistantLine is a fresh function reference every render (from
@@ -269,11 +283,48 @@ export function DashboardPage() {
     }
   }
 
-  function handleVoiceResult(transcript: string) {
-    if (phase === "intro") {
-      handleIntroVoiceResult(transcript);
+  function handleOnboardingNameReply(transcript: string) {
+    if (isRecognizableNameReply(transcript)) {
+      setIntroStage("onboarding-ready");
+      speakAssistantLine(`Nice to meet you, ${user?.prenom || "there"}! ${ONBOARDING_READY_QUESTION}`, "en-US");
     } else {
+      speakAssistantLine(ONBOARDING_GREETING, "en-US");
+    }
+  }
+
+  async function completeOnboardingAndTransition() {
+    try {
+      await api.post("/onboarding/complete");
+      await fetchMe();
+    } catch {}
+    beginDashboardTransition();
+  }
+
+  function handleOnboardingReadyReply(transcript: string) {
+    const intent = classifyOnboardingReadiness(transcript);
+
+    if (intent === "affirmative") {
+      void completeOnboardingAndTransition();
+      return;
+    }
+
+    if (intent === "negative") {
+      speakAssistantLine(ONBOARDING_DECLINED_MESSAGE, "en-US");
+      return;
+    }
+
+    speakAssistantLine(ONBOARDING_REFORMULATED_READY_QUESTION, "en-US");
+  }
+
+  function handleVoiceResult(transcript: string) {
+    if (phase === "dashboard") {
       handleDashboardVoiceResult(transcript);
+    } else if (introStage === "onboarding-name") {
+      handleOnboardingNameReply(transcript);
+    } else if (introStage === "onboarding-ready") {
+      handleOnboardingReadyReply(transcript);
+    } else {
+      handleIntroVoiceResult(transcript);
     }
   }
 
@@ -486,7 +537,7 @@ export function DashboardPage() {
                   <VoiceInput
                     onResult={handleVoiceResult}
                     disabled={micDisabled}
-                    lang="fr-FR"
+                    lang={introStage === "greeting" ? "fr-FR" : "en-US"}
                     variant="brand"
                     size="compact"
                   />

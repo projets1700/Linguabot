@@ -1,6 +1,7 @@
 /vendor/
 /node_modules/
 /.env.local
+/docker-compose.override.yml
 /.idea/
 /.vscode/
 backend/var/

@@ -17,6 +17,7 @@ export type Me = {
   totalXp: number;
   sessionsCount: number;
   avgScore: string | null;
+  onboardingCompleted: boolean;
   placementTestCompleted: boolean;
 };
 

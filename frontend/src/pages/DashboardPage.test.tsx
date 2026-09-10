@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useRef } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { api } from "../api/client";
 import { useAuthStore } from "../stores/authStore";
 import { DashboardPage } from "./DashboardPage";
 import type { Me } from "../types";
@@ -73,6 +74,7 @@ type FakeUtterance = {
 };
 
 let speak: ReturnType<typeof vi.fn>;
+let apiPostSpy: ReturnType<typeof vi.spyOn>;
 
 // speakText() waits on a (normally instant) voice-list promise before
 // actually calling speechSynthesis.speak() - same helper/rationale as
@@ -109,6 +111,7 @@ function baseUser(overrides: Partial<Me> = {}): Me {
     totalXp: 50,
     sessionsCount: 1,
     avgScore: null,
+    onboardingCompleted: true,
     placementTestCompleted: true,
     ...overrides,
   };
@@ -155,6 +158,7 @@ describe("DashboardPage", () => {
     avatarSceneMountCount.current = 0;
     navigateMock.mockReset();
     useAuthStore.setState({ user: null, fetchMe: vi.fn(), fetchMeError: false });
+    apiPostSpy = vi.spyOn(api, "post").mockResolvedValue({ data: { onboardingCompleted: true } });
 
     speak = vi.fn();
     Object.defineProperty(window, "speechSynthesis", {
@@ -187,6 +191,7 @@ describe("DashboardPage", () => {
     // @ts-expect-error test-only cleanup of a property defined above
     delete window.speechSynthesis;
     vi.unstubAllGlobals();
+    apiPostSpy.mockRestore();
   });
 
   it("shows only the immersive intro (no cards, no dashboard content) on first arrival", async () => {
@@ -412,5 +417,117 @@ describe("DashboardPage", () => {
 
     expect(screen.getByText("Impossible de charger ton profil.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
+  });
+
+  describe("first-time onboarding (LOT 2, folded into the existing intro)", () => {
+    it("asks for the learner's name in English before the usual French greeting", async () => {
+      useAuthStore.setState({ user: baseUser({ onboardingCompleted: false }) });
+      renderDashboard();
+      await flushMicrotasks();
+
+      expect(latestUtterance().text).toBe("Hello! I'm LinguaBot, your English teacher. What's your name?");
+    });
+
+    it("re-asks the name question when the reply is empty or unintelligible", async () => {
+      useAuthStore.setState({ user: baseUser({ onboardingCompleted: false }) });
+      renderDashboard();
+      await flushMicrotasks();
+      await endLatestSpeech();
+
+      await act(async () => {
+        voiceInputState.current?.onResult("um uh");
+      });
+      await flushMicrotasks();
+
+      expect(latestUtterance().text).toBe("Hello! I'm LinguaBot, your English teacher. What's your name?");
+    });
+
+    it("acknowledges with the account's real first name, never the raw transcript", async () => {
+      useAuthStore.setState({ user: baseUser({ onboardingCompleted: false, prenom: "Adam" }) });
+      renderDashboard();
+      await flushMicrotasks();
+      await endLatestSpeech();
+
+      await act(async () => {
+        voiceInputState.current?.onResult("My name is Adam");
+      });
+      await flushMicrotasks();
+
+      expect(latestUtterance().text).toBe("Nice to meet you, Adam! Are you ready to start?");
+      expect(latestUtterance().text).not.toContain("My name is Adam");
+    });
+
+    it("completes onboarding and transitions to the dashboard cards on an affirmative reply", async () => {
+      useAuthStore.setState({ user: baseUser({ onboardingCompleted: false }) });
+      renderDashboard();
+      await flushMicrotasks();
+      await endLatestSpeech();
+
+      await act(async () => {
+        voiceInputState.current?.onResult("My name is Adam");
+      });
+      await flushMicrotasks();
+      await endLatestSpeech();
+
+      await act(async () => {
+        voiceInputState.current?.onResult("yes");
+      });
+
+      await waitFor(() => expect(apiPostSpy).toHaveBeenCalledWith("/onboarding/complete"));
+      await waitFor(() => expect(screen.getByRole("heading", { name: /Choisir une activité/ })).toBeInTheDocument(), {
+        timeout: 2000,
+      });
+    });
+
+    it("does not call the API or transition on a negative reply", async () => {
+      useAuthStore.setState({ user: baseUser({ onboardingCompleted: false }) });
+      renderDashboard();
+      await flushMicrotasks();
+      await endLatestSpeech();
+
+      await act(async () => {
+        voiceInputState.current?.onResult("My name is Adam");
+      });
+      await flushMicrotasks();
+      await endLatestSpeech();
+
+      await act(async () => {
+        voiceInputState.current?.onResult("no");
+      });
+      await flushMicrotasks();
+
+      expect(apiPostSpy).not.toHaveBeenCalled();
+      expect(latestUtterance().text).toBe("No problem. Come back when you're ready!");
+      expect(screen.queryByRole("heading", { name: /Choisir une activité/ })).not.toBeInTheDocument();
+    });
+
+    it("reformulates once on an ambiguous readiness reply, then repeats it, never defaulting to yes", async () => {
+      useAuthStore.setState({ user: baseUser({ onboardingCompleted: false }) });
+      renderDashboard();
+      await flushMicrotasks();
+      await endLatestSpeech();
+
+      await act(async () => {
+        voiceInputState.current?.onResult("My name is Adam");
+      });
+      await flushMicrotasks();
+      await endLatestSpeech();
+
+      await act(async () => {
+        voiceInputState.current?.onResult("maybe");
+      });
+      await flushMicrotasks();
+      const reformulated = latestUtterance().text;
+      expect(reformulated).toContain("I didn't quite catch that");
+      await endLatestSpeech();
+
+      await act(async () => {
+        voiceInputState.current?.onResult("I don't know");
+      });
+      await flushMicrotasks();
+
+      expect(latestUtterance().text).toBe(reformulated);
+      expect(apiPostSpy).not.toHaveBeenCalled();
+    });
   });
 });

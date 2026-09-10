@@ -61,6 +61,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'is_active')]
     private bool $isActive = true;
 
+    #[ORM\Column(name: 'onboarding_completed')]
+    private bool $onboardingCompleted = false;
+
     #[ORM\Column(name: 'deleted_at', type: 'datetimetz_immutable', nullable: true)]
     private ?\DateTimeImmutable $deletedAt = null;
 
@@ -235,6 +238,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
+
+        return $this;
+    }
+
+    public function isOnboardingCompleted(): bool
+    {
+        return $this->onboardingCompleted;
+    }
+
+    public function setOnboardingCompleted(bool $onboardingCompleted): static
+    {
+        $this->onboardingCompleted = $onboardingCompleted;
 
         return $this;
     }

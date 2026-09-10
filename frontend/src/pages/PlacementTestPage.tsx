@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
-import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
-import { ConversationLog } from "../components/ConversationLog";
 import { VoiceInput } from "../components/VoiceInput";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -19,6 +17,23 @@ import type {
   SessionMessage,
 } from "../types";
 
+type MicCycleState = "speaking" | "thinking" | "listening" | "ready";
+
+const MIC_CYCLE_CONTENT: Record<MicCycleState, { icon: string; title: string; subtitle?: string }> = {
+  speaking: { icon: "🔊", title: "LinguaBot parle…" },
+  thinking: { icon: "✦", title: "LinguaBot réfléchit…" },
+  ready: { icon: "🎙", title: "À toi de parler" },
+  listening: { icon: "🎙", title: "À toi de parler", subtitle: "● Je t'écoute…" },
+};
+
+const CLASSROOM_BACKGROUND_SRC = "/images/dashboard/classroom-background.webp";
+const CLASSROOM_BACKGROUND_STYLE: CSSProperties = {
+  backgroundImage: `url(${CLASSROOM_BACKGROUND_SRC})`,
+  backgroundSize: "cover",
+  backgroundPosition: "center 32%",
+  filter: "blur(1px)",
+};
+
 export function PlacementTestPage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -32,6 +47,8 @@ export function PlacementTestPage() {
   const [sendError, setSendError] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<PlacementTestFinishResult | null>(null);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [micListening, setMicListening] = useState(false);
   const {
     avatarState,
     setAvatarState,
@@ -40,7 +57,6 @@ export function PlacementTestPage() {
     speakAssistantLine,
     handleAvatarReady,
   } = useConversationSession();
-  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Guard against React StrictMode's dev-mode double effect invocation,
@@ -80,10 +96,6 @@ export function PlacementTestPage() {
     // only ever needs to run once on mount, same reasoning as SessionPage.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   async function finishTest(testId: number) {
     setFinishing(true);
@@ -161,41 +173,123 @@ export function PlacementTestPage() {
     );
   }
 
+  const lastAssistantMessage = messages.filter((message) => message.role === "assistant").at(-1)?.content ?? "";
+
+  function replayCurrentLine() {
+    if (lastAssistantMessage) {
+      speakAssistantLine(lastAssistantMessage);
+    }
+  }
+
+  const micCycleState: MicCycleState =
+    avatarState === "speaking"
+      ? "speaking"
+      : sending || avatarState === "thinking"
+        ? "thinking"
+        : micListening
+          ? "listening"
+          : "ready";
+  const micCycleContent = MIC_CYCLE_CONTENT[micCycleState];
+
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex flex-col p-8 max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Test de niveau oral</h1>
-        <p className="text-slate-400 text-sm">
-          Une courte discussion de 3 à 5 minutes en anglais pour évaluer ton niveau. Question{" "}
-          {Math.min(answeredCount + 1, totalQuestions)} / {totalQuestions}.
-        </p>
-      </div>
+    <div className="min-h-dvh bg-slate-950 flex flex-col">
+      <main className="relative flex-1 flex flex-col text-white overflow-hidden">
+        <div className="absolute inset-0 scale-105" style={CLASSROOM_BACKGROUND_STYLE} aria-hidden="true" />
+        <div className="absolute inset-0 bg-[#0b1220]/20" aria-hidden="true" />
 
-      {/* relative wrapper, not AvatarScene's own root div - see the comment
-          in SessionPage.tsx for why. */}
-      <div className="relative mb-4">
-        <AvatarScene
-          state={avatarState}
-          avatarType={user?.avatarType ?? "male"}
-          speechText={speechText}
-          charIndexRef={charIndexRef}
-          onReady={handleAvatarReady}
-        />
-        <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
-      </div>
+        <div className="relative z-10 flex items-start justify-between gap-4 p-4 sm:p-6 shrink-0">
+          <p className="font-bold text-white/90">LinguaBot</p>
+          <div className="text-right">
+            <p className="text-xs uppercase tracking-wide text-white/70">
+              Test oral · {Math.min(answeredCount + 1, totalQuestions)} sur {totalQuestions}
+            </p>
+            <div className="flex gap-1 mt-1.5 justify-end" aria-hidden="true">
+              {Array.from({ length: totalQuestions }, (_, index) => (
+                <span
+                  key={index}
+                  className={`w-2 h-2 rounded-full ${
+                    index < answeredCount
+                      ? "bg-blue-400"
+                      : index === answeredCount
+                        ? "bg-blue-400/70 ring-2 ring-blue-400"
+                        : "bg-white/20"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
 
-      <ConversationLog messages={messages} bottomRef={bottomRef} />
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-3 px-4 pb-3">
+          <div className="relative w-full max-w-[300px] sm:max-w-[340px] mt-10 [@media(min-height:700px)]:mt-20 [@media(min-height:900px)]:mt-32">
+            <div
+              className="absolute left-1/2 bottom-6 -translate-x-1/2 w-[65%] h-8 rounded-full bg-black/25 blur-xl pointer-events-none"
+              aria-hidden="true"
+            />
+            <AvatarScene
+              state={avatarState}
+              avatarType={user?.avatarType ?? "male"}
+              speechText={speechText}
+              charIndexRef={charIndexRef}
+              onReady={handleAvatarReady}
+              framing="placementTestPortrait"
+              transparentBackground
+              showStateLabel={false}
+              heightClassName="h-[40vh] sm:h-[48vh] min-h-[280px]"
+            />
+          </div>
 
-      {/* The mic must stay off while the AI is talking, otherwise it can
-          pick its own voice back up through the speakers and "answer its
-          own question". */}
-      <VoiceInput onResult={handleVoiceResult} disabled={sending || finishing || avatarState === "speaking"} />
+          <div className="relative w-full max-w-[560px] -mt-8 [@media(min-height:700px)]:-mt-16 bg-slate-900/50 backdrop-blur-md border border-white/10 rounded-2xl px-5 py-3.5 shadow-lg">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-blue-400">LinguaBot</p>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={replayCurrentLine}
+                  aria-label="Réécouter"
+                  className="text-blue-300 hover:text-blue-200"
+                >
+                  🔊
+                </button>
+                <VoiceInput
+                  onResult={handleVoiceResult}
+                  disabled={sending || finishing || avatarState === "speaking"}
+                  onListeningChange={setMicListening}
+                  hideStatusText
+                  variant="brand"
+                  size="compact"
+                />
+              </div>
+            </div>
+            <div className="max-h-40 overflow-y-auto mt-1.5">
+              {showTranscript && lastAssistantMessage ? (
+                <p className="text-white text-sm leading-snug">{lastAssistantMessage}</p>
+              ) : (
+                <p className="text-slate-300 text-sm italic">Écoute attentivement la question…</p>
+              )}
+            </div>
+            <p className="flex items-center justify-center gap-1.5 text-xs font-medium text-white uppercase tracking-wide mt-2">
+              <span aria-hidden="true">{micCycleContent.icon}</span> {micCycleContent.title}
+              {micCycleContent.subtitle && (
+                <span className="text-slate-300 normal-case font-normal">· {micCycleContent.subtitle}</span>
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowTranscript((current) => !current)}
+              className="block mx-auto mt-1 text-xs text-slate-300 underline hover:text-white"
+            >
+              {showTranscript ? "Masquer le texte" : "Afficher le texte"}
+            </button>
+          </div>
 
-      {sendError && <ErrorBanner message="Échec de l'envoi de la réponse. Réessaie en parlant à nouveau." />}
+          {sendError && <ErrorBanner message="Échec de l'envoi de la réponse. Réessaie en parlant à nouveau." />}
 
-      <p className="text-xs text-slate-500 text-center mt-4">
-        Ce test est obligatoire une seule fois, juste après ton inscription.
-      </p>
-    </main>
+          <p className="text-xs text-white/40 text-center">
+            Ce test est obligatoire une seule fois, juste après ton inscription.
+          </p>
+        </div>
+      </main>
+    </div>
   );
 }

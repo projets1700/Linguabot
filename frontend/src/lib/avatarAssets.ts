@@ -13,6 +13,11 @@ export const IDLE_ANIMATION_PATHS: Record<AvatarType, string> = {
   female: "/avatar/Female/Animation/Idle.fbx",
 };
 
+export const SITTING_IDLE_ANIMATION_PATHS: Record<AvatarType, string> = {
+  male: "/avatar/Male/Animation/Sitting Idle.fbx",
+  female: "/avatar/Female/Animation/Sitting Idle.fbx",
+};
+
 /**
  * Warms three.js's loader cache for one avatar's GLB + FBX (~30MB combined)
  * ahead of time, so that by the time a page actually mounts AvatarScene,

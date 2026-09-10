@@ -29,7 +29,7 @@ final class PlacementTestService
     private const BLOCKED_ACKNOWLEDGMENT = "That's okay, let's continue.";
 
     private const QUESTIONS = [
-        "Hi! Let's start easy: what's your name, and where are you from?",
+        "Hi! Let's start easy: where are you from, and what do you like about living there?",
         'Nice to meet you! Can you tell me about your daily routine? What do you usually do in the morning?',
         'What did you do last weekend? Tell me about something fun you did recently.',
         'If you could change one thing about your city, what would it be, and why?',

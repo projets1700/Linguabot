@@ -16,6 +16,7 @@ const BASE_USER: Me = {
   totalXp: 0,
   sessionsCount: 0,
   avgScore: null,
+  onboardingCompleted: true,
   placementTestCompleted: true,
 };
 

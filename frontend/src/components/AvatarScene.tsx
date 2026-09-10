@@ -14,7 +14,7 @@ import {
 } from "three";
 import { LipsyncController } from "../lib/lipsync/lipsyncController";
 import { ALL_VISEME_MORPH_TARGETS, VISEME_WEIGHTS, type VisemeMorphTarget } from "../lib/lipsync/visemeTypes";
-import { IDLE_ANIMATION_PATHS, MODEL_PATHS } from "../lib/avatarAssets";
+import { IDLE_ANIMATION_PATHS, MODEL_PATHS, SITTING_IDLE_ANIMATION_PATHS } from "../lib/avatarAssets";
 import type { AvatarType } from "../types";
 
 export type AvatarState = "idle" | "thinking" | "speaking";
@@ -148,7 +148,7 @@ function updateBlink(deltaMs: number, blink: BlinkState): number {
 // "mostly legs" in a card this short; kept as its own preset rather than
 // tightening "bust" itself, since "bust" is shared with Session/Quiz/
 // DailyChallenge/Placement and must stay exactly as it is for them.
-export type AvatarFraming = "bust" | "portrait" | "dashboardPortrait";
+export type AvatarFraming = "bust" | "portrait" | "dashboardPortrait" | "placementTestPortrait";
 
 // AvatarScene stays mounted across the Dashboard's intro -> dashboard
 // transition (its ~30MB assets must load exactly once), so the SAME
@@ -264,7 +264,9 @@ function AvatarModel({
   // reference mesh/textures - there's no way to ask FBXLoader for just the
   // animation) purely to read its .animations; the FBX object itself is
   // never added to the scene, so that reference mesh never renders.
-  const fbx = useFBX(IDLE_ANIMATION_PATHS[avatarType]);
+  const fbx = useFBX(
+    framing === "placementTestPortrait" ? SITTING_IDLE_ANIMATION_PATHS[avatarType] : IDLE_ANIMATION_PATHS[avatarType],
+  );
   const groupRef = useRef<Group>(null);
   const mixerRef = useRef<AnimationMixer | null>(null);
   const morphTargetsRef = useRef<Map<VisemeMorphTarget, MorphTarget[]>>(new Map());
@@ -351,7 +353,7 @@ function AvatarModel({
 
     const box = new Box3().setFromObject(scene);
     const height = box.max.y - box.min.y;
-    const offsetRatio = framing === "portrait" ? 0.71 : 0.8;
+    const offsetRatio = framing === "portrait" ? 0.71 : framing === "placementTestPortrait" ? 0.89 : 0.8;
     groupRef.current.position.y = -(box.min.y + height * offsetRatio);
   }, [scene, framing]);
 
@@ -539,7 +541,9 @@ export function AvatarScene({
       ? { position: [0, 0, 2.4] as const, fov: 32 }
       : framing === "dashboardPortrait"
         ? { position: [0, 0, 1.15] as const, fov: 32 }
-        : { position: [0, 0, 1.5] as const, fov: 32 };
+        : framing === "placementTestPortrait"
+          ? { position: [0, 0, 1.7] as const, fov: 20 }
+          : { position: [0, 0, 1.5] as const, fov: 32 };
 
   return (
     <div
@@ -560,8 +564,18 @@ export function AvatarScene({
           fov={cameraProps.fov}
           controlsRef={controlsRef}
         />
-        <ambientLight intensity={1} />
-        <directionalLight position={[2, 2, 2]} />
+        {framing === "placementTestPortrait" ? (
+          <>
+            <ambientLight intensity={0.5} color="#e4eaf5" />
+            <directionalLight position={[-2.4, 1.6, 2.2]} intensity={1.1} color="#ffe6c2" />
+            <directionalLight position={[2.2, 1, 1.4]} intensity={0.3} color="#bcd0f0" />
+          </>
+        ) : (
+          <>
+            <ambientLight intensity={1} />
+            <directionalLight position={[2, 2, 2]} />
+          </>
+        )}
         <Suspense fallback={null}>
           <AvatarModel
             key={avatarType}

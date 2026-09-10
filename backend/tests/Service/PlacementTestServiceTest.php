@@ -33,6 +33,11 @@ final class PlacementTestServiceTest extends TestCase
         self::assertNull($this->service->nextQuestion(5));
     }
 
+    public function testOpeningMessageNoLongerAsksForTheLearnersName(): void
+    {
+        self::assertStringNotContainsString('your name', $this->service->openingMessage());
+    }
+
     public function testEvaluateLevelWithNoAnswersDefaultsToA0(): void
     {
         self::assertSame('A0', $this->service->evaluateLevel([]));

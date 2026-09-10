@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { PasswordInput } from "../components/ui/PasswordInput";
 import { useAuthStore } from "../stores/authStore";
 
 export function LoginPage() {
@@ -50,12 +51,10 @@ export function LoginPage() {
 
         <label className="flex flex-col gap-1">
           <span className="text-sm text-slate-300">Mot de passe</span>
-          <input
-            type="password"
+          <PasswordInput
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="bg-slate-800 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-blue-600"
           />
         </label>
 

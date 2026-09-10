@@ -31,6 +31,7 @@ final class MeController
             'totalXp' => $user->getTotalXp(),
             'sessionsCount' => $user->getSessionsCount(),
             'avgScore' => $user->getAvgScore(),
+            'onboardingCompleted' => $user->isOnboardingCompleted(),
             'placementTestCompleted' => null !== $placementTest && SessionStatus::COMPLETED === $placementTest->getStatus(),
         ]);
     }
