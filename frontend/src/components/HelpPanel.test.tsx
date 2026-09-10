@@ -14,6 +14,7 @@ function profile(overrides: Partial<CecrlProfile> = {}): CecrlProfile {
     transcriptMode: "onDemand",
     translationMode: "onDemand",
     hintMode: "progressive",
+    helpVisibleByDefault: true,
     ...overrides,
   };
 }

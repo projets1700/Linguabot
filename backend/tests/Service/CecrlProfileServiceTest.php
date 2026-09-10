@@ -20,10 +20,13 @@ final class CecrlProfileServiceTest extends TestCase
         self::assertSame('onDemand', $this->service->forLevelCode('B2')['transcriptMode']);
     }
 
-    public function testTranslationModeFadesOutAsTheLevelIncreases(): void
+    public function testTranslationModeFadesFromVisibleToRareAsTheLevelIncreases(): void
     {
         self::assertSame('visible', $this->service->forLevelCode('A0')['translationMode']);
-        self::assertSame('off', $this->service->forLevelCode('B2')['translationMode']);
+        self::assertSame('visible', $this->service->forLevelCode('A1')['translationMode']);
+        self::assertSame('visible', $this->service->forLevelCode('A2')['translationMode']);
+        self::assertSame('onDemand', $this->service->forLevelCode('B1')['translationMode']);
+        self::assertSame('rare', $this->service->forLevelCode('B2')['translationMode']);
     }
 
     public function testUnknownLevelCodeFallsBackToTheA0Profile(): void
@@ -41,9 +44,10 @@ final class CecrlProfileServiceTest extends TestCase
         self::assertArrayHasKey('transcriptMode', $payload);
         self::assertArrayHasKey('translationMode', $payload);
         self::assertArrayHasKey('hintMode', $payload);
+        self::assertArrayHasKey('helpVisibleByDefault', $payload);
     }
 
-    // --- hintMode: how "Je suis bloqué ?" behaves per level ---
+    // --- hintMode: shape of the aid once shown, unaffected by whether it's shown automatically ---
 
     public function testA0AndA1GetTheFullAnswerHintMode(): void
     {
@@ -57,9 +61,20 @@ final class CecrlProfileServiceTest extends TestCase
         self::assertSame('keywords', $this->service->publicPayload('B1')['hintMode']);
     }
 
-    public function testB2KeepsTheProgressiveHintLadder(): void
+    public function testB2KeepsTheProgressiveHintLadderOnceHelpIsUnlocked(): void
     {
         self::assertSame('progressive', $this->service->publicPayload('B2')['hintMode']);
+    }
+
+    // --- helpVisibleByDefault: whether the aid is shown unprompted (V1.1 LOT 3) ---
+
+    public function testHelpVisibleByDefaultIsTrueThroughA2AndFalseFromB1On(): void
+    {
+        self::assertTrue($this->service->publicPayload('A0')['helpVisibleByDefault']);
+        self::assertTrue($this->service->publicPayload('A1')['helpVisibleByDefault']);
+        self::assertTrue($this->service->publicPayload('A2')['helpVisibleByDefault']);
+        self::assertFalse($this->service->publicPayload('B1')['helpVisibleByDefault']);
+        self::assertFalse($this->service->publicPayload('B2')['helpVisibleByDefault']);
     }
 
     public function testComplexityInstructionMatchesTheOneUsedInTheConversationPrompt(): void

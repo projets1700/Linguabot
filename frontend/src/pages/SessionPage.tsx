@@ -30,6 +30,11 @@ export function SessionPage() {
   const [sendError, setSendError] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<SessionFinishResult | null>(null);
+  // Sticky once true: B1/B2 profiles keep HelpPanel hidden until the
+  // learner explicitly asks (detectLearnerBlock or the "Besoin d'aide ?"
+  // button below) - once unlocked for a turn, it stays available for the
+  // rest of the session (see CecrlProfileService::PROFILES.helpVisibleByDefault).
+  const [helpUnlocked, setHelpUnlocked] = useState(false);
   const {
     avatarState,
     setAvatarState,
@@ -112,6 +117,7 @@ export function SessionPage() {
     // (see detectLearnerBlock.ts) - tells the backend to have the AI offer
     // one example answer for this turn instead of just moving on.
     const { blocked } = detectLearnerBlock(transcript);
+    if (blocked) setHelpUnlocked(true);
 
     try {
       const response = await api.post<{ userTranscript: string; assistantMessage: string }>(
@@ -220,13 +226,21 @@ export function SessionPage() {
         initialShowText={session.cecrlProfile.transcriptMode === "auto"}
       />
 
-      <HelpPanel
-        profile={session.cecrlProfile}
-        translateEndpoint={`/sessions/${id}/translate`}
-        hintEndpoint={`/sessions/${id}/hint`}
-        textToTranslate={lastAssistantMessage}
-        onHintReceived={speakAssistantLine}
-      />
+      {session.cecrlProfile.helpVisibleByDefault || helpUnlocked ? (
+        <HelpPanel
+          profile={session.cecrlProfile}
+          translateEndpoint={`/sessions/${id}/translate`}
+          hintEndpoint={`/sessions/${id}/hint`}
+          textToTranslate={lastAssistantMessage}
+          onHintReceived={speakAssistantLine}
+        />
+      ) : (
+        <div className="mb-4">
+          <Button onClick={() => setHelpUnlocked(true)} variant="secondary" size="sm">
+            Besoin d'aide ?
+          </Button>
+        </div>
+      )}
 
       {practiceSentence && (
         <div className="mb-4">

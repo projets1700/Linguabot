@@ -5,6 +5,7 @@ namespace App\Controller\Api;
 use App\Entity\User;
 use App\Enum\SessionStatus;
 use App\Repository\PlacementTestRepository;
+use App\Service\CecrlProfileService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -12,8 +13,11 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 final class MeController
 {
     #[Route('/api/me', name: 'api_me', methods: ['GET'])]
-    public function __invoke(#[CurrentUser] User $user, PlacementTestRepository $placementTestRepository): JsonResponse
-    {
+    public function __invoke(
+        #[CurrentUser] User $user,
+        PlacementTestRepository $placementTestRepository,
+        CecrlProfileService $cecrlProfileService,
+    ): JsonResponse {
         $placementTest = $placementTestRepository->findOneByUser($user);
 
         return new JsonResponse([
@@ -33,6 +37,7 @@ final class MeController
             'avgScore' => $user->getAvgScore(),
             'onboardingCompleted' => $user->isOnboardingCompleted(),
             'placementTestCompleted' => null !== $placementTest && SessionStatus::COMPLETED === $placementTest->getStatus(),
+            'cecrlProfile' => $cecrlProfileService->publicPayload($user->getLevel()->getCode()),
         ]);
     }
 }

@@ -27,6 +27,8 @@ export function DailyChallengePage() {
   const [sendError, setSendError] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<DailyChallengeFinishResult | null>(null);
+  // Sticky once true - see the identical helpUnlocked comment in SessionPage.tsx.
+  const [helpUnlocked, setHelpUnlocked] = useState(false);
   const {
     avatarState,
     setAvatarState,
@@ -75,6 +77,7 @@ export function DailyChallengePage() {
     // backend can have the AI offer one example answer for this turn
     // instead of just moving on (CecrlProfileService::BLOCKED_INSTRUCTION).
     const { blocked } = detectLearnerBlock(transcript);
+    if (blocked) setHelpUnlocked(true);
 
     try {
       const response = await api.post<{ assistantMessage: string }>("/daily-challenge/message", {
@@ -180,14 +183,22 @@ export function DailyChallengePage() {
             initialShowText={challenge.cecrlProfile.transcriptMode === "auto"}
           />
 
-          <HelpPanel
-            profile={challenge.cecrlProfile}
-            translateEndpoint="/daily-challenge/translate"
-            hintEndpoint="/daily-challenge/hint"
-            textToTranslate={lastAssistantMessage}
-            hintBody={{ history: historyForHint }}
-            onHintReceived={speakAssistantLine}
-          />
+          {challenge.cecrlProfile.helpVisibleByDefault || helpUnlocked ? (
+            <HelpPanel
+              profile={challenge.cecrlProfile}
+              translateEndpoint="/daily-challenge/translate"
+              hintEndpoint="/daily-challenge/hint"
+              textToTranslate={lastAssistantMessage}
+              hintBody={{ history: historyForHint }}
+              onHintReceived={speakAssistantLine}
+            />
+          ) : (
+            <div className="mb-4">
+              <Button onClick={() => setHelpUnlocked(true)} variant="secondary" size="sm">
+                Besoin d'aide ?
+              </Button>
+            </div>
+          )}
 
           <div className="mb-4">
             {/* The mic must stay off while the AI is talking or about to

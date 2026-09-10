@@ -18,6 +18,7 @@ const BASE_USER: Me = {
   avgScore: null,
   onboardingCompleted: true,
   placementTestCompleted: true,
+  cecrlProfile: { transcriptMode: "auto", translationMode: "visible", hintMode: "fullAnswer", helpVisibleByDefault: true },
 };
 
 function renderWithRouter() {

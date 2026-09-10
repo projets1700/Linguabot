@@ -113,6 +113,7 @@ function baseUser(overrides: Partial<Me> = {}): Me {
     avgScore: null,
     onboardingCompleted: true,
     placementTestCompleted: true,
+    cecrlProfile: { transcriptMode: "auto", translationMode: "visible", hintMode: "fullAnswer", helpVisibleByDefault: true },
     ...overrides,
   };
 }

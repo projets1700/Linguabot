@@ -21,3 +21,10 @@ export function buildSpokenQuizQuestion(questionText: string): string {
 export function buildBlockedHelpMessage(correctAnswer: string): string {
   return `You can say: ${correctAnswer}.`;
 }
+
+// Spoken when a B1/B2 learner's first block unlocks the reveal button
+// without yet giving the answer away (CecrlProfileService.helpVisibleByDefault
+// is false for those levels - help stays reachable, just not automatic).
+export function buildHelpAvailableMessage(): string {
+  return "No problem, take your time. Tap the help button whenever you're ready to see the answer.";
+}

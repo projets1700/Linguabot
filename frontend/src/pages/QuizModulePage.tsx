@@ -11,7 +11,7 @@ import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
 import { detectLearnerBlock } from "../lib/detectLearnerBlock";
-import { buildBlockedHelpMessage, buildSpokenQuizQuestion } from "../lib/quizSpeech";
+import { buildBlockedHelpMessage, buildHelpAvailableMessage, buildSpokenQuizQuestion } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
@@ -32,6 +32,12 @@ export function QuizModulePage() {
   const [submitError, setSubmitError] = useState(false);
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
   const [showQuestionText, setShowQuestionText] = useState(false);
+  // Per-question: B1/B2 (helpVisibleByDefault === false) must not reveal the
+  // answer on the very first "I don't know" - it only unlocks a reveal
+  // button, reset on every new question. A0-A2 keep today's instant reveal
+  // (see CecrlProfileService::PROFILES.helpVisibleByDefault).
+  const [helpUnlocked, setHelpUnlocked] = useState(false);
+  const helpVisibleByDefault = user?.cecrlProfile.helpVisibleByDefault ?? true;
   const {
     avatarState,
     setAvatarState,
@@ -83,11 +89,25 @@ export function QuizModulePage() {
       // quoted French word itself - the vocabulary being tested - unchanged.
       speakAssistantLine(buildSpokenQuizQuestion(questions[currentIndex].questionText));
       setShowQuestionText(false);
+      setHelpUnlocked(false);
     }
     // speakAssistantLine comes from useConversationSession() and must not
     // retrigger this effect on its own.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, questions]);
+
+  async function revealAnswer(question: QuizQuestion) {
+    setAvatarState("thinking");
+    try {
+      const { data } = await api.get<{ answer: string }>(`/quiz/questions/${question.id}/answer`);
+      speakAssistantLine(buildBlockedHelpMessage(data.answer));
+      setHelpedQuestionIds((current) =>
+        current.includes(question.id) ? current : [...current, question.id],
+      );
+    } catch {
+      setAvatarState("idle");
+    }
+  }
 
   async function handleVoiceAnswer(transcript: string) {
     const question = questions[currentIndex];
@@ -100,15 +120,13 @@ export function QuizModulePage() {
     // no point, question stays active, the learner can retry after.
     const { blocked } = detectLearnerBlock(transcript);
     if (blocked) {
-      setAvatarState("thinking");
-      try {
-        const { data } = await api.get<{ answer: string }>(`/quiz/questions/${question.id}/answer`);
-        speakAssistantLine(buildBlockedHelpMessage(data.answer));
-        setHelpedQuestionIds((current) =>
-          current.includes(question.id) ? current : [...current, question.id],
-        );
-      } catch {
-        setAvatarState("idle");
+      if (helpVisibleByDefault || helpUnlocked) {
+        await revealAnswer(question);
+      } else {
+        // First block at B1/B2: unlock the reveal button instead of
+        // showing the answer straight away (helpVisibleByDefault === false).
+        setHelpUnlocked(true);
+        speakAssistantLine(buildHelpAvailableMessage());
       }
       return;
     }
@@ -222,6 +240,12 @@ export function QuizModulePage() {
         >
           {showQuestionText ? "Masquer le texte" : "Je n'ai pas compris ? Afficher le texte"}
         </button>
+
+        {helpUnlocked && !helpVisibleByDefault && !helpedQuestionIds.includes(question.id) && (
+          <Button onClick={() => revealAnswer(question)} variant="secondary" size="sm">
+            💡 Afficher la réponse
+          </Button>
+        )}
 
         {/* The mic must stay off while the AI is talking, otherwise it can
             pick its own voice back up through the speakers and "answer its

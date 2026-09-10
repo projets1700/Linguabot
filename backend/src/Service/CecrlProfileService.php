@@ -13,8 +13,9 @@ namespace App\Service;
  *     questionCountMax: int,
  *     aiComplexityInstruction: string,
  *     transcriptMode: 'auto'|'available'|'onDemand',
- *     translationMode: 'visible'|'onDemand'|'rare'|'off',
+ *     translationMode: 'visible'|'onDemand'|'rare',
  *     hintMode: 'fullAnswer'|'keywords'|'progressive',
+ *     helpVisibleByDefault: bool,
  *     summaryStrengths: int,
  *     summaryReviewPoints: int,
  *     summaryExpressions: int,
@@ -70,6 +71,7 @@ final class CecrlProfileService
             'transcriptMode' => 'auto',
             'translationMode' => 'visible',
             'hintMode' => 'fullAnswer',
+            'helpVisibleByDefault' => true,
             'summaryStrengths' => 1,
             'summaryReviewPoints' => 1,
             'summaryExpressions' => 2,
@@ -84,8 +86,9 @@ final class CecrlProfileService
                 'common vocabulary. Ask simple questions, one at a time, and offer an easy reformulation if the '.
                 'learner seems stuck.',
             'transcriptMode' => 'auto',
-            'translationMode' => 'onDemand',
+            'translationMode' => 'visible',
             'hintMode' => 'fullAnswer',
+            'helpVisibleByDefault' => true,
             'summaryStrengths' => 2,
             'summaryReviewPoints' => 1,
             'summaryExpressions' => 2,
@@ -99,8 +102,9 @@ final class CecrlProfileService
                 'sentences with a bit more context, and ask questions that invite a couple of connected pieces '.
                 'of information rather than a single word.',
             'transcriptMode' => 'available',
-            'translationMode' => 'onDemand',
+            'translationMode' => 'visible',
             'hintMode' => 'keywords',
+            'helpVisibleByDefault' => true,
             'summaryStrengths' => 2,
             'summaryReviewPoints' => 2,
             'summaryExpressions' => 3,
@@ -113,8 +117,9 @@ final class CecrlProfileService
             'aiComplexityInstruction' => 'The learner is an intermediate speaker (CEFR B1). Use natural, '.
                 'everyday sentences and ask follow-up questions that invite an opinion or a short justification.',
             'transcriptMode' => 'onDemand',
-            'translationMode' => 'rare',
+            'translationMode' => 'onDemand',
             'hintMode' => 'keywords',
+            'helpVisibleByDefault' => false,
             'summaryStrengths' => 3,
             'summaryReviewPoints' => 2,
             'summaryExpressions' => 3,
@@ -128,8 +133,9 @@ final class CecrlProfileService
                 'language with richer sentence structures and longer utterances, and ask follow-up questions '.
                 'that invite argumentation, examples and nuance.',
             'transcriptMode' => 'onDemand',
-            'translationMode' => 'off',
+            'translationMode' => 'rare',
             'hintMode' => 'progressive',
+            'helpVisibleByDefault' => false,
             'summaryStrengths' => 3,
             'summaryReviewPoints' => 3,
             'summaryExpressions' => 4,
@@ -152,7 +158,7 @@ final class CecrlProfileService
      * to show by default - internal prompting details
      * (aiComplexityInstruction, questionCountMax) stay server-side.
      *
-     * @return array{transcriptMode: string, translationMode: string, hintMode: string}
+     * @return array{transcriptMode: string, translationMode: string, hintMode: string, helpVisibleByDefault: bool}
      */
     public function publicPayload(string $levelCode): array
     {
@@ -162,6 +168,7 @@ final class CecrlProfileService
             'transcriptMode' => $profile['transcriptMode'],
             'translationMode' => $profile['translationMode'],
             'hintMode' => $profile['hintMode'],
+            'helpVisibleByDefault' => $profile['helpVisibleByDefault'],
         ];
     }
 

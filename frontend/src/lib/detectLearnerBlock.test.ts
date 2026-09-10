@@ -13,6 +13,9 @@ describe("detectLearnerBlock", () => {
     "no idea",
     "I'm not sure",
     "I am not sure",
+    "Can you help me",
+    "can you help me?",
+    "Help me",
   ])('detects "%s" as blocked', (transcript) => {
     expect(detectLearnerBlock(transcript).blocked).toBe(true);
   });
@@ -43,6 +46,10 @@ describe("detectLearnerBlock", () => {
 
   it("does not flag an unrelated sentence that happens to contain 'know'", () => {
     expect(detectLearnerBlock("You know, I really enjoy cooking on weekends.").blocked).toBe(false);
+  });
+
+  it("does not flag a real answer that happens to contain the word 'help'", () => {
+    expect(detectLearnerBlock("My mother always helped me learn new words as a child.").blocked).toBe(false);
   });
 
   it("returns false for an empty transcript", () => {

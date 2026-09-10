@@ -322,9 +322,10 @@ final class SessionControllerTest extends ApiTestCase
         $session = $this->decodeResponse($client);
 
         // B2 is the least-assisted profile (CecrlProfileService): transcript
-        // hidden by default, translation off by default.
+        // hidden by default, translation rare, no help shown unprompted.
         self::assertSame('onDemand', $session['cecrlProfile']['transcriptMode']);
-        self::assertSame('off', $session['cecrlProfile']['translationMode']);
+        self::assertSame('rare', $session['cecrlProfile']['translationMode']);
+        self::assertFalse($session['cecrlProfile']['helpVisibleByDefault']);
     }
 
     public function testHintIsAvailableOnRequestRegardlessOfLevel(): void

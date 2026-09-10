@@ -19,6 +19,7 @@ export type Me = {
   avgScore: string | null;
   onboardingCompleted: boolean;
   placementTestCompleted: boolean;
+  cecrlProfile: CecrlProfile;
 };
 
 export type Scenario = {
@@ -77,12 +78,16 @@ export type SessionMessage = {
  */
 export type CecrlProfile = {
   transcriptMode: "auto" | "available" | "onDemand";
-  translationMode: "visible" | "onDemand" | "rare" | "off";
+  translationMode: "visible" | "onDemand" | "rare";
   // How "Je suis bloqué ?" behaves: fullAnswer (A0/A1) gives the complete
   // example sentence directly, for the learner to repeat aloud; keywords
   // (A2/B1) gives only key words, nothing more; progressive (B2) keeps the
   // original 3-tier ladder (keywords -> sentence starter -> full example).
   hintMode: "fullAnswer" | "keywords" | "progressive";
+  // Whether the help panel/reveal is offered unprompted (A0-A2) or only
+  // once the learner explicitly signals they're stuck (B1/B2) - see
+  // detectLearnerBlock and each caller's own helpUnlocked state.
+  helpVisibleByDefault: boolean;
 };
 
 export type SessionDetail = {

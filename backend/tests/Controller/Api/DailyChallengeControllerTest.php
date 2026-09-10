@@ -108,6 +108,7 @@ final class DailyChallengeControllerTest extends ApiTestCase
         $challenge = $this->decodeResponse($client);
         self::assertSame('auto', $challenge['cecrlProfile']['transcriptMode']);
         self::assertSame('visible', $challenge['cecrlProfile']['translationMode']);
+        self::assertTrue($challenge['cecrlProfile']['helpVisibleByDefault']);
     }
 
     public function testHintIsAvailableOnRequestWithHistorySuppliedByTheClient(): void
