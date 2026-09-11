@@ -80,9 +80,12 @@ describe("PlacementTestPage - network error handling (LOT 1)", () => {
     vi.stubGlobal(
       "SpeechSynthesisUtterance",
       class {
+        text: string;
         onend: (() => void) | null = null;
         onerror: (() => void) | null = null;
-        constructor(public text: string) {}
+        constructor(text: string) {
+          this.text = text;
+        }
       },
     );
   });

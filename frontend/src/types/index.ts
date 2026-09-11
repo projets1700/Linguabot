@@ -280,6 +280,17 @@ export type AdminStats = {
   xpDistributedToday: number;
 };
 
+export type LearnerStats = {
+  days: 7 | 30 | 365;
+  sessionsCount: number;
+  practiceSeconds: number;
+  quizzesCompleted: number;
+  challengesCompleted: number;
+  xpEarned: number;
+  categoryBreakdown: { category: "quotidien" | "thematique"; count: number }[];
+  history: { day: string; sessionsCount: number; xpEarned: number }[];
+};
+
 export type Trophy = {
   code: string;
   name: string;

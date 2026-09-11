@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
+import { LearnerStatsSection } from "../components/LearnerStatsSection";
 import { VoiceInput } from "../components/VoiceInput";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -713,6 +714,11 @@ export function DashboardPage() {
                   <p className="text-blue-400 text-sm">Voir mes récompenses →</p>
                 </Link>
               </div>
+            </RevealSection>
+
+            {/* ---------- Statistiques détaillées (V1.1 LOT 4) ---------- */}
+            <RevealSection visible={cardsRevealed} delayMs={300} reducedMotion={reducedMotion}>
+              <LearnerStatsSection />
             </RevealSection>
 
             {/* Voice destination navigation is still a bonus on top of the
