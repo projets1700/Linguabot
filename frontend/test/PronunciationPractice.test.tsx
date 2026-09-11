@@ -1,9 +1,9 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { speakText } from "../lib/speech";
-import { PronunciationPractice } from "./PronunciationPractice";
+import { speakText } from "../src/lib/speech";
+import { PronunciationPractice } from "../src/components/PronunciationPractice";
 
-vi.mock("../lib/speech", () => ({
+vi.mock("../src/lib/speech", () => ({
   speakText: vi.fn(),
 }));
 

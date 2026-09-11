@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyVoiceGender, groupEnglishVoicesByGender, pickVoiceForGender } from "./voices";
+import { classifyVoiceGender, groupEnglishVoicesByGender, pickVoiceForGender } from "../src/lib/voices";
 
 function fakeVoice(name: string, lang: string, localService = true): SpeechSynthesisVoice {
   return {

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { ErrorBanner } from "./ErrorBanner";
+import { ErrorBanner } from "../src/components/ui/ErrorBanner";
 
 describe("ErrorBanner", () => {
   it("renders the message in an alert region", () => {

@@ -1,6 +1,6 @@
 import type { InternalAxiosRequestConfig } from "axios";
 import { beforeEach, describe, expect, it } from "vitest";
-import { api } from "./client";
+import { api } from "../src/api/client";
 
 // client.ts registers exactly one request interceptor unconditionally at
 // module load (above), so `handlers` is never actually undefined here - the

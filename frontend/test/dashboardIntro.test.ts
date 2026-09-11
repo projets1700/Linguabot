@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectDashboardDestination, detectDashboardReadyIntent } from "./dashboardIntro";
+import { detectDashboardDestination, detectDashboardReadyIntent } from "../src/lib/dashboardIntro";
 
 describe("detectDashboardReadyIntent", () => {
   it.each([

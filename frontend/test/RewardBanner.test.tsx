@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { RewardBanner } from "./RewardBanner";
+import { RewardBanner } from "../src/components/RewardBanner";
 
 describe("RewardBanner", () => {
   it("renders nothing when there are no new badges or trophies", () => {

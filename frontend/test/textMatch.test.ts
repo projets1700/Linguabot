@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchRecognizedText, normalizeForMatch } from "./textMatch";
+import { matchRecognizedText, normalizeForMatch } from "../src/lib/textMatch";
 
 describe("normalizeForMatch", () => {
   it("lowercases, trims, and collapses multiple spaces", () => {

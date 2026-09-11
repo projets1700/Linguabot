@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { textToVisemeSequence } from "./textToVisemes";
+import { textToVisemeSequence } from "../src/lib/lipsync/textToVisemes";
 
 describe("textToVisemeSequence", () => {
   it("maps whitespace and punctuation to REST", () => {

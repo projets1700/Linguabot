@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AvatarSpeechBubble } from "./AvatarSpeechBubble";
+import { AvatarSpeechBubble } from "../src/components/AvatarSpeechBubble";
 
 describe("AvatarSpeechBubble", () => {
   beforeEach(() => {

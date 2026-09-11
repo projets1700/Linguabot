@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectLearnerBlock } from "./detectLearnerBlock";
+import { detectLearnerBlock } from "../src/lib/detectLearnerBlock";
 
 describe("detectLearnerBlock", () => {
   it.each([

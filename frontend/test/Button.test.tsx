@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { Button } from "./Button";
+import { Button } from "../src/components/ui/Button";
 
 describe("Button", () => {
   it("renders a native button and calls onClick when no `to` is given", async () => {

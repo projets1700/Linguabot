@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectPracticeSentence } from "./selectPracticeSentence";
+import { selectPracticeSentence } from "../src/lib/selectPracticeSentence";
 
 describe("selectPracticeSentence", () => {
   it("uses the whole message when it is a single, reasonably short sentence", () => {

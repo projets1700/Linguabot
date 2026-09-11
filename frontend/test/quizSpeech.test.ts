@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildBlockedHelpMessage, buildSpokenQuizQuestion } from "./quizSpeech";
+import { buildBlockedHelpMessage, buildSpokenQuizQuestion } from "../src/lib/quizSpeech";
 
 describe("buildSpokenQuizQuestion", () => {
   it("translates the French wrapper to English, keeping the quoted word as-is", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LipsyncController } from "./lipsyncController";
+import { LipsyncController } from "../src/lib/lipsync/lipsyncController";
 
 describe("LipsyncController", () => {
   it("returns REST before start() has ever been called", () => {

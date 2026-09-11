@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { speakText } from "./speech";
-import { useAuthStore } from "../stores/authStore";
-import { useVoiceSettingsStore } from "../stores/voiceSettingsStore";
-import type { Me } from "../types";
+import { speakText } from "../src/lib/speech";
+import { useAuthStore } from "../src/stores/authStore";
+import { useVoiceSettingsStore } from "../src/stores/voiceSettingsStore";
+import type { Me } from "../src/types";
 
 function fakeVoice(voiceURI: string, lang = "en-US"): SpeechSynthesisVoice {
   return { name: voiceURI, lang, voiceURI, default: false, localService: true } as SpeechSynthesisVoice;

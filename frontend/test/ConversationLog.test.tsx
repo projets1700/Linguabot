@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ConversationLog } from "./ConversationLog";
+import { ConversationLog } from "../src/components/ConversationLog";
 
 const MESSAGES = [
   { id: 1, role: "assistant" as const, content: "Hello! How are you?" },

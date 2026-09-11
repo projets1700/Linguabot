@@ -2,15 +2,15 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useRef } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "../api/client";
-import { useAuthStore } from "../stores/authStore";
-import { QuizModulePage } from "./QuizModulePage";
-import type { CecrlProfile, Me } from "../types";
+import { api } from "../src/api/client";
+import { useAuthStore } from "../src/stores/authStore";
+import { QuizModulePage } from "../src/pages/QuizModulePage";
+import type { CecrlProfile, Me } from "../src/types";
 
 // Same rationale/stand-ins as DashboardPage.test.tsx: AvatarScene's 3D
 // internals and VoiceInput's real SpeechRecognition are each covered by
 // their own test files, not relevant to this page's help-policy branching.
-vi.mock("../components/AvatarScene", () => ({
+vi.mock("../src/components/AvatarScene", () => ({
   AvatarScene: ({ onReady }: { onReady?: () => void }) => {
     const firedRef = useRef(false);
     useEffect(() => {
@@ -22,7 +22,7 @@ vi.mock("../components/AvatarScene", () => ({
   },
 }));
 
-vi.mock("../components/AvatarSpeechBubble", () => ({
+vi.mock("../src/components/AvatarSpeechBubble", () => ({
   AvatarSpeechBubble: ({ text, active }: { text: string | null; active: boolean }) =>
     active && text ? <div role="status">{text}</div> : null,
 }));
@@ -30,7 +30,7 @@ vi.mock("../components/AvatarSpeechBubble", () => ({
 const voiceInputState = vi.hoisted(() => ({
   current: null as null | { onResult: (transcript: string) => void; disabled?: boolean },
 }));
-vi.mock("../components/VoiceInput", () => ({
+vi.mock("../src/components/VoiceInput", () => ({
   VoiceInput: (props: { onResult: (transcript: string) => void; disabled?: boolean }) => {
     voiceInputState.current = props;
     return <div data-testid="voice-input-stub" />;

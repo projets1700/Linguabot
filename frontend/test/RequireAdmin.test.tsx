@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
-import { useAuthStore } from "../stores/authStore";
-import { RequireAdmin } from "./RequireAdmin";
-import type { Me } from "../types";
+import { useAuthStore } from "../src/stores/authStore";
+import { RequireAdmin } from "../src/components/RequireAdmin";
+import type { Me } from "../src/types";
 
 const BASE_USER: Me = {
   id: 1,

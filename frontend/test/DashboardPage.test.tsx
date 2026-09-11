@@ -2,10 +2,10 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useRef } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "../api/client";
-import { useAuthStore } from "../stores/authStore";
-import { DashboardPage } from "./DashboardPage";
-import type { Me } from "../types";
+import { api } from "../src/api/client";
+import { useAuthStore } from "../src/stores/authStore";
+import { DashboardPage } from "../src/pages/DashboardPage";
+import type { Me } from "../src/types";
 
 // DashboardPage's own voice-driven flow (readiness, destination choice) is
 // what these tests exercise - AvatarScene's 3D internals and
@@ -15,7 +15,7 @@ import type { Me } from "../types";
 // needing jsdom's missing ResizeObserver/WebGL, and AvatarSpeechBubble just
 // renders the line it was given while active.
 const avatarSceneMountCount = vi.hoisted(() => ({ current: 0 }));
-vi.mock("../components/AvatarScene", () => ({
+vi.mock("../src/components/AvatarScene", () => ({
   AvatarScene: ({ onReady }: { onReady?: () => void }) => {
     const firedRef = useRef(false);
     useEffect(() => {
@@ -34,7 +34,7 @@ vi.mock("../components/AvatarScene", () => ({
   },
 }));
 
-vi.mock("../components/AvatarSpeechBubble", () => ({
+vi.mock("../src/components/AvatarSpeechBubble", () => ({
   AvatarSpeechBubble: ({ text, active }: { text: string | null; active: boolean }) =>
     active && text ? <div role="status">{text}</div> : null,
 }));
@@ -48,7 +48,7 @@ vi.mock("../components/AvatarSpeechBubble", () => ({
 const voiceInputState = vi.hoisted(() => ({
   current: null as null | { onResult: (transcript: string) => void; disabled?: boolean },
 }));
-vi.mock("../components/VoiceInput", () => ({
+vi.mock("../src/components/VoiceInput", () => ({
   VoiceInput: (props: { onResult: (transcript: string) => void; disabled?: boolean }) => {
     voiceInputState.current = props;
     return <div data-testid="voice-input-stub" />;

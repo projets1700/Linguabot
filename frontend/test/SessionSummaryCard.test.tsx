@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SessionSummaryCard } from "./SessionSummaryCard";
-import type { SessionSummary } from "../types";
+import { SessionSummaryCard } from "../src/components/SessionSummaryCard";
+import type { SessionSummary } from "../src/types";
 
 function baseSummary(overrides: Partial<SessionSummary> = {}): SessionSummary {
   return {

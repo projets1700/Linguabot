@@ -2,12 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "../api/client";
-import { useAuthStore } from "../stores/authStore";
-import { RequireAuth } from "./RequireAuth";
-import type { Me } from "../types";
+import { api } from "../src/api/client";
+import { useAuthStore } from "../src/stores/authStore";
+import { RequireAuth } from "../src/components/RequireAuth";
+import type { Me } from "../src/types";
 
-vi.mock("../api/client", () => ({
+vi.mock("../src/api/client", () => ({
   api: { get: vi.fn() },
 }));
 

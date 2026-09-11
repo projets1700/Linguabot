@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { VoiceInput } from "./VoiceInput";
+import { VoiceInput } from "../src/components/VoiceInput";
 
 class MockSpeechRecognition implements Partial<SpeechRecognition> {
   lang = "";

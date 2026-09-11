@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "../api/client";
-import { HelpPanel } from "./HelpPanel";
-import type { CecrlProfile } from "../types";
+import { api } from "../src/api/client";
+import { HelpPanel } from "../src/components/HelpPanel";
+import type { CecrlProfile } from "../src/types";
 
-vi.mock("../api/client", () => ({
+vi.mock("../src/api/client", () => ({
   api: { post: vi.fn() },
 }));
 
