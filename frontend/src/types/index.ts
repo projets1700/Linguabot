@@ -57,7 +57,7 @@ export type QuizAttemptResult = {
   score: number;
   passed: boolean;
   xpEarned: number;
-  levelUp: boolean;
+  levelUp: LevelUpResult | null;
   userLevel: string;
   userTotalXp: number;
   newBadges: EarnedBadge[];

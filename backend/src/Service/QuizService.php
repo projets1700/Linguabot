@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\Level;
 use App\Entity\QuizAttempt;
 use App\Entity\QuizModule;
 use App\Entity\User;
@@ -32,7 +33,7 @@ final class QuizService
      *                                               see QuizController::answer()) before this
      *                                               attempt was submitted for that question
      *
-     * @return array{score: int, passed: bool, xpEarned: int, levelUp: bool}
+     * @return array{score: int, passed: bool, xpEarned: int, levelUp: array{code: string, name: string}|null}
      */
     public function submitAttempt(User $user, QuizModule $module, array $answers, array $helpedQuestionIds = []): array
     {
@@ -74,7 +75,7 @@ final class QuizService
 
         $user->setTotalXp($user->getTotalXp() + $xpEarned);
 
-        $levelUp = $passed && !$alreadyPassed && $this->maybeUnlockA1($user);
+        $levelUp = $passed && !$alreadyPassed ? $this->maybeUnlockA1($user) : null;
 
         $this->em->flush();
 
@@ -82,31 +83,31 @@ final class QuizService
             'score' => $score,
             'passed' => $passed,
             'xpEarned' => $xpEarned,
-            'levelUp' => $levelUp,
+            'levelUp' => null !== $levelUp ? ['code' => $levelUp->getCode(), 'name' => $levelUp->getName()] : null,
         ];
     }
 
-    private function maybeUnlockA1(User $user): bool
+    private function maybeUnlockA1(User $user): ?Level
     {
         if ('A0' !== $user->getLevel()->getCode()) {
-            return false;
+            return null;
         }
 
         // RG10: 4 of the 6 modules must be passed to unlock A1. The just-submitted
         // attempt hasn't been flushed yet, so count it in addition to prior passes.
         $passedCount = $this->attemptRepository->countDistinctPassedModules($user) + 1;
         if ($passedCount < self::MODULES_REQUIRED_FOR_A1) {
-            return false;
+            return null;
         }
 
         $levelA1 = $this->levelRepository->findOneBy(['code' => 'A1']);
         if (null === $levelA1) {
-            return false;
+            return null;
         }
 
         $user->setLevel($levelA1);
 
-        return true;
+        return $levelA1;
     }
 
     private function normalize(string $value): string

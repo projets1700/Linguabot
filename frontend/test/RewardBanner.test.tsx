@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { RewardBanner } from "../src/components/RewardBanner";
 
 describe("RewardBanner", () => {
@@ -30,6 +31,24 @@ describe("RewardBanner", () => {
 
   it("does not render anything when levelUp is null and there are no rewards", () => {
     const { container } = render(<RewardBanner badges={[]} trophies={[]} levelUp={null} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("announces itself via role=status/aria-live when a reward is shown", () => {
+    render(<RewardBanner badges={[{ code: "BADGE_FIRST_STEP", name: "Premier pas", icon: "🌟" }]} trophies={[]} />);
+
+    const region = screen.getByRole("status");
+    expect(region).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("hides everything once the close button is clicked", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <RewardBanner badges={[{ code: "BADGE_FIRST_STEP", name: "Premier pas", icon: "🌟" }]} trophies={[]} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Fermer" }));
 
     expect(container).toBeEmptyDOMElement();
   });

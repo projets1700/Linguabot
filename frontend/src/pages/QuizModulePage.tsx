@@ -201,12 +201,7 @@ export function QuizModulePage() {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
         <Card className="w-full max-w-md text-center">
-          {result.levelUp && (
-            <p className="bg-blue-600 rounded-lg py-2 mb-4 font-bold">
-              🎉 Niveau {result.userLevel} débloqué !
-            </p>
-          )}
-          <RewardBanner badges={result.newBadges} trophies={result.newTrophies} />
+          <RewardBanner badges={result.newBadges} trophies={result.newTrophies} levelUp={result.levelUp} />
           <h1 className="text-3xl font-bold mb-2">
             {result.passed ? "Module validé ✅" : "Module non validé"}
           </h1>

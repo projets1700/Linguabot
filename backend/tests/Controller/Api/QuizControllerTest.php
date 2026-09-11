@@ -80,7 +80,7 @@ final class QuizControllerTest extends ApiTestCase
         self::assertTrue($result['passed']);
         // 10 correct * 10 XP + 50 XP first-time module bonus (CDCF §3.6)
         self::assertSame(150, $result['xpEarned']);
-        self::assertFalse($result['levelUp']); // only 1 of the 4 required modules
+        self::assertNull($result['levelUp']); // only 1 of the 4 required modules
     }
 
     public function testRetryingAnAlreadyPassedModuleEarnsNoAdditionalXp(): void
@@ -188,7 +188,9 @@ final class QuizControllerTest extends ApiTestCase
             self::assertTrue($lastResult['passed'], "Module {$module['code']} was expected to pass: ".json_encode($lastResult));
         }
 
-        self::assertTrue($lastResult['levelUp'], 'Expected the 4th passed module to trigger the A0->A1 unlock: '.json_encode($lastResult));
+        self::assertNotNull($lastResult['levelUp'], 'Expected the 4th passed module to trigger the A0->A1 unlock: '.json_encode($lastResult));
+        self::assertSame('A1', $lastResult['levelUp']['code']);
+        self::assertNotEmpty($lastResult['levelUp']['name']);
         self::assertSame('A1', $lastResult['userLevel']);
     }
 
