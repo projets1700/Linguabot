@@ -146,6 +146,7 @@ final class SessionController
             $turnNumber,
             $levelInstruction,
             $learnerBlocked,
+            $levelCode,
         );
 
         $assistantMessage = (new SessionMessage())

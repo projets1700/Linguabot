@@ -260,4 +260,31 @@ final class CecrlProfileServiceTest extends TestCase
         // B2: the fewest interventions of all five.
         self::assertStringContainsString('Rarely interrupt', $b2);
     }
+
+    // --- aiCallTuning: conversational-reply temperature/maxTokens (V1.1 LOT 5) ---
+
+    public function testAiCallTuningIncreasesMaxTokensWithLevel(): void
+    {
+        $a0 = $this->service->aiCallTuning('A0');
+        $b2 = $this->service->aiCallTuning('B2');
+
+        self::assertLessThan($b2['maxTokens'], $a0['maxTokens']);
+        self::assertLessThanOrEqual($b2['temperature'], $a0['temperature']);
+    }
+
+    public function testAiCallTuningKeepsB2AtTheHistoricalDefaults(): void
+    {
+        $b2 = $this->service->aiCallTuning('B2');
+
+        self::assertSame(0.7, $b2['temperature']);
+        self::assertSame(250, $b2['maxTokens']);
+    }
+
+    public function testBuildConversationInstructionIsStableAcrossRepeatedCalls(): void
+    {
+        $first = $this->service->buildConversationInstruction('A1', 2, false);
+        $second = $this->service->buildConversationInstruction('A1', 2, false);
+
+        self::assertSame($first, $second);
+    }
 }

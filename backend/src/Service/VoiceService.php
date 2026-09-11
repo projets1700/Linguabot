@@ -67,8 +67,21 @@ final class VoiceService
      */
     private const BLOCKED_FALLBACK_REPLY = 'No problem! Try giving a short, simple answer - even one sentence is fine.';
 
+    /**
+     * Only what's sent to the AI is bounded (V1.1 LOT 5 §8.2) - the full
+     * history stays persisted (Session) or round-tripped by the frontend
+     * (Daily Challenge) either way, this only trims the array that goes
+     * into the prompt itself, keeping the last 6 exchanges of real
+     * context, which is plenty for a natural reply without letting a long
+     * conversation grow the request (and the latency that comes with it)
+     * without bound. Same idea LearningAidService::hint() already applies
+     * (its own, shorter -6 slice), just not previously reused here.
+     */
+    private const MAX_HISTORY_MESSAGES = 12;
+
     public function __construct(
         private readonly AiChatService $aiChatService,
+        private readonly CecrlProfileService $cecrlProfileService,
     ) {
     }
 
@@ -106,17 +119,23 @@ final class VoiceService
      * @param array<int, array{role: string, content: string}> $conversationHistory {role, content} pairs, oldest first, already including the learner's latest message
      * @param ?string $levelInstruction CECRL-level prompt prefix from CecrlProfileService::buildSystemPromptPrefix()/buildConversationInstruction() - prepended, never replacing $systemPrompt, so scenario authors' prompts keep working unchanged
      * @param bool $learnerBlocked Whether this turn was flagged by the frontend's detectLearnerBlock() - only changes which fallback is used when the AI itself is unavailable (see BLOCKED_FALLBACK_REPLY); has no effect when a real AI reply comes back
+     * @param string $levelCode CECRL level code driving temperature/maxTokens (CecrlProfileService::aiCallTuning(), V1.1 LOT 5) - defaults to 'A0' only so existing calls that predate this parameter keep compiling
      */
-    public function generateAnswer(string $systemPrompt, array $conversationHistory, int $turnNumber, ?string $levelInstruction = null, bool $learnerBlocked = false): string
+    public function generateAnswer(string $systemPrompt, array $conversationHistory, int $turnNumber, ?string $levelInstruction = null, bool $learnerBlocked = false, string $levelCode = 'A0'): string
     {
         $fullSystemPrompt = null !== $levelInstruction
             ? $levelInstruction."\n\n".$systemPrompt
             : $systemPrompt;
 
-        $reply = $this->aiChatService->chat([
-            ['role' => 'system', 'content' => $fullSystemPrompt],
-            ...$conversationHistory,
-        ]);
+        $tuning = $this->cecrlProfileService->aiCallTuning($levelCode);
+        $reply = $this->aiChatService->chat(
+            [
+                ['role' => 'system', 'content' => $fullSystemPrompt],
+                ...\array_slice($conversationHistory, -self::MAX_HISTORY_MESSAGES),
+            ],
+            $tuning['temperature'],
+            $tuning['maxTokens'],
+        );
 
         if (null !== $reply) {
             return $reply;

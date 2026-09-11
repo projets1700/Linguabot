@@ -1,6 +1,7 @@
 monolog:
     channels:
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+        - ai # AiChatService call timing (V1.1 LOT 5)
 
 when@dev:
     monolog:

@@ -6,6 +6,7 @@ use App\Entity\Level;
 use App\Entity\Scenario;
 use App\Enum\ScenarioCategory;
 use App\Service\AiChatService;
+use App\Service\CecrlProfileService;
 use App\Service\VoiceService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -22,7 +23,10 @@ final class VoiceServiceTest extends TestCase
         // without any HTTP call, so generateAnswer() always exercises its
         // simulated fallback in these tests (the AI-path itself is covered
         // separately, with a mocked response).
-        $this->service = new VoiceService(new AiChatService(new MockHttpClient(), '', 'https://example.test/chat', 'gpt-4o-mini'));
+        $this->service = new VoiceService(
+            new AiChatService(new MockHttpClient(), '', 'https://example.test/chat', 'gpt-4o-mini'),
+            new CecrlProfileService(),
+        );
     }
 
     public function testOpeningMessageIncludesTheCharacterName(): void
@@ -105,7 +109,10 @@ final class VoiceServiceTest extends TestCase
                 'choices' => [['message' => ['content' => 'A real, contextual reply about breakfast.']]],
             ])),
         ]);
-        $service = new VoiceService(new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'));
+        $service = new VoiceService(
+            new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'),
+            new CecrlProfileService(),
+        );
 
         $reply = $service->generateAnswer('system prompt', [
             ['role' => 'user', 'content' => "I don't know."],
@@ -121,7 +128,10 @@ final class VoiceServiceTest extends TestCase
                 'choices' => [['message' => ['content' => 'A real, contextual GPT-4o reply.']]],
             ])),
         ]);
-        $service = new VoiceService(new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'));
+        $service = new VoiceService(
+            new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'),
+            new CecrlProfileService(),
+        );
 
         $reply = $service->generateAnswer('You are a friendly waiter.', [
             ['role' => 'user', 'content' => "I'd like a coffee, please."],
@@ -141,7 +151,10 @@ final class VoiceServiceTest extends TestCase
                 'choices' => [['message' => ['content' => 'A reply.']]],
             ]));
         });
-        $service = new VoiceService(new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'));
+        $service = new VoiceService(
+            new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'),
+            new CecrlProfileService(),
+        );
 
         $service->generateAnswer('You are a friendly waiter.', [
             ['role' => 'user', 'content' => "I'd like a coffee, please."],
@@ -156,6 +169,54 @@ final class VoiceServiceTest extends TestCase
         $reply = $this->service->generateAnswer('system prompt', [], 0);
 
         self::assertNotEmpty($reply);
+    }
+
+    public function testGenerateAnswerSendsThePerLevelTemperatureAndMaxTokens(): void
+    {
+        $capturedBody = null;
+        $mockClient = new MockHttpClient(function (string $method, string $url, array $options) use (&$capturedBody): MockResponse {
+            $body = $options['body'] ?? null;
+            $capturedBody = json_decode(\is_string($body) ? $body : json_encode($options['json'] ?? []), true);
+
+            return new MockResponse(json_encode(['choices' => [['message' => ['content' => 'A reply.']]]]));
+        });
+        $service = new VoiceService(
+            new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'),
+            new CecrlProfileService(),
+        );
+
+        $service->generateAnswer('system prompt', [], 0, null, false, 'A0');
+
+        // Matches CecrlProfileService::aiCallTuning('A0') exactly.
+        self::assertSame(0.6, $capturedBody['temperature']);
+        self::assertSame(100, $capturedBody['max_tokens']);
+    }
+
+    public function testGenerateAnswerTrimsTheHistorySentToTheAiToTheLastMessages(): void
+    {
+        $capturedMessages = null;
+        $mockClient = new MockHttpClient(function (string $method, string $url, array $options) use (&$capturedMessages): MockResponse {
+            $body = $options['body'] ?? null;
+            $capturedMessages = json_decode(\is_string($body) ? $body : json_encode($options['json'] ?? []), true)['messages'] ?? [];
+
+            return new MockResponse(json_encode(['choices' => [['message' => ['content' => 'A reply.']]]]));
+        });
+        $service = new VoiceService(
+            new AiChatService($mockClient, 'fake-key', 'https://example.test/chat', 'gpt-4o-mini'),
+            new CecrlProfileService(),
+        );
+
+        $history = [];
+        for ($i = 0; $i < 20; ++$i) {
+            $history[] = ['role' => 0 === $i % 2 ? 'user' : 'assistant', 'content' => "message {$i}"];
+        }
+
+        $service->generateAnswer('system prompt', $history, 0);
+
+        // 1 system message + the last 12 of the 20 history messages (message 8..19).
+        self::assertCount(13, $capturedMessages);
+        self::assertSame('message 8', $capturedMessages[1]['content']);
+        self::assertSame('message 19', $capturedMessages[12]['content']);
     }
 
     #[DataProvider('repeatRequestProvider')]

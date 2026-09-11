@@ -144,7 +144,14 @@ final class DailyChallengeController
 
         return new JsonResponse([
             'userTranscript' => $transcript,
-            'assistantMessage' => $voiceService->generateAnswer($systemPrompt, $conversationHistory, $turnNumber, $levelInstruction, $learnerBlocked),
+            'assistantMessage' => $voiceService->generateAnswer(
+                $systemPrompt,
+                $conversationHistory,
+                $turnNumber,
+                $levelInstruction,
+                $learnerBlocked,
+                $user->getLevel()->getCode(),
+            ),
         ]);
     }
 

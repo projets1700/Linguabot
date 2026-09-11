@@ -2,6 +2,10 @@
 
 namespace App\Service;
 
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+
 /**
  * Single source of truth for how much help a learner gets, driven purely by
  * their CECRL level (A0-B2) - deterministic and identical for every learner
@@ -20,10 +24,17 @@ namespace App\Service;
  *     summaryReviewPoints: int,
  *     summaryExpressions: int,
  *     supportGuidance: string,
+ *     aiTemperature: float,
+ *     aiMaxTokens: int,
  * }
  */
 final class CecrlProfileService
 {
+    public function __construct(
+        private readonly CacheInterface $cache = new ArrayAdapter(),
+    ) {
+    }
+
     /**
      * Appended to supportGuidance only for the specific turn where the
      * learner explicitly signaled they're stuck (frontend's
@@ -79,6 +90,8 @@ final class CecrlProfileService
                 'warmly with a very short, simple example sentence - never leave them stuck for long. If their '.
                 'answer has a grammar error, do not point it out unless it truly blocks understanding - keep '.
                 'the conversation moving.',
+            'aiTemperature' => 0.6,
+            'aiMaxTokens' => 100,
         ],
         'A1' => [
             'questionCountMax' => 7,
@@ -95,6 +108,8 @@ final class CecrlProfileService
             'supportGuidance' => 'Offer help often when the learner seems stuck, with a simple example sentence. '.
                 'Reformulate an answer fairly visibly, as a short teaching moment, when the error is obvious and '.
                 'simple to fix, then move on.',
+            'aiTemperature' => 0.6,
+            'aiMaxTokens' => 140,
         ],
         'A2' => [
             'questionCountMax' => 9,
@@ -111,6 +126,8 @@ final class CecrlProfileService
             'supportGuidance' => 'Offer help when the learner seems stuck, with a short example. Let the '.
                 'learner develop their own answer rather than jumping in - reformulate mainly when the error is '.
                 'significant, briefly and without dwelling on it.',
+            'aiTemperature' => 0.65,
+            'aiMaxTokens' => 180,
         ],
         'B1' => [
             'questionCountMax' => 12,
@@ -126,6 +143,8 @@ final class CecrlProfileService
             'supportGuidance' => 'Offer help mostly when asked, rather than proactively. Only correct an error '.
                 'that is significant or that keeps recurring in this turn - prioritize the flow of the '.
                 'conversation over precision.',
+            'aiTemperature' => 0.7,
+            'aiMaxTokens' => 220,
         ],
         'B2' => [
             'questionCountMax' => 15,
@@ -142,6 +161,8 @@ final class CecrlProfileService
             'supportGuidance' => 'Rarely interrupt. Only offer a correction for a genuinely significant error, a '.
                 'distinctly unnatural phrasing, or real ambiguity, phrased briefly. Prioritize natural, fluent '.
                 'conversation over correction.',
+            'aiTemperature' => 0.7,
+            'aiMaxTokens' => 250,
         ],
     ];
 
@@ -181,6 +202,30 @@ final class CecrlProfileService
     public function complexityInstruction(string $levelCode): string
     {
         return $this->forLevelCode($levelCode)['aiComplexityInstruction'];
+    }
+
+    /**
+     * Conversational-reply tuning for AiChatService::chat() (V1.1 LOT 5
+     * §8.2) - lower levels get a smaller maxTokens (the real latency lever:
+     * generation time scales with the number of tokens produced, and short
+     * replies are also what aiComplexityInstruction already asks for at
+     * those levels) and a slightly lower temperature (more predictable
+     * output). B2 keeps the values AiChatService::chat() already defaulted
+     * to, so the most advanced/least error-tolerant level is unchanged.
+     * Hint/translate/summary calls have their own separate tuning
+     * (LearningAidService/SessionSummaryService) - not this method, which
+     * only covers VoiceService::generateAnswer()'s conversational replies.
+     *
+     * @return array{temperature: float, maxTokens: int}
+     */
+    public function aiCallTuning(string $levelCode): array
+    {
+        $profile = $this->forLevelCode($levelCode);
+
+        return [
+            'temperature' => $profile['aiTemperature'],
+            'maxTokens' => $profile['aiMaxTokens'],
+        ];
     }
 
     /**
@@ -261,10 +306,25 @@ final class CecrlProfileService
      */
     public function buildConversationInstruction(string $levelCode, int $turnNumber, bool $learnerBlocked): string
     {
-        return implode("\n\n", [
-            'CECRL behavior: '.$this->buildSystemPromptPrefix($levelCode, $turnNumber),
-            'Correction policy: '.self::CORRECTION_POLICY_INSTRUCTION,
-            $this->buildSupportInstruction($levelCode, $learnerBlocked),
-        ]);
+        // Fully deterministic given just these 3 scalars (V1.1 LOT 5 §8.2:
+        // cache only stable/deterministic elements, never anything
+        // personalized) - turnNumber only ever matters here through the
+        // questionCountMax threshold it crosses, so the key collapses it to
+        // that boolean instead of caching one entry per raw turn number.
+        $profile = $this->forLevelCode($levelCode);
+        $key = sprintf(
+            'cecrl_instruction.%s.%s.%s',
+            $levelCode,
+            $turnNumber >= $profile['questionCountMax'] ? '1' : '0',
+            $learnerBlocked ? '1' : '0',
+        );
+
+        return $this->cache->get($key, function (ItemInterface $item) use ($levelCode, $turnNumber, $learnerBlocked): string {
+            return implode("\n\n", [
+                'CECRL behavior: '.$this->buildSystemPromptPrefix($levelCode, $turnNumber),
+                'Correction policy: '.self::CORRECTION_POLICY_INSTRUCTION,
+                $this->buildSupportInstruction($levelCode, $learnerBlocked),
+            ]);
+        });
     }
 }
