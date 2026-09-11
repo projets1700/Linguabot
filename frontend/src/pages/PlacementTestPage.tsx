@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useEffect, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
@@ -8,6 +9,7 @@ import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
+import { normalizeApiError, type ApiError } from "../lib/apiError";
 import { detectLearnerBlock } from "../lib/detectLearnerBlock";
 import { useAuthStore } from "../stores/authStore";
 import type {
@@ -40,11 +42,16 @@ export function PlacementTestPage() {
   const fetchMe = useAuthStore((state) => state.fetchMe);
 
   const [test, setTest] = useState<PlacementTestDetail | null>(null);
+  const [loadError, setLoadError] = useState<ApiError | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [totalQuestions, setTotalQuestions] = useState(5);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState(false);
+  const [sendError, setSendError] = useState<ApiError | null>(null);
+  // The transcript behind the current sendError, so "Réessayer" can resend
+  // the exact same turn without the learner repeating it by voice (V1.1 §4.3).
+  const [failedTranscript, setFailedTranscript] = useState<string | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<PlacementTestFinishResult | null>(null);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -63,6 +70,7 @@ export function PlacementTestPage() {
     // same reasoning as SessionPage: without `ignore`, a stale second
     // "start" call could clobber messages from the first.
     let ignore = false;
+    setLoadError(null);
 
     api
       .post<PlacementTestDetail>("/placement-test/start")
@@ -78,14 +86,21 @@ export function PlacementTestPage() {
           }
         }
       })
-      .catch(() => {
-        // Already completed (e.g. a stale bookmark, or landing here via a
-        // race RequireAuth has since been fixed to avoid): nothing left to
-        // do here, send them on to the dashboard instead of hanging on a
-        // permanent "Chargement..." spinner.
-        if (!ignore) {
+      .catch((error) => {
+        if (ignore) return;
+
+        // A 422 here only ever means "already completed" (e.g. a stale
+        // bookmark, or landing here via a race RequireAuth has since been
+        // fixed to avoid) - PlacementTestController::start() returns 422 for
+        // no other reason. Anything else (offline/timeout/5xx) must NOT
+        // silently bounce the learner away (V1.1 §4.5) - show a retryable
+        // error instead of hanging on/leaving a permanent "Chargement..." spinner.
+        if (axios.isAxiosError(error) && 422 === error.response?.status) {
           navigate("/dashboard");
+          return;
         }
+
+        setLoadError(normalizeApiError(error));
       });
 
     return () => {
@@ -93,9 +108,10 @@ export function PlacementTestPage() {
     };
     // navigate is stable (react-router) and speakAssistantLine comes from
     // useConversationSession() - neither should retrigger this fetch, which
-    // only ever needs to run once on mount, same reasoning as SessionPage.
+    // only ever needs to run once on mount (or on an explicit retry), same
+    // reasoning as SessionPage.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [retryCount]);
 
   async function finishTest(testId: number) {
     setFinishing(true);
@@ -114,14 +130,15 @@ export function PlacementTestPage() {
     }
   }
 
-  async function handleVoiceResult(transcript: string) {
+  // Split from handleVoiceResult below so a failed send can be retried with
+  // the exact same transcript (from the ErrorBanner's "Réessayer") without
+  // adding a second user bubble or requiring a new voice turn.
+  async function sendMessage(transcript: string) {
     if (!test) return;
 
     setSending(true);
-    setSendError(false);
+    setSendError(null);
     setAvatarState("thinking");
-    const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
-    setMessages((current) => [...current, userMessage]);
 
     // Same detection as every other AI page (detectLearnerBlock.ts), but the
     // placement test is a graded evaluation: the backend only adds a warm,
@@ -133,7 +150,7 @@ export function PlacementTestPage() {
     try {
       const response = await api.post<PlacementTestMessageResult>(
         `/placement-test/${test.id}/message`,
-        { message: userMessage.content, learnerBlocked: blocked },
+        { message: transcript, learnerBlocked: blocked },
       );
       setMessages((current) => [
         ...current,
@@ -141,19 +158,39 @@ export function PlacementTestPage() {
       ]);
       setAnsweredCount(response.data.answeredCount);
       speakAssistantLine(response.data.assistantMessage);
+      setFailedTranscript(null);
 
       if (response.data.readyToFinish) {
         await finishTest(test.id);
       }
-    } catch {
+    } catch (error) {
       setAvatarState("idle");
-      setSendError(true);
+      setSendError(normalizeApiError(error));
+      setFailedTranscript(transcript);
     } finally {
       setSending(false);
     }
   }
 
+  function handleVoiceResult(transcript: string) {
+    if (!test) return;
+
+    const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
+    setMessages((current) => [...current, userMessage]);
+    return sendMessage(transcript);
+  }
+
   if (!test) {
+    if (loadError) {
+      return (
+        <main className="min-h-screen bg-slate-950 text-white p-8 flex items-center justify-center">
+          <ErrorBanner
+            message={loadError.message}
+            onRetry={loadError.retryable ? () => setRetryCount((count) => count + 1) : undefined}
+          />
+        </main>
+      );
+    }
     return <LoadingScreen />;
   }
 
@@ -283,7 +320,12 @@ export function PlacementTestPage() {
             </button>
           </div>
 
-          {sendError && <ErrorBanner message="Échec de l'envoi de la réponse. Réessaie en parlant à nouveau." />}
+          {sendError && (
+            <ErrorBanner
+              message={sendError.message}
+              onRetry={sendError.retryable && failedTranscript ? () => sendMessage(failedTranscript) : undefined}
+            />
+          )}
 
           <p className="text-xs text-white/40 text-center">
             Ce test est obligatoire une seule fois, juste après ton inscription.

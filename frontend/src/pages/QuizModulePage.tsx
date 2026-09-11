@@ -10,6 +10,7 @@ import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
+import { normalizeApiError, type ApiError } from "../lib/apiError";
 import { detectLearnerBlock } from "../lib/detectLearnerBlock";
 import { buildBlockedHelpMessage, buildHelpAvailableMessage, buildSpokenQuizQuestion } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
@@ -20,7 +21,7 @@ export function QuizModulePage() {
   const user = useAuthStore((state) => state.user);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ApiError | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -29,7 +30,12 @@ export function QuizModulePage() {
   // not score the same as answering unaided (see QuizService::submitAttempt).
   const [helpedQuestionIds, setHelpedQuestionIds] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(false);
+  const [submitError, setSubmitError] = useState<ApiError | null>(null);
+  // The exact answers behind the current submitError, so "Réessayer" can
+  // resend the same final attempt without the learner re-answering every
+  // question (V1.1 §4.3).
+  const [lastSubmitAnswers, setLastSubmitAnswers] = useState<Record<number, string> | null>(null);
+  const [helpError, setHelpError] = useState<ApiError | null>(null);
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
   const [showQuestionText, setShowQuestionText] = useState(false);
   // Per-question: B1/B2 (helpVisibleByDefault === false) must not reveal the
@@ -56,15 +62,15 @@ export function QuizModulePage() {
     // `questions` had genuinely changed and re-fire speakText a second time
     // mid-utterance, which is what left the avatar's mouth stuck frozen.
     let ignore = false;
-    setLoadError(false);
+    setLoadError(null);
 
     api
       .get<QuizQuestion[]>(`/quiz/modules/${moduleId}/questions`)
       .then((response) => {
         if (!ignore) setQuestions(response.data);
       })
-      .catch(() => {
-        if (!ignore) setLoadError(true);
+      .catch((error) => {
+        if (!ignore) setLoadError(normalizeApiError(error));
       })
       .finally(() => {
         if (!ignore) setLoading(false);
@@ -90,6 +96,7 @@ export function QuizModulePage() {
       speakAssistantLine(buildSpokenQuizQuestion(questions[currentIndex].questionText));
       setShowQuestionText(false);
       setHelpUnlocked(false);
+      setHelpError(null);
     }
     // speakAssistantLine comes from useConversationSession() and must not
     // retrigger this effect on its own.
@@ -98,14 +105,43 @@ export function QuizModulePage() {
 
   async function revealAnswer(question: QuizQuestion) {
     setAvatarState("thinking");
+    setHelpError(null);
     try {
       const { data } = await api.get<{ answer: string }>(`/quiz/questions/${question.id}/answer`);
       speakAssistantLine(buildBlockedHelpMessage(data.answer));
       setHelpedQuestionIds((current) =>
         current.includes(question.id) ? current : [...current, question.id],
       );
-    } catch {
+    } catch (error) {
       setAvatarState("idle");
+      setHelpError(normalizeApiError(error));
+    }
+  }
+
+  // Split out so a failed submit can be retried with the exact same answers
+  // (from the ErrorBanner's "Réessayer") without the learner re-answering
+  // every question.
+  async function submitAttempt(finalAnswers: Record<number, string>) {
+    setSubmitting(true);
+    setSubmitError(null);
+    setAvatarState("thinking");
+    try {
+      const response = await api.post<QuizAttemptResult>("/quiz/attempts", {
+        moduleId: Number(moduleId),
+        answers: finalAnswers,
+        helpedQuestionIds,
+      });
+      setResult(response.data);
+      setLastSubmitAnswers(null);
+    } catch (error) {
+      // Network/API failure: without this, `submitting` stayed true forever
+      // and the mic (disabled while submitting) never came back - the quiz
+      // was permanently stuck on its last question.
+      setSubmitError(normalizeApiError(error));
+      setLastSubmitAnswers(finalAnswers);
+      setAvatarState("idle");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -139,25 +175,7 @@ export function QuizModulePage() {
       return;
     }
 
-    setSubmitting(true);
-    setSubmitError(false);
-    setAvatarState("thinking");
-    try {
-      const response = await api.post<QuizAttemptResult>("/quiz/attempts", {
-        moduleId: Number(moduleId),
-        answers: nextAnswers,
-        helpedQuestionIds,
-      });
-      setResult(response.data);
-    } catch {
-      // Network/API failure: without this, `submitting` stayed true forever
-      // and the mic (disabled while submitting) never came back - the quiz
-      // was permanently stuck on its last question.
-      setSubmitError(true);
-      setAvatarState("idle");
-    } finally {
-      setSubmitting(false);
-    }
+    return submitAttempt(nextAnswers);
   }
 
   if (loading) {
@@ -172,8 +190,8 @@ export function QuizModulePage() {
     return (
       <main className="min-h-screen bg-slate-950 text-white p-8 flex items-center justify-center">
         <ErrorBanner
-          message="Impossible de charger les questions de ce module."
-          onRetry={() => setRetryCount((count) => count + 1)}
+          message={loadError?.message ?? "Impossible de charger les questions de ce module."}
+          onRetry={!loadError || loadError.retryable ? () => setRetryCount((count) => count + 1) : undefined}
         />
       </main>
     );
@@ -246,6 +264,12 @@ export function QuizModulePage() {
             💡 Afficher la réponse
           </Button>
         )}
+        {helpError && (
+          <ErrorBanner
+            message={helpError.message}
+            onRetry={helpError.retryable ? () => revealAnswer(question) : undefined}
+          />
+        )}
 
         {/* The mic must stay off while the AI is talking, otherwise it can
             pick its own voice back up through the speakers and "answer its
@@ -253,7 +277,14 @@ export function QuizModulePage() {
         <VoiceInput onResult={handleVoiceAnswer} disabled={submitting || avatarState === "speaking" || avatarState === "thinking"} />
 
         {submitting && <p className="text-slate-400 text-sm text-center">Envoi...</p>}
-        {submitError && <ErrorBanner message="Échec de l'envoi. Réponds à nouveau pour réessayer." />}
+        {submitError && (
+          <ErrorBanner
+            message={submitError.message}
+            onRetry={
+              submitError.retryable && lastSubmitAnswers ? () => submitAttempt(lastSubmitAnswers) : undefined
+            }
+          />
+        )}
       </Card>
     </main>
   );

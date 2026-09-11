@@ -11,6 +11,7 @@ import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
+import { normalizeApiError, type ApiError } from "../lib/apiError";
 import { detectLearnerBlock } from "../lib/detectLearnerBlock";
 import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge, DailyChallengeFinishResult } from "../types";
@@ -20,11 +21,18 @@ type ChatMessage = { id: number; role: "user" | "assistant"; content: string };
 export function DailyChallengePage() {
   const user = useAuthStore((state) => state.user);
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ApiError | null>(null);
   const [chatStarted, setChatStarted] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState(false);
+  const [sendError, setSendError] = useState<ApiError | null>(null);
+  // The exact request behind the current sendError, so "Réessayer" can
+  // resend it verbatim without the learner repeating it by voice (V1.1 §4.3).
+  const [failedSend, setFailedSend] = useState<{
+    transcript: string;
+    turnNumber: number;
+    history: { role: string; content: string }[];
+  } | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<DailyChallengeFinishResult | null>(null);
   // Sticky once true - see the identical helpUnlocked comment in SessionPage.tsx.
@@ -39,11 +47,11 @@ export function DailyChallengePage() {
   } = useConversationSession();
 
   function loadChallenge() {
-    setLoadError(false);
+    setLoadError(null);
     api
       .get<DailyChallenge>("/daily-challenge")
       .then((response) => setChallenge(response.data))
-      .catch(() => setLoadError(true));
+      .catch((error) => setLoadError(normalizeApiError(error)));
   }
 
   useEffect(() => {
@@ -59,18 +67,13 @@ export function DailyChallengePage() {
     speakAssistantLine(response.data.openingMessage);
   }
 
-  async function handleVoiceResult(transcript: string) {
+  // Split from handleVoiceResult below so a failed send can be retried with
+  // the exact same request (transcript/turnNumber/history) without adding a
+  // second user bubble or requiring a new voice turn.
+  async function sendMessage(transcript: string, turnNumber: number, history: { role: string; content: string }[]) {
     setSending(true);
-    setSendError(false);
+    setSendError(null);
     setAvatarState("thinking");
-    const userMessage: ChatMessage = { id: Date.now(), role: "user", content: transcript };
-    const turnNumber = messages.filter((m) => m.role === "user").length;
-    // The backend doesn't persist this conversation, so it has no way to
-    // know what was already said - the frontend (which does render the
-    // full transcript) is the source of truth it needs for real GPT-4o
-    // replies and for detecting an echo/repeat request server-side.
-    const history = messages.map(({ role, content }) => ({ role, content }));
-    setMessages((current) => [...current, userMessage]);
 
     // A deterministic "I'm stuck" detection, not a grammar/quality judgment
     // (see detectLearnerBlock.ts) - same signal SessionPage sends, so the
@@ -81,7 +84,7 @@ export function DailyChallengePage() {
 
     try {
       const response = await api.post<{ assistantMessage: string }>("/daily-challenge/message", {
-        message: userMessage.content,
+        message: transcript,
         turnNumber,
         history,
         learnerBlocked: blocked,
@@ -91,6 +94,7 @@ export function DailyChallengePage() {
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
       speakAssistantLine(response.data.assistantMessage);
+      setFailedSend(null);
     } catch (error) {
       // A 422 is an expected rejection (e.g. echo detection): nothing to
       // say, the mic just resumes listening for a real answer. Anything
@@ -99,11 +103,24 @@ export function DailyChallengePage() {
       const status = (error as { response?: { status?: number } }).response?.status;
       setAvatarState("idle");
       if (status !== 422) {
-        setSendError(true);
+        setSendError(normalizeApiError(error));
+        setFailedSend({ transcript, turnNumber, history });
       }
     } finally {
       setSending(false);
     }
+  }
+
+  function handleVoiceResult(transcript: string) {
+    const userMessage: ChatMessage = { id: Date.now(), role: "user", content: transcript };
+    const turnNumber = messages.filter((m) => m.role === "user").length;
+    // The backend doesn't persist this conversation, so it has no way to
+    // know what was already said - the frontend (which does render the
+    // full transcript) is the source of truth it needs for real GPT-4o
+    // replies and for detecting an echo/repeat request server-side.
+    const history = messages.map(({ role, content }) => ({ role, content }));
+    setMessages((current) => [...current, userMessage]);
+    return sendMessage(transcript, turnNumber, history);
   }
 
   async function handleFinish() {
@@ -120,7 +137,10 @@ export function DailyChallengePage() {
     if (loadError) {
       return (
         <main className="min-h-screen bg-slate-950 text-white p-8 flex items-center justify-center">
-          <ErrorBanner message="Impossible de charger le défi du jour." onRetry={loadChallenge} />
+          <ErrorBanner
+            message={loadError.message}
+            onRetry={loadError.retryable ? loadChallenge : undefined}
+          />
         </main>
       );
     }
@@ -215,7 +235,14 @@ export function DailyChallengePage() {
 
           {sendError && (
             <div className="mb-4">
-              <ErrorBanner message="Échec de l'envoi du message. Réessaie en parlant à nouveau." />
+              <ErrorBanner
+                message={sendError.message}
+                onRetry={
+                  sendError.retryable && failedSend
+                    ? () => sendMessage(failedSend.transcript, failedSend.turnNumber, failedSend.history)
+                    : undefined
+                }
+              />
             </div>
           )}
 

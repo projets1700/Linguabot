@@ -23,11 +23,13 @@ import { AdminGamificationPage } from "./pages/admin/AdminGamificationPage";
 import { AdminLogsPage } from "./pages/admin/AdminLogsPage";
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireAdmin } from "./components/RequireAdmin";
+import { ToastViewport } from "./components/ui/Toast";
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <>
+      <BrowserRouter>
+        <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -181,7 +183,9 @@ export default function App() {
           }
         />
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+      <ToastViewport />
+    </>
   );
 }

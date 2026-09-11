@@ -2,6 +2,10 @@ import axios from "axios";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8080/api",
+  // Generous enough for an AI reply under normal load, but bounded so a
+  // hung connection surfaces as a retryable timeout (see lib/apiError.ts)
+  // instead of leaving a page stuck on "..." forever.
+  timeout: 20000,
 });
 
 // Auth endpoints must stay anonymous: they're PUBLIC_ACCESS on the backend,

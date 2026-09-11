@@ -251,3 +251,84 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
     expect(screen.queryByRole("button", { name: /Afficher la réponse/ })).not.toBeInTheDocument();
   });
 });
+
+describe("QuizModulePage - retry without re-answering on submit failure (LOT 1)", () => {
+  beforeEach(() => {
+    voiceInputState.current = null;
+    mockQuizApi();
+    useAuthStore.setState({
+      user: baseUser({ transcriptMode: "auto", translationMode: "visible", hintMode: "fullAnswer", helpVisibleByDefault: true }),
+    });
+
+    speak = vi.fn();
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        speak,
+        cancel: vi.fn(),
+        getVoices: vi.fn().mockReturnValue([fakeVoice("Test Voice")]),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+    });
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      class implements FakeUtterance {
+        text: string;
+        lang = "";
+        onstart: (() => void) | null = null;
+        onend: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        constructor(text: string) {
+          this.text = text;
+        }
+      },
+    );
+  });
+
+  afterEach(() => {
+    // @ts-expect-error test-only cleanup of a property defined above
+    delete window.speechSynthesis;
+    vi.unstubAllGlobals();
+    apiGetSpy.mockRestore();
+    apiPostSpy.mockRestore();
+  });
+
+  it("retries the exact same answers on click, without requiring the learner to re-answer", async () => {
+    apiPostSpy.mockRejectedValueOnce({ isAxiosError: true, response: { status: 500 } });
+
+    renderQuizModulePage();
+    await waitFor(() => expect(speak).toHaveBeenCalled());
+    await endLatestSpeech();
+
+    await act(async () => {
+      await voiceInputState.current?.onResult("hello");
+    });
+    await endLatestSpeech();
+
+    await act(async () => {
+      await voiceInputState.current?.onResult("thank you");
+    });
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.getByText(/Question 2 \/ 2/)).toBeInTheDocument();
+
+    const expectedAnswers = { 101: "hello", 102: "thank you" };
+    expect(apiPostSpy).toHaveBeenCalledWith(
+      "/quiz/attempts",
+      expect.objectContaining({ answers: expectedAnswers }),
+    );
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Réessayer" }).click();
+    });
+
+    await waitFor(() =>
+      expect(apiPostSpy).toHaveBeenLastCalledWith(
+        "/quiz/attempts",
+        expect.objectContaining({ answers: expectedAnswers }),
+      ),
+    );
+    await waitFor(() => expect(screen.getByText("Module validé ✅")).toBeInTheDocument());
+  });
+});

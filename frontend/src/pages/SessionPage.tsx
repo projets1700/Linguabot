@@ -14,6 +14,7 @@ import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
+import { normalizeApiError, type ApiError } from "../lib/apiError";
 import { detectLearnerBlock } from "../lib/detectLearnerBlock";
 import { selectPracticeSentence } from "../lib/selectPracticeSentence";
 import { useAuthStore } from "../stores/authStore";
@@ -23,11 +24,15 @@ export function SessionPage() {
   const { id } = useParams<{ id: string }>();
   const user = useAuthStore((state) => state.user);
   const [session, setSession] = useState<SessionDetail | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ApiError | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState(false);
+  const [sendError, setSendError] = useState<ApiError | null>(null);
+  // The transcript behind the current sendError, so "Réessayer" can resend
+  // the exact same turn without the learner repeating it by voice (V1.1
+  // §4.3) - cleared on a successful send, kept across a failed retry.
+  const [failedTranscript, setFailedTranscript] = useState<string | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<SessionFinishResult | null>(null);
   // Sticky once true: B1/B2 profiles keep HelpPanel hidden until the
@@ -50,7 +55,7 @@ export function SessionPage() {
     // without `ignore`, the first (discarded) run's late-resolving fetch
     // would overwrite messages already sent under the second run.
     let ignore = false;
-    setLoadError(false);
+    setLoadError(null);
 
     api
       .get<SessionDetail>(`/sessions/${id}`)
@@ -90,8 +95,8 @@ export function SessionPage() {
           speakAssistantLine(opening.content);
         }
       })
-      .catch(() => {
-        if (!ignore) setLoadError(true);
+      .catch((error) => {
+        if (!ignore) setLoadError(normalizeApiError(error));
       });
 
     return () => {
@@ -106,12 +111,13 @@ export function SessionPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function handleVoiceResult(transcript: string) {
+  // Split from handleVoiceResult below so a failed send can be retried with
+  // the exact same transcript (from the ErrorBanner's "Réessayer") without
+  // adding a second user bubble or requiring a new voice turn.
+  async function sendMessage(transcript: string) {
     setSending(true);
-    setSendError(false);
+    setSendError(null);
     setAvatarState("thinking");
-    const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
-    setMessages((current) => [...current, userMessage]);
 
     // A deterministic "I'm stuck" detection, not a grammar/quality judgment
     // (see detectLearnerBlock.ts) - tells the backend to have the AI offer
@@ -122,19 +128,27 @@ export function SessionPage() {
     try {
       const response = await api.post<{ userTranscript: string; assistantMessage: string }>(
         `/sessions/${id}/message`,
-        { message: userMessage.content, learnerBlocked: blocked },
+        { message: transcript, learnerBlocked: blocked },
       );
       setMessages((current) => [
         ...current,
         { id: Date.now() + 1, role: "assistant", content: response.data.assistantMessage },
       ]);
       speakAssistantLine(response.data.assistantMessage);
-    } catch {
+      setFailedTranscript(null);
+    } catch (error) {
       setAvatarState("idle");
-      setSendError(true);
+      setSendError(normalizeApiError(error));
+      setFailedTranscript(transcript);
     } finally {
       setSending(false);
     }
+  }
+
+  function handleVoiceResult(transcript: string) {
+    const userMessage: SessionMessage = { id: Date.now(), role: "user", content: transcript };
+    setMessages((current) => [...current, userMessage]);
+    return sendMessage(transcript);
   }
 
   async function handleFinish() {
@@ -152,8 +166,8 @@ export function SessionPage() {
       return (
         <main className="min-h-screen bg-slate-950 text-white p-8 flex items-center justify-center">
           <ErrorBanner
-            message="Impossible de charger la session."
-            onRetry={() => setRetryCount((count) => count + 1)}
+            message={loadError.message}
+            onRetry={loadError.retryable ? () => setRetryCount((count) => count + 1) : undefined}
           />
         </main>
       );
@@ -260,7 +274,12 @@ export function SessionPage() {
           own question". */}
       <VoiceInput onResult={handleVoiceResult} disabled={sending || avatarState === "speaking"} />
 
-      {sendError && <ErrorBanner message="Échec de l'envoi du message. Réessaie en parlant à nouveau." />}
+      {sendError && (
+        <ErrorBanner
+          message={sendError.message}
+          onRetry={sendError.retryable && failedTranscript ? () => sendMessage(failedTranscript) : undefined}
+        />
+      )}
     </main>
   );
 }

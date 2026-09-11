@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { LearnerNav } from "../components/LearnerNav";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { normalizeApiError, type ApiError } from "../lib/apiError";
+import { useToastStore } from "../stores/toastStore";
 import type { Scenario, SessionDetail } from "../types";
 
 const LEVELS = ["A1", "A2", "B1", "B2"] as const;
@@ -17,17 +19,18 @@ export function CatalogPage() {
   const [level, setLevel] = useState<string>("");
   const [category, setCategory] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ApiError | null>(null);
   const [startingId, setStartingId] = useState<number | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const showToast = useToastStore((state) => state.showToast);
 
   useEffect(() => {
     setLoading(true);
-    setLoadError(false);
+    setLoadError(null);
     api
       .get<Scenario[]>("/scenarios", { params: { level, category } })
       .then((response) => setScenarios(response.data))
-      .catch(() => setLoadError(true))
+      .catch((error) => setLoadError(normalizeApiError(error)))
       .finally(() => setLoading(false));
   }, [level, category, retryCount]);
 
@@ -36,6 +39,11 @@ export function CatalogPage() {
     try {
       const response = await api.post<SessionDetail>(`/scenarios/${scenarioId}/sessions`);
       navigate(`/sessions/${response.data.id}`);
+    } catch (error) {
+      // No persistent banner slot fits a one-off click on a specific card -
+      // a toast is the right channel here, never alongside a local message
+      // for the same error (V1.1 §4.3).
+      showToast(normalizeApiError(error).message);
     } finally {
       setStartingId(null);
     }
@@ -79,8 +87,8 @@ export function CatalogPage() {
         <p>Chargement...</p>
       ) : loadError ? (
         <ErrorBanner
-          message="Impossible de charger le catalogue."
-          onRetry={() => setRetryCount((count) => count + 1)}
+          message={loadError.message}
+          onRetry={loadError.retryable ? () => setRetryCount((count) => count + 1) : undefined}
         />
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
