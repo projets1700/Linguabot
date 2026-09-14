@@ -15,7 +15,16 @@ import {
 import { LipsyncController } from "../lib/lipsync/lipsyncController";
 import { ALL_VISEME_MORPH_TARGETS, VISEME_WEIGHTS, type VisemeMorphTarget } from "../lib/lipsync/visemeTypes";
 import { IDLE_ANIMATION_PATHS, MODEL_PATHS, SITTING_IDLE_ANIMATION_PATHS } from "../lib/avatarAssets";
+import { createBlinkState, updateBlink } from "../lib/avatarBlink";
+import {
+  DASHBOARD_PORTRAIT_TARGET_Y,
+  FRAMING_CAMERA,
+  FRAMING_MODEL_OFFSET_RATIO,
+  type AvatarFraming,
+} from "../lib/avatarFramingConfig";
 import type { AvatarType } from "../types";
+
+export type { AvatarFraming } from "../lib/avatarFramingConfig";
 
 export type AvatarState = "idle" | "thinking" | "speaking";
 
@@ -59,97 +68,6 @@ function collectMorphTargets<T extends string>(root: Object3D, names: readonly T
 type BlinkMorphTarget = "eyeBlinkLeft" | "eyeBlinkRight";
 const BLINK_MORPH_TARGETS: readonly BlinkMorphTarget[] = ["eyeBlinkLeft", "eyeBlinkRight"];
 
-const BLINK_MIN_INTERVAL_MS = 3000;
-const BLINK_MAX_INTERVAL_MS = 6000;
-// Closing is quicker than opening - a real blink snaps shut and eases open.
-const BLINK_CLOSE_MS = 70;
-const BLINK_OPEN_MS = 110;
-// Occasionally chain a quick second blink after the first, like a real
-// person - never on the follow-up blink itself, so it's at most a pair.
-const DOUBLE_BLINK_PROBABILITY = 0.15;
-const DOUBLE_BLINK_MIN_GAP_MS = 100;
-const DOUBLE_BLINK_MAX_GAP_MS = 250;
-
-type BlinkState = {
-  phase: "waiting" | "closing" | "opening";
-  phaseElapsedMs: number;
-  waitMs: number;
-  value: number;
-  isFollowUpBlink: boolean;
-};
-
-function randomBetween(min: number, max: number): number {
-  return min + Math.random() * (max - min);
-}
-
-function randomBlinkInterval(): number {
-  return randomBetween(BLINK_MIN_INTERVAL_MS, BLINK_MAX_INTERVAL_MS);
-}
-
-function createBlinkState(): BlinkState {
-  return { phase: "waiting", phaseElapsedMs: 0, waitMs: randomBlinkInterval(), value: 0, isFollowUpBlink: false };
-}
-
-// Smoothstep instead of a linear ramp - avoids the eyelid snapping open
-// instantly at the end of each phase, still cheap (no trig).
-function smoothstep(t: number): number {
-  return t * t * (3 - 2 * t);
-}
-
-/** Advances one blink cycle by `deltaMs` and returns the eyelid closure for this frame (0 = open, 1 = closed). */
-function updateBlink(deltaMs: number, blink: BlinkState): number {
-  if (blink.phase === "waiting") {
-    blink.waitMs -= deltaMs;
-    if (blink.waitMs <= 0) {
-      blink.phase = "closing";
-      blink.phaseElapsedMs = 0;
-    }
-    return blink.value;
-  }
-
-  blink.phaseElapsedMs += deltaMs;
-
-  if (blink.phase === "closing") {
-    const t = Math.min(blink.phaseElapsedMs / BLINK_CLOSE_MS, 1);
-    blink.value = smoothstep(t);
-    if (t >= 1) {
-      blink.phase = "opening";
-      blink.phaseElapsedMs = 0;
-    }
-    return blink.value;
-  }
-
-  // opening
-  const t = Math.min(blink.phaseElapsedMs / BLINK_OPEN_MS, 1);
-  blink.value = 1 - smoothstep(t);
-  if (t >= 1) {
-    blink.value = 0;
-    blink.phase = "waiting";
-    if (blink.isFollowUpBlink) {
-      blink.isFollowUpBlink = false;
-      blink.waitMs = randomBlinkInterval();
-    } else if (Math.random() < DOUBLE_BLINK_PROBABILITY) {
-      blink.isFollowUpBlink = true;
-      blink.waitMs = randomBetween(DOUBLE_BLINK_MIN_GAP_MS, DOUBLE_BLINK_MAX_GAP_MS);
-    } else {
-      blink.waitMs = randomBlinkInterval();
-    }
-  }
-  return blink.value;
-}
-
-// "bust": tight headshot, unchanged default used by every existing caller.
-// "portrait": head-to-mid-thigh crop for the Dashboard intro's "professeur
-// face à l'élève" composition - deliberately not "full" (feet visible),
-// which left a lot of empty space above/below the model in frame.
-// "dashboardPortrait": head-to-upper-torso only (no hips/legs at all) for
-// the Dashboard's own small square-ish avatar card - "bust" alone left a
-// sliver of hip/pants visible at the card's bottom edge, which reads as
-// "mostly legs" in a card this short; kept as its own preset rather than
-// tightening "bust" itself, since "bust" is shared with Session/Quiz/
-// DailyChallenge/Placement and must stay exactly as it is for them.
-export type AvatarFraming = "bust" | "portrait" | "dashboardPortrait" | "placementTestPortrait";
-
 // AvatarScene stays mounted across the Dashboard's intro -> dashboard
 // transition (its ~30MB assets must load exactly once), so the SAME
 // <Canvas>/default camera/OrbitControls instance persists across a
@@ -163,25 +81,9 @@ export type AvatarFraming = "bust" | "portrait" | "dashboardPortrait" | "placeme
 // legs/feet" Dashboard card despite the model itself repositioning
 // correctly. Fix: imperatively re-set the camera AND resync OrbitControls'
 // own internal state via `.update()` every time `framing` actually changes.
-// dashboardPortrait's target Y, per avatar - measured directly from each
-// model's own Box3 on a real, working session (male: box.max.y=1.8249,
-// female: box.max.y=1.7557, both box.min.y≈0, target = height×0.885), NOT
-// a guess. This used to be recomputed live via Box3().setFromObject() on
-// every frame, which turned out to be unreliable: on at least one real
-// device, that same computation deterministically returned a ~5× smaller
-// height (target≈0.32 instead of ≈1.6) for the identical GLB/code/server,
-// stable across a full browser restart AND a fresh private window (so not
-// caching, not a loading race - a genuine cross-environment difference in
-// how that browser/GPU's Three.js build resolves a SkinnedMesh's bounding
-// box). A fixed, pre-measured value per avatar sidesteps that inconsistency
-// entirely. "bust"/"portrait" don't use this - they keep their own
-// existing, untouched mechanism (see AvatarModel below, which shifts the
-// model group so the intended point lands at world Y=0, where those two
-// presets' camera/target already sit).
-const DASHBOARD_PORTRAIT_TARGET_Y: Record<AvatarType, number> = {
-  male: 1.615,
-  female: 1.554,
-};
+// The target Y itself (DASHBOARD_PORTRAIT_TARGET_Y, imported above) is a
+// fixed, pre-measured per-avatar constant, not computed from a live Box3 -
+// see avatarFramingConfig.ts for why.
 
 function CameraSync({
   framing,
@@ -353,7 +255,7 @@ function AvatarModel({
 
     const box = new Box3().setFromObject(scene);
     const height = box.max.y - box.min.y;
-    const offsetRatio = framing === "portrait" ? 0.71 : framing === "placementTestPortrait" ? 0.89 : 0.8;
+    const offsetRatio = FRAMING_MODEL_OFFSET_RATIO[framing] ?? 0.8;
     groupRef.current.position.y = -(box.min.y + height * offsetRatio);
   }, [scene, framing]);
 
@@ -524,26 +426,9 @@ export function AvatarScene({
     onReady?.();
   }
 
-  // "portrait": pulled back just enough that the chest-centered window above
-  // (height*0.71) - head+shoulders+torso to roughly mid-thigh - fills most
-  // of the frame's vertical extent, computed from the pinhole-camera
-  // relation distance = halfFrameHeight / tan(fov/2) for a ~1.75m model.
-  // Same fov as "bust" on purpose, so only distance/vertical-centering
-  // changes between the two presets. z=2.4 (down from an earlier 2.8) is a
-  // ~15-17% closer framing per a finishing pass on the Dashboard intro.
-  // "dashboardPortrait": pulled in much closer (z=1.15) than "bust" (z=1.5).
-  // Its position/lookAt Y are NOT [0,0,z] like the other two - CameraSync
-  // below overrides both to the model's own computed face/chest height,
-  // since this preset leaves the model itself unshifted (see AvatarModel).
-  // Only the distance (z) from this object is actually used for it.
-  const cameraProps =
-    framing === "portrait"
-      ? { position: [0, 0, 2.4] as const, fov: 32 }
-      : framing === "dashboardPortrait"
-        ? { position: [0, 0, 1.15] as const, fov: 32 }
-        : framing === "placementTestPortrait"
-          ? { position: [0, 0, 1.7] as const, fov: 20 }
-          : { position: [0, 0, 1.5] as const, fov: 32 };
+  // Per-framing camera position/fov - see avatarFramingConfig.ts for the
+  // values and the pinhole-camera/CameraSync reasoning behind each.
+  const cameraProps = FRAMING_CAMERA[framing];
 
   return (
     <div
