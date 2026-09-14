@@ -15,6 +15,11 @@
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+
+# Audit D3: auto-generated Symfony config reference/IDE-autocomplete dump
+# (~110 Ko), not required at runtime - regenerates locally on its own,
+# never worth versioning.
+/config/reference.php
 ###> lexik/jwt-authentication-bundle ###
 /config/jwt/*.pem
 ###< lexik/jwt-authentication-bundle ###
