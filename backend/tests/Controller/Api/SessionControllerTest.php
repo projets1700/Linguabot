@@ -374,6 +374,40 @@ final class SessionControllerTest extends ApiTestCase
         self::assertNotEmpty($this->decodeResponse($client)['translation']);
     }
 
+    public function testMessageRejectsATranscriptOverTheSizeLimit(): void
+    {
+        // Audit A4: the rate limiter caps how often, not how large - a
+        // single oversized payload must still be rejected.
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, [
+            'message' => str_repeat('a', 2001),
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testTranslateRejectsATextOverTheSizeLimit(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/translate", $token, [
+            'text' => str_repeat('a', 2001),
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testCannotRequestAHintForAnotherUsersSession(): void
     {
         $client = static::createClient();

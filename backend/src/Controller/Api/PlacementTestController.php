@@ -9,6 +9,7 @@ use App\Enum\MessageRole;
 use App\Enum\SessionStatus;
 use App\Repository\LevelRepository;
 use App\Repository\PlacementTestRepository;
+use App\Service\AiInputLimits;
 use App\Service\PlacementTestService;
 use App\Service\VoiceService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -106,6 +107,11 @@ final class PlacementTestController
 
         if ('' === $transcript) {
             return new JsonResponse(['message' => 'Message vide.'], 422);
+        }
+
+        $tooLong = AiInputLimits::rejectIfTooLong($transcript, AiInputLimits::MAX_MESSAGE_LENGTH);
+        if (null !== $tooLong) {
+            return $tooLong;
         }
 
         $lastAssistantMessage = $placementTest->getMessages()->last();

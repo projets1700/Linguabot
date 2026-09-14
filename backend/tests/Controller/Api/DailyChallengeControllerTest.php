@@ -167,6 +167,31 @@ final class DailyChallengeControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function testMessageRejectsATranscriptOverTheSizeLimit(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/start', $token);
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/message', $token, [
+            'message' => str_repeat('a', 2001),
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testTranslateRejectsATextOverTheSizeLimit(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/daily-challenge/translate', $token, [
+            'text' => str_repeat('a', 2001),
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testCannotFinishAChallengeThatWasNeverStarted(): void
     {
         $client = static::createClient();

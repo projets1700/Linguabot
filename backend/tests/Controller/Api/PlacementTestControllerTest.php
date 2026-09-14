@@ -107,6 +107,21 @@ final class PlacementTestControllerTest extends ApiTestCase
         self::assertSame(0, $this->decodeResponse($client)['answeredCount']);
     }
 
+    public function testMessageRejectsATranscriptOverTheSizeLimit(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'POST', '/api/placement-test/start', $token);
+        $testId = $this->decodeResponse($client)['id'];
+
+        $this->jsonRequest($client, 'POST', "/api/placement-test/{$testId}/message", $token, [
+            'message' => str_repeat('a', 2001),
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testAskingToRepeatReSaysTheSameQuestionWithoutCountingAsAnAnswer(): void
     {
         $client = static::createClient();

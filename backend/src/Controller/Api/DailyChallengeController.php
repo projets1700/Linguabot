@@ -8,6 +8,7 @@ use App\Entity\DailyChallenge;
 use App\Entity\User;
 use App\Enum\MessageRole;
 use App\Repository\ChallengeSessionRepository;
+use App\Service\AiInputLimits;
 use App\Service\CecrlProfileService;
 use App\Service\DailyChallengeService;
 use App\Service\GamificationService;
@@ -91,6 +92,11 @@ final class DailyChallengeController
 
         if ('' === $transcript) {
             return new JsonResponse(['message' => 'Message vide.'], 422);
+        }
+
+        $tooLong = AiInputLimits::rejectIfTooLong($transcript, AiInputLimits::MAX_MESSAGE_LENGTH);
+        if (null !== $tooLong) {
+            return $tooLong;
         }
 
         $challenge = $dailyChallengeService->findOrCreateTodaysChallenge($user->getLevel());
@@ -221,6 +227,11 @@ final class DailyChallengeController
         $text = trim((string) ($data['text'] ?? ''));
         if ('' === $text) {
             return new JsonResponse(['message' => 'Texte manquant.'], 422);
+        }
+
+        $tooLong = AiInputLimits::rejectIfTooLong($text, AiInputLimits::MAX_TRANSLATE_TEXT_LENGTH);
+        if (null !== $tooLong) {
+            return $tooLong;
         }
 
         return new JsonResponse(['translation' => $learningAidService->translate($text)]);
