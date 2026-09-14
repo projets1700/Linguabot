@@ -191,6 +191,16 @@ export function DashboardPage() {
   const [translationText, setTranslationText] = useState<string | null>(null);
   const [translationRevealed, setTranslationRevealed] = useState(false);
 
+  // Audit C7: this looks redundant with RequireAuth's own fetchMe() at
+  // first glance (it already guarantees `user` is resolved before this
+  // page ever mounts), but it's not - investigated and kept deliberately.
+  // SessionPage/QuizModulePage/DailyChallengePage grant XP/level-ups on
+  // finish but never patch the store's `user` themselves (they only ever
+  // read it, for avatarType) - RequireAuth's own fetchMe() only fires once,
+  // the first time `user` is null, so it never re-fires on a later
+  // Dashboard visit either. Without this refetch here, a learner returning
+  // to the Dashboard after finishing a session/quiz/challenge would see
+  // stale XP/level/session count until their next full page load.
   useEffect(() => {
     fetchMe();
   }, [fetchMe]);
