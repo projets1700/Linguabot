@@ -1,0 +1,34 @@
+# Audit D5/P3-09: this repo is developed from Windows (git's core.autocrlf
+# checks files out as CRLF by default here), but nothing about the actual
+# codebase - PHP, TypeScript, PostgreSQL, Docker, all cross-platform - needs
+# CRLF. Without this file, every edit made from a Linux/macOS contributor
+# (or CI) reintroduces LF and shows as a full-file rewrite in diffs
+# regardless of the actual change size - confirmed happening already
+# (~25 files with matching insertion/deletion counts, the classic symptom).
+# Normalizing here so line endings stop being part of the diff at all.
+* text=auto eol=lf
+
+*.php text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+
+*.bat text eol=crlf
+
+# Binary assets - never touched by line-ending normalization.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.glb binary
+*.fbx binary
+*.woff binary
+*.woff2 binary
