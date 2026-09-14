@@ -27,7 +27,11 @@ final class MeStatsController
             $days = 30;
         }
         $userId = $user->getId();
-        $from = (new \DateTimeImmutable())->modify("-{$days} days")->format('Y-m-d');
+        // Audit P1-10: "days=7" must cover exactly 7 calendar dates
+        // including today, i.e. [today-6, today] - `-{$days} days` (no -1)
+        // combined with the inclusive `>= :from` below used to include an
+        // 8th date (today-7), same off-by-one for 30/365.
+        $from = (new \DateTimeImmutable())->modify(\sprintf('-%d days', $days - 1))->format('Y-m-d');
 
         $sessionsCount = (int) $connection->fetchOne(
             "SELECT COUNT(*) FROM sessions WHERE user_id = :userId AND status = 'completed' AND started_at >= :from",
@@ -77,10 +81,20 @@ final class MeStatsController
         // each other - badges/trophies included, unlike a naive read of
         // just sessions/quiz_attempts/challenge_sessions, so this
         // reconciles fully with the learner's lifetime User::totalXp.
+        //
+        // Audit P1-09: LEFT JOINed against a generate_series of every
+        // calendar day in the window (not just days with an event) so a
+        // learner active on day 1 and day 30 gets 30 history points, not 2 -
+        // a chart connecting the two real points would otherwise draw a
+        // straight line across 28 days of invisible zero activity.
         $history = $connection->fetchAllAssociative(
             <<<'SQL'
-                SELECT day, SUM(session_count) AS session_count, SUM(xp) AS xp
-                FROM (
+                SELECT
+                    gs.day::date::text AS day,
+                    COALESCE(SUM(combined.session_count), 0) AS session_count,
+                    COALESCE(SUM(combined.xp), 0) AS xp
+                FROM generate_series(:from::date, CURRENT_DATE, '1 day') AS gs(day)
+                LEFT JOIN (
                     SELECT DATE(started_at) AS day, COUNT(*) AS session_count, COALESCE(SUM(xp_earned), 0) AS xp
                     FROM sessions
                     WHERE user_id = :userId AND status = 'completed' AND started_at >= :from
@@ -116,9 +130,9 @@ final class MeStatsController
                     INNER JOIN trophies t ON t.id = ut.trophy_id
                     WHERE ut.user_id = :userId AND ut.earned_at IS NOT NULL AND ut.earned_at >= :from
                     GROUP BY DATE(ut.earned_at)
-                ) combined
-                GROUP BY day
-                ORDER BY day ASC
+                ) combined ON combined.day = gs.day
+                GROUP BY gs.day
+                ORDER BY gs.day ASC
                 SQL,
             ['userId' => $userId, 'from' => $from],
         );

@@ -71,13 +71,23 @@ final class MeStatsControllerTest extends ApiTestCase
         self::assertSame(0, $stats['challengesCompleted']);
         self::assertGreaterThanOrEqual(0, $stats['practiceSeconds']);
         self::assertNotEmpty($stats['categoryBreakdown']);
-        self::assertNotEmpty($stats['history']);
+        // Audit P1-09: one point per calendar day in the window, zero-filled,
+        // not just the (2, here) days that actually had activity - otherwise
+        // a chart connecting them draws a straight line across the gap.
+        self::assertCount(30, $stats['history']);
+        self::assertSame(
+            (new \DateTimeImmutable())->format('Y-m-d'),
+            $stats['history'][\count($stats['history']) - 1]['day'],
+            'The window must end on today, zero-filled through it.',
+        );
 
-        // Everything this user has ever earned happened seconds ago, well
-        // inside the 30-day window - the period sum (5 source tables,
-        // including badges/trophies) must fully reconcile with lifetime
-        // User::totalXp, exactly the reconciliation the design relies on -
-        // except for the +50 badge granted directly above (bypassing
+        // Audit P1-11 reconciliation check: events/tables are the source of
+        // truth, User::totalXp is a read-cache of their sum, and the two
+        // must never drift apart. Everything this user has ever earned
+        // happened seconds ago, well inside the 30-day window - the period
+        // sum (5 source tables, including badges/trophies) must fully
+        // reconcile with lifetime User::totalXp - except for the +50 badge
+        // granted directly above (bypassing
         // GamificationService, which is the only thing that ever
         // increments User::totalXp), so that +50 is added back by hand
         // here. Everything else (session + quiz + whatever gamification
@@ -129,10 +139,50 @@ final class MeStatsControllerTest extends ApiTestCase
         $this->jsonRequest($client, 'GET', '/api/me/stats?days=7', $token);
         $stats7 = $this->decodeResponse($client);
         self::assertSame(0, $stats7['sessionsCount']);
+        // Audit P1-09: zero-filled for every one of the 7 days, not just
+        // days with activity (there are none, backdated out of window).
+        self::assertCount(7, $stats7['history']);
 
         $this->jsonRequest($client, 'GET', '/api/me/stats?days=30', $token);
         $stats30 = $this->decodeResponse($client);
         self::assertSame(1, $stats30['sessionsCount']);
+        self::assertCount(30, $stats30['history']);
+    }
+
+    public function testSevenDayWindowIsInclusiveOfExactlySevenCalendarDaysNotEight(): void
+    {
+        // Audit P1-10: "days=7" must mean [today-6, today] (7 dates), not
+        // [today-7, today] (8 dates) - a session dated exactly 6 days ago is
+        // in-window, one dated exactly 7 days ago is not.
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1', 'stats-boundary@linguabot.fr');
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $insideSessionId = $this->decodeResponse($client)['id'];
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$insideSessionId}/finish", $token);
+
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $outsideSessionId = $this->decodeResponse($client)['id'];
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$outsideSessionId}/finish", $token);
+
+        /** @var EntityManagerInterface $em */
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $sixDaysAgo = (new \DateTimeImmutable())->modify('-6 days')->format('Y-m-d H:i:s');
+        $sevenDaysAgo = (new \DateTimeImmutable())->modify('-7 days')->format('Y-m-d H:i:s');
+        $em->getConnection()->executeStatement(
+            'UPDATE sessions SET started_at = :d WHERE id = :id',
+            ['d' => $sixDaysAgo, 'id' => $insideSessionId],
+        );
+        $em->getConnection()->executeStatement(
+            'UPDATE sessions SET started_at = :d WHERE id = :id',
+            ['d' => $sevenDaysAgo, 'id' => $outsideSessionId],
+        );
+
+        $this->jsonRequest($client, 'GET', '/api/me/stats?days=7', $token);
+        $stats = $this->decodeResponse($client);
+
+        self::assertSame(1, $stats['sessionsCount'], 'Only the session from exactly 6 days ago should be in-window.');
     }
 
     private const M0_1_ANSWERS = [
