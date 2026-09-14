@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\User;
+use App\Enum\UserRole;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
@@ -22,6 +23,23 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     public function findByEmail(string $email): ?User
     {
         return $this->findOneBy(['email' => $email]);
+    }
+
+    /**
+     * Used by AdminUserController to refuse deactivating/deleting the last
+     * remaining admin - active + not soft-deleted, since a disabled or
+     * deleted admin can no longer authenticate anyway (UserChecker).
+     */
+    public function countActiveAdmins(): int
+    {
+        return (int) $this->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->andWhere('u.role = :role')
+            ->andWhere('u.isActive = true')
+            ->andWhere('u.deletedAt IS NULL')
+            ->setParameter('role', UserRole::ADMIN)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void

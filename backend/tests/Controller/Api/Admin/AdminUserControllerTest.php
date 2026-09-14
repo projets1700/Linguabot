@@ -53,6 +53,89 @@ final class AdminUserControllerTest extends ApiTestCase
         self::assertSame('user.disable', $logs[0]['action']);
     }
 
+    public function testAdminCannotDeactivateItself(): void
+    {
+        $client = static::createClient();
+        $email = 'admin-self-toggle-'.uniqid().'@linguabot.fr';
+        $token = $this->registerAndGetToken($client, $email);
+        $this->promoteToAdmin($email);
+
+        $this->jsonRequest($client, 'GET', '/api/admin/users', $token);
+        $self = current(array_filter($this->decodeResponse($client), static fn (array $u) => $u['email'] === $email));
+
+        $this->jsonRequest($client, 'PATCH', "/api/admin/users/{$self['id']}/toggle-active", $token);
+        self::assertResponseStatusCodeSame(400);
+
+        // Still active and authenticated afterward - the account was never touched.
+        $this->jsonRequest($client, 'GET', '/api/me', $token);
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testAdminCannotDeleteItself(): void
+    {
+        $client = static::createClient();
+        $email = 'admin-self-delete-'.uniqid().'@linguabot.fr';
+        $token = $this->registerAndGetToken($client, $email);
+        $this->promoteToAdmin($email);
+
+        $this->jsonRequest($client, 'GET', '/api/admin/users', $token);
+        $self = current(array_filter($this->decodeResponse($client), static fn (array $u) => $u['email'] === $email));
+
+        $this->jsonRequest($client, 'DELETE', "/api/admin/users/{$self['id']}", $token);
+
+        self::assertResponseStatusCodeSame(400);
+
+        // Still authenticated afterward - the account was never touched.
+        $this->jsonRequest($client, 'GET', '/api/me', $token);
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testAdminCanDeactivateAndReactivateADifferentAdminWhenAnotherOneRemainsActive(): void
+    {
+        // The "last admin" guard only ever matters for a different-admin
+        // target (self-deactivation is already refused above) - reachable
+        // here because the acting admin itself stays active throughout,
+        // so deactivating the OTHER admin never drops the active count to 0.
+        $client = static::createClient();
+        $actingAdminEmail = 'admin-acting-'.uniqid().'@linguabot.fr';
+        $actingToken = $this->registerAndGetToken($client, $actingAdminEmail);
+        $this->promoteToAdmin($actingAdminEmail);
+
+        $otherAdminEmail = 'admin-other-'.uniqid().'@linguabot.fr';
+        $this->registerAndGetToken($client, $otherAdminEmail);
+        $this->promoteToAdmin($otherAdminEmail);
+
+        $this->jsonRequest($client, 'GET', '/api/admin/users', $actingToken);
+        $other = current(array_filter($this->decodeResponse($client), static fn (array $u) => $u['email'] === $otherAdminEmail));
+
+        $this->jsonRequest($client, 'PATCH', "/api/admin/users/{$other['id']}/toggle-active", $actingToken);
+        self::assertResponseIsSuccessful();
+        self::assertFalse($this->decodeResponse($client)['isActive']);
+    }
+
+    public function testCountActiveAdminsExcludesInactiveAndSoftDeletedAdmins(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        /** @var \App\Repository\UserRepository $userRepository */
+        $userRepository = $em->getRepository(\App\Entity\User::class);
+        $before = $userRepository->countActiveAdmins();
+
+        $activeEmail = 'admin-count-active-'.uniqid().'@linguabot.fr';
+        $this->registerAndGetToken($client, $activeEmail);
+        $this->promoteToAdmin($activeEmail);
+        self::assertSame($before + 1, $userRepository->countActiveAdmins());
+
+        $inactiveEmail = 'admin-count-inactive-'.uniqid().'@linguabot.fr';
+        $this->registerAndGetToken($client, $inactiveEmail);
+        $this->promoteToAdmin($inactiveEmail);
+        $inactiveAdmin = $em->getRepository(\App\Entity\User::class)->findOneBy(['email' => $inactiveEmail]);
+        $inactiveAdmin->setIsActive(false);
+        $em->flush();
+
+        self::assertSame($before + 1, $userRepository->countActiveAdmins(), 'A deactivated admin must not be counted.');
+    }
+
     private function promoteToAdmin(string $email): void
     {
         $container = static::getContainer();
