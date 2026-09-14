@@ -4,8 +4,10 @@ import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
 import { VoiceInput } from "../components/VoiceInput";
+import { ActivityGrid } from "../components/dashboard/ActivityGrid";
+import { DailyChallengePreviewCard } from "../components/dashboard/DailyChallengePreviewCard";
+import { ProgressCard } from "../components/dashboard/ProgressCard";
 import { Button } from "../components/ui/Button";
-import { Card } from "../components/ui/Card";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
@@ -664,100 +666,14 @@ export function DashboardPage() {
             {/* ---------- Daily challenge + progression ---------- */}
             <RevealSection visible={cardsRevealed} delayMs={100} reducedMotion={reducedMotion}>
               <div className="grid md:grid-cols-2 gap-4 mb-5">
-                <Card variant="stat" className="border border-amber-500/25 flex flex-col justify-center">
-                  <p className="text-amber-400 text-xs font-bold uppercase mb-2">🔥 Défi du jour</p>
-                  {/* dailyChallengePreview arrives (if at all) well after this
-                      card first renders - see the deferred fetch effect
-                      above. Until/unless it does, the generic fallback text
-                      keeps the card from ever looking broken or empty - and
-                      never a blocking spinner. The opacity transition below
-                      only ever plays once, when real content first replaces
-                      the fallback; it's not tied to the fetch/error logic
-                      itself, which stays exactly as before. */}
-                  <div className={`transition-opacity duration-300 ${dailyChallengePreview && challengeContentFadedIn ? "opacity-100" : dailyChallengePreview ? "opacity-0" : ""}`}>
-                    {dailyChallengePreview ? (
-                      <>
-                        <p className="text-lg font-bold text-white mb-1">{dailyChallengePreview.title}</p>
-                        <p className="text-slate-400 text-sm mb-4">+{dailyChallengePreview.xpReward} XP à gagner</p>
-                      </>
-                    ) : (
-                      <p className="text-slate-400 text-sm mb-4">Un nouveau défi t'attend chaque jour.</p>
-                    )}
-                  </div>
-                  <Button to="/defi-du-jour" variant="secondary" className="self-start">
-                    {dailyChallengePreview?.completed
-                      ? "Revoir le défi du jour →"
-                      : dailyChallengePreview?.started
-                        ? "Continuer le défi →"
-                        : "Commencer →"}
-                  </Button>
-                </Card>
-
-                {/* Deliberately shows NONE of A1/A2/level-code/XP/progress
-                    bar - all of that already lives in the hero card above.
-                    Was briefly showing user.avgScore ("Score moyen") too,
-                    removed after auditing its source: SessionController's
-                    own comment states it's "simulated scoring" - literally
-                    just 40 + userTurns*15, not a real linguistic measure -
-                    so presenting it as a quality/skill metric would be
-                    showing a made-up statistic, not a real one. */}
-                <Card variant="stat" className="border border-blue-500/15 flex flex-col justify-center">
-                  <p className="text-blue-400 text-xs font-bold uppercase mb-2">📊 Ta progression</p>
-                  <p className="text-lg font-bold mb-0.5">
-                    {user.sessionsCount} session{user.sessionsCount > 1 ? "s" : ""} complétée
-                    {user.sessionsCount > 1 ? "s" : ""}
-                  </p>
-                  <p className="text-slate-400 text-sm mb-4">Retrouve tes badges et trophées débloqués.</p>
-                  <Link to="/trophees" className="text-blue-400 text-sm">Voir ma progression →</Link>
-                </Card>
+                <DailyChallengePreviewCard preview={dailyChallengePreview} fadedIn={challengeContentFadedIn} />
+                <ProgressCard sessionsCount={user.sessionsCount} />
               </div>
             </RevealSection>
 
             {/* ---------- Choisir une activité ---------- */}
             <RevealSection visible={cardsRevealed} delayMs={200} reducedMotion={reducedMotion}>
-              <h2 className="text-lg font-bold mb-2.5">Choisir une activité</h2>
-              <div className={`grid gap-4 mb-5 ${isA0 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-                <Link
-                  to="/catalog"
-                  className="block bg-slate-800 hover:bg-slate-700/80 hover:-translate-y-0.5 px-6 py-4 rounded-xl transition-all"
-                >
-                  <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-blue-500/15 text-2xl mb-2">
-                    💬
-                  </span>
-                  <p className="font-bold mb-0.5">Scénarios</p>
-                  <p className="text-slate-400 text-sm mb-2">Converse avec LinguaBot dans des situations réelles.</p>
-                  <p className="text-blue-400 text-sm">Explorer →</p>
-                </Link>
-                {/* The A0 quiz has nothing left to offer past A0
-                    (QuizController::modules() enforces this server-side
-                    too) - hidden entirely rather than shown locked, since
-                    there's no "unlock later" story for content the learner
-                    has already moved past. */}
-                {isA0 && (
-                  <Link
-                    to="/quiz"
-                    className="block bg-slate-800 hover:bg-slate-700/80 hover:-translate-y-0.5 px-6 py-4 rounded-xl transition-all"
-                  >
-                    <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-blue-500/15 text-2xl mb-2">
-                      🎙️
-                    </span>
-                    <p className="font-bold mb-0.5">Quiz vocal</p>
-                    <p className="text-slate-400 text-sm mb-2">Entraîne ton vocabulaire à l'oral.</p>
-                    <p className="text-blue-400 text-sm">Commencer →</p>
-                  </Link>
-                )}
-                <Link
-                  to="/trophees"
-                  className="block bg-slate-800 hover:bg-slate-700/80 hover:-translate-y-0.5 px-6 py-4 rounded-xl transition-all"
-                >
-                  <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-blue-500/15 text-2xl mb-2">
-                    🏅
-                  </span>
-                  <p className="font-bold mb-0.5">Badges & trophées</p>
-                  <p className="text-slate-400 text-sm mb-2">Découvre tes récompenses débloquées.</p>
-                  <p className="text-blue-400 text-sm">Voir mes récompenses →</p>
-                </Link>
-              </div>
+              <ActivityGrid isA0={isA0} />
             </RevealSection>
 
             {/* Voice destination navigation is still a bonus on top of the
