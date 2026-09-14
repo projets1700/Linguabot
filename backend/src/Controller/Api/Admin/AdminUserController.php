@@ -90,7 +90,8 @@ final class AdminUserController
         }
 
         // RG12: soft delete (RGPD). The physical hard delete after the 24h
-        // grace period would be a scheduled Messenger task in production.
+        // grace period is PurgeDeletedAccountsCommand (app:purge-deleted-accounts),
+        // meant to run on a cron once a real deployment exists.
         $user->setIsActive(false);
         $user->setDeletedAt(new \DateTimeImmutable());
         $em->flush();

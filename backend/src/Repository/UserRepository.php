@@ -30,6 +30,22 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
      * remaining admin - active + not soft-deleted, since a disabled or
      * deleted admin can no longer authenticate anyway (UserChecker).
      */
+    /**
+     * Soft-deleted accounts past the RGPD grace period (RG12) - used by
+     * app:purge-deleted-accounts to actually erase them.
+     *
+     * @return User[]
+     */
+    public function findDueForPurge(\DateTimeImmutable $cutoff): array
+    {
+        return $this->createQueryBuilder('u')
+            ->andWhere('u.deletedAt IS NOT NULL')
+            ->andWhere('u.deletedAt <= :cutoff')
+            ->setParameter('cutoff', $cutoff)
+            ->getQuery()
+            ->getResult();
+    }
+
     public function countActiveAdmins(): int
     {
         return (int) $this->createQueryBuilder('u')
