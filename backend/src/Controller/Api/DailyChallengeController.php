@@ -12,7 +12,7 @@ use App\Service\AiInputLimits;
 use App\Service\CecrlProfileService;
 use App\Service\DailyChallengeService;
 use App\Service\GamificationService;
-use App\Service\LearningAidService;
+use App\Service\LearningAidRequestHandler;
 use App\Service\RewardPayloadFactory;
 use App\Service\VoiceService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -180,8 +180,7 @@ final class DailyChallengeController
         #[CurrentUser] User $user,
         DailyChallengeService $dailyChallengeService,
         ChallengeSessionRepository $challengeSessionRepository,
-        LearningAidService $learningAidService,
-        CecrlProfileService $cecrlProfileService,
+        LearningAidRequestHandler $learningAidRequestHandler,
         EntityManagerInterface $em,
         #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
@@ -192,9 +191,6 @@ final class DailyChallengeController
 
         $data = json_decode($request->getContent(), true) ?? [];
         $tier = (int) ($data['tier'] ?? 1);
-        if ($tier < 1 || $tier > 3) {
-            return new JsonResponse(['message' => 'Palier d\'aide invalide.'], 422);
-        }
 
         $challenge = $dailyChallengeService->findOrCreateTodaysChallenge($user->getLevel());
         $participation = $this->getOrCreateParticipation($user, $challenge, $challengeSessionRepository, $em);
@@ -204,18 +200,16 @@ final class DailyChallengeController
             static fn (ChallengeMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
             $participation->getMessages()->toArray(),
         );
-        $levelInstruction = $cecrlProfileService->complexityInstruction($user->getLevel()->getCode());
 
-        return new JsonResponse([
-            'tier' => $tier,
-            'content' => $learningAidService->hint($conversationHistory, $tier, $levelInstruction),
-        ]);
+        $result = $learningAidRequestHandler->hint($conversationHistory, $tier, $user->getLevel()->getCode());
+
+        return $result instanceof JsonResponse ? $result : new JsonResponse($result);
     }
 
     #[Route('/api/daily-challenge/translate', name: 'api_daily_challenge_translate', methods: ['POST'])]
     public function translate(
         Request $request,
-        LearningAidService $learningAidService,
+        LearningAidRequestHandler $learningAidRequestHandler,
         #[CurrentUser] User $user,
         #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
@@ -225,17 +219,9 @@ final class DailyChallengeController
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
-        $text = trim((string) ($data['text'] ?? ''));
-        if ('' === $text) {
-            return new JsonResponse(['message' => 'Texte manquant.'], 422);
-        }
+        $result = $learningAidRequestHandler->translate((string) ($data['text'] ?? ''));
 
-        $tooLong = AiInputLimits::rejectIfTooLong($text, AiInputLimits::MAX_TRANSLATE_TEXT_LENGTH);
-        if (null !== $tooLong) {
-            return $tooLong;
-        }
-
-        return new JsonResponse(['translation' => $learningAidService->translate($text)]);
+        return $result instanceof JsonResponse ? $result : new JsonResponse($result);
     }
 
     #[Route('/api/daily-challenge/finish', name: 'api_daily_challenge_finish', methods: ['POST'])]

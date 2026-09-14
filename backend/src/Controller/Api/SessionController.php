@@ -12,7 +12,7 @@ use App\Repository\SessionRepository;
 use App\Service\AiInputLimits;
 use App\Service\CecrlProfileService;
 use App\Service\GamificationService;
-use App\Service\LearningAidService;
+use App\Service\LearningAidRequestHandler;
 use App\Service\RewardPayloadFactory;
 use App\Service\SessionSummaryService;
 use App\Service\VoiceService;
@@ -175,8 +175,7 @@ final class SessionController
         Session $session,
         Request $request,
         #[CurrentUser] User $user,
-        LearningAidService $learningAidService,
-        CecrlProfileService $cecrlProfileService,
+        LearningAidRequestHandler $learningAidRequestHandler,
         #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
         if ($session->getUser()->getId() !== $user->getId()) {
@@ -190,20 +189,14 @@ final class SessionController
 
         $data = json_decode($request->getContent(), true) ?? [];
         $tier = (int) ($data['tier'] ?? 1);
-        if ($tier < 1 || $tier > 3) {
-            return new JsonResponse(['message' => 'Palier d\'aide invalide.'], 422);
-        }
-
         $conversationHistory = array_map(
             static fn (SessionMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
             $session->getMessages()->toArray(),
         );
-        $levelInstruction = $cecrlProfileService->complexityInstruction($user->getLevel()->getCode());
 
-        return new JsonResponse([
-            'tier' => $tier,
-            'content' => $learningAidService->hint($conversationHistory, $tier, $levelInstruction),
-        ]);
+        $result = $learningAidRequestHandler->hint($conversationHistory, $tier, $user->getLevel()->getCode());
+
+        return $result instanceof JsonResponse ? $result : new JsonResponse($result);
     }
 
     #[Route('/api/sessions/{id}/translate', name: 'api_session_translate', methods: ['POST'])]
@@ -211,7 +204,7 @@ final class SessionController
         Session $session,
         Request $request,
         #[CurrentUser] User $user,
-        LearningAidService $learningAidService,
+        LearningAidRequestHandler $learningAidRequestHandler,
         #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
         if ($session->getUser()->getId() !== $user->getId()) {
@@ -224,17 +217,9 @@ final class SessionController
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
-        $text = trim((string) ($data['text'] ?? ''));
-        if ('' === $text) {
-            return new JsonResponse(['message' => 'Texte manquant.'], 422);
-        }
+        $result = $learningAidRequestHandler->translate((string) ($data['text'] ?? ''));
 
-        $tooLong = AiInputLimits::rejectIfTooLong($text, AiInputLimits::MAX_TRANSLATE_TEXT_LENGTH);
-        if (null !== $tooLong) {
-            return $tooLong;
-        }
-
-        return new JsonResponse(['translation' => $learningAidService->translate($text)]);
+        return $result instanceof JsonResponse ? $result : new JsonResponse($result);
     }
 
     #[Route('/api/sessions/{id}/finish', name: 'api_session_finish', methods: ['POST'])]
