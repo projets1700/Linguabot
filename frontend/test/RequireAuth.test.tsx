@@ -32,6 +32,7 @@ function renderWithRouter(initialPath = "/dashboard") {
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route path="/login" element={<p>Login page</p>} />
+        <Route path="/onboarding" element={<p>Onboarding page</p>} />
         <Route path="/placement-test" element={<p>Placement test page</p>} />
         <Route
           path="/dashboard"
@@ -83,6 +84,42 @@ describe("RequireAuth", () => {
     useAuthStore.setState({
       token: "jwt-123",
       user: { ...BASE_USER, role: "ROLE_ADMIN", placementTestCompleted: false },
+    });
+
+    renderWithRouter();
+
+    expect(screen.getByText("Protected content")).toBeInTheDocument();
+  });
+
+  // Audit A1/P0-01: onboarding ("meet the teacher") must happen before the
+  // graded placement test, not after it.
+  it("redirects to /onboarding when the user has not completed it yet", () => {
+    useAuthStore.setState({
+      token: "jwt-123",
+      user: { ...BASE_USER, onboardingCompleted: false },
+    });
+
+    renderWithRouter();
+
+    expect(screen.getByText("Onboarding page")).toBeInTheDocument();
+    expect(screen.queryByText("Protected content")).not.toBeInTheDocument();
+  });
+
+  it("sends a learner who has done neither to /onboarding first, not /placement-test", () => {
+    useAuthStore.setState({
+      token: "jwt-123",
+      user: { ...BASE_USER, onboardingCompleted: false, placementTestCompleted: false },
+    });
+
+    renderWithRouter();
+
+    expect(screen.getByText("Onboarding page")).toBeInTheDocument();
+  });
+
+  it("does not gate ROLE_ADMIN accounts behind onboarding", () => {
+    useAuthStore.setState({
+      token: "jwt-123",
+      user: { ...BASE_USER, role: "ROLE_ADMIN", onboardingCompleted: false },
     });
 
     renderWithRouter();

@@ -33,11 +33,19 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return <LoadingScreen />;
   }
 
-  // The oral placement test is mandatory right after registration: every
-  // protected route redirects there until it's done, so closing the tab
-  // mid-test or logging back in later still routes the learner back to it.
-  // Admin accounts are created outside that flow (no registration, no
-  // placement test) and must not get stuck behind this gate.
+  // Audit A1/P0-01: onboarding (meeting "the teacher", OnboardingPage) must
+  // happen before the graded oral placement test, not after it - every
+  // protected route redirects to whichever of the two is still outstanding.
+  // Admin accounts are created outside this flow entirely (no registration,
+  // no onboarding, no placement test) and must not get stuck behind either gate.
+  if (
+    user.role !== "ROLE_ADMIN" &&
+    !user.onboardingCompleted &&
+    location.pathname !== "/onboarding"
+  ) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   if (
     user.role !== "ROLE_ADMIN" &&
     !user.placementTestCompleted &&

@@ -15,7 +15,6 @@ import {
   hasSeenDashboardIntro,
   markDashboardIntroSeen,
 } from "../lib/dashboardIntro";
-import { classifyOnboardingReadiness, isRecognizableNameReply } from "../lib/onboardingIntro";
 import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge } from "../types";
 
@@ -62,11 +61,6 @@ const READY_NOT_UNDERSTOOD_TEXT = "I didn't quite catch that. You can say yes, o
 const READY_NOT_UNDERSTOOD_TEXT_FR = "Je n'ai pas bien compris. Tu peux dire oui, ou continuer avec le bouton.";
 const WHAT_NEXT_QUESTION = "What shall we start with today?";
 const WHAT_NEXT_QUESTION_FR = "Par quoi commençons-nous aujourd'hui ?";
-const ONBOARDING_GREETING = "Hello! I'm LinguaBot, your English teacher. What's your name?";
-const ONBOARDING_READY_QUESTION = "Are you ready to start?";
-const ONBOARDING_REFORMULATED_READY_QUESTION =
-  "I didn't quite catch that. You can say: yes, I'm ready — or no, not yet.";
-const ONBOARDING_DECLINED_MESSAGE = "No problem. Come back when you're ready!";
 const DESTINATION_NOT_UNDERSTOOD_TEXT =
   "I didn't understand your choice. You can say, for example: Scenarios, Quiz, Daily challenge, or Progress.";
 const DESTINATION_NOT_UNDERSTOOD_TEXT_FR =
@@ -169,7 +163,6 @@ export function DashboardPage() {
   // remounts this component) lands straight on the cards instead of
   // replaying the classroom greeting every time.
   const [phase, setPhase] = useState<"intro" | "dashboard">(() => (hasSeenDashboardIntro() ? "dashboard" : "intro"));
-  const [introStage, setIntroStage] = useState<"onboarding-name" | "onboarding-ready" | "greeting">("greeting");
   const [transitioning, setTransitioning] = useState(false);
   const [cardsRevealed, setCardsRevealed] = useState(() => hasSeenDashboardIntro());
   const [dailyChallengePreview, setDailyChallengePreview] = useState<DailyChallenge | null>(null);
@@ -235,12 +228,6 @@ export function DashboardPage() {
   useEffect(() => {
     if (!user || phase !== "intro" || greetingSpokenRef.current) return;
     greetingSpokenRef.current = true;
-
-    if (!user.onboardingCompleted) {
-      setIntroStage("onboarding-name");
-      speakAssistantLine(ONBOARDING_GREETING, "en-US");
-      return;
-    }
 
     const greeting = user.prenom ? `Hello ${user.prenom}! ${GREETING_QUESTION}` : `Hello! ${GREETING_QUESTION}`;
     const greetingFr = user.prenom
@@ -320,46 +307,9 @@ export function DashboardPage() {
     }
   }
 
-  function handleOnboardingNameReply(transcript: string) {
-    if (isRecognizableNameReply(transcript)) {
-      setIntroStage("onboarding-ready");
-      speakAssistantLine(`Nice to meet you, ${user?.prenom || "there"}! ${ONBOARDING_READY_QUESTION}`, "en-US");
-    } else {
-      speakAssistantLine(ONBOARDING_GREETING, "en-US");
-    }
-  }
-
-  async function completeOnboardingAndTransition() {
-    try {
-      await api.post("/onboarding/complete");
-      await fetchMe();
-    } catch {}
-    beginDashboardTransition();
-  }
-
-  function handleOnboardingReadyReply(transcript: string) {
-    const intent = classifyOnboardingReadiness(transcript);
-
-    if (intent === "affirmative") {
-      void completeOnboardingAndTransition();
-      return;
-    }
-
-    if (intent === "negative") {
-      speakAssistantLine(ONBOARDING_DECLINED_MESSAGE, "en-US");
-      return;
-    }
-
-    speakAssistantLine(ONBOARDING_REFORMULATED_READY_QUESTION, "en-US");
-  }
-
   function handleVoiceResult(transcript: string) {
     if (phase === "dashboard") {
       handleDashboardVoiceResult(transcript);
-    } else if (introStage === "onboarding-name") {
-      handleOnboardingNameReply(transcript);
-    } else if (introStage === "onboarding-ready") {
-      handleOnboardingReadyReply(transcript);
     } else {
       handleIntroVoiceResult(transcript);
     }
