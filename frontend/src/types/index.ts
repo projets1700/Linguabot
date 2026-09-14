@@ -16,7 +16,6 @@ export type Me = {
   avatarType: AvatarType;
   totalXp: number;
   sessionsCount: number;
-  avgScore: string | null;
   onboardingCompleted: boolean;
   placementTestCompleted: boolean;
   cecrlProfile: CecrlProfile;

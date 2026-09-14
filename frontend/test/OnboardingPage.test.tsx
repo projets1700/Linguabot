@@ -94,7 +94,6 @@ function baseUser(overrides: Partial<Me> = {}): Me {
     avatarType: "male",
     totalXp: 0,
     sessionsCount: 0,
-    avgScore: null,
     onboardingCompleted: false,
     placementTestCompleted: false,
     cecrlProfile: { transcriptMode: "auto", translationMode: "visible", hintMode: "fullAnswer", helpVisibleByDefault: true },

@@ -108,7 +108,6 @@ function baseUser(overrides: Partial<Me> = {}): Me {
     avatarType: "male",
     totalXp: 50,
     sessionsCount: 1,
-    avgScore: null,
     onboardingCompleted: true,
     placementTestCompleted: true,
     cecrlProfile: { transcriptMode: "auto", translationMode: "visible", hintMode: "fullAnswer", helpVisibleByDefault: true },

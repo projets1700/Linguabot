@@ -84,7 +84,6 @@ function baseUser(cecrlProfile: CecrlProfile): Me {
     avatarType: "male",
     totalXp: 0,
     sessionsCount: 0,
-    avgScore: null,
     onboardingCompleted: true,
     placementTestCompleted: true,
     cecrlProfile,

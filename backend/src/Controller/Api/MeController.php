@@ -34,7 +34,6 @@ final class MeController
             'avatarType' => $user->getAvatarType()->value,
             'totalXp' => $user->getTotalXp(),
             'sessionsCount' => $user->getSessionsCount(),
-            'avgScore' => $user->getAvgScore(),
             'onboardingCompleted' => $user->isOnboardingCompleted(),
             'placementTestCompleted' => null !== $placementTest && SessionStatus::COMPLETED === $placementTest->getStatus(),
             'cecrlProfile' => $cecrlProfileService->publicPayload($user->getLevel()->getCode()),

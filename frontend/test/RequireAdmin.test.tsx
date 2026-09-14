@@ -15,7 +15,6 @@ const BASE_USER: Me = {
   avatarType: "male",
   totalXp: 0,
   sessionsCount: 0,
-  avgScore: null,
   onboardingCompleted: true,
   placementTestCompleted: true,
   cecrlProfile: { transcriptMode: "auto", translationMode: "visible", hintMode: "fullAnswer", helpVisibleByDefault: true },

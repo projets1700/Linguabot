@@ -8,7 +8,6 @@ use App\Entity\SessionMessage;
 use App\Entity\User;
 use App\Enum\MessageRole;
 use App\Enum\SessionStatus;
-use App\Repository\SessionRepository;
 use App\Service\AiInputLimits;
 use App\Service\CecrlProfileService;
 use App\Service\GamificationService;
@@ -228,7 +227,6 @@ final class SessionController
         #[CurrentUser] User $user,
         GamificationService $gamificationService,
         SessionSummaryService $sessionSummaryService,
-        SessionRepository $sessionRepository,
         EntityManagerInterface $em,
     ): JsonResponse {
         if ($session->getUser()->getId() !== $user->getId()) {
@@ -274,9 +272,6 @@ final class SessionController
         $user->setTotalXp($user->getTotalXp() + $xpEarned);
         $user->setSessionsCount($user->getSessionsCount() + 1);
 
-        $em->flush();
-
-        $user->setAvgScore($sessionRepository->averageScoreForUser($user));
         $em->flush();
 
         $newLevel = $gamificationService->checkAndApplyLevelUp($user);

@@ -49,9 +49,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'sessions_count')]
     private int $sessionsCount = 0;
 
-    #[ORM\Column(name: 'avg_score', type: 'decimal', precision: 5, scale: 2, nullable: true)]
-    private ?string $avgScore = null;
-
     #[ORM\Column(name: 'created_at', type: 'datetimetz_immutable')]
     private \DateTimeImmutable $createdAt;
 
@@ -201,17 +198,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getAvgScore(): ?string
-    {
-        return $this->avgScore;
-    }
-
-    public function setAvgScore(?string $avgScore): static
-    {
-        $this->avgScore = $avgScore;
-
-        return $this;
-    }
 
     public function getCreatedAt(): \DateTimeImmutable
     {
