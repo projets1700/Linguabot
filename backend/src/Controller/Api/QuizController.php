@@ -49,8 +49,15 @@ final class QuizController
     }
 
     #[Route('/api/quiz/modules/{id}/questions', name: 'api_quiz_module_questions', methods: ['GET'])]
-    public function questions(QuizModule $module, QuizQuestionRepository $questionRepository): JsonResponse
+    public function questions(QuizModule $module, #[CurrentUser] User $user, QuizQuestionRepository $questionRepository): JsonResponse
     {
+        // Same restriction as modules()/attempts() - without it, a non-A0
+        // learner could still list and answer A0 questions by guessing a
+        // module id, even though the module list itself already hides them.
+        if ('A0' !== $user->getLevel()->getCode()) {
+            return new JsonResponse(['message' => 'Ce quiz est réservé aux apprenants de niveau A0.'], 403);
+        }
+
         $questions = $questionRepository->findBy(['module' => $module], ['orderNum' => 'ASC']);
 
         return new JsonResponse(array_map(
@@ -74,8 +81,16 @@ final class QuizController
      * request, the same on-demand spirit as /hint and /translate elsewhere.
      */
     #[Route('/api/quiz/questions/{id}/answer', name: 'api_quiz_question_answer', methods: ['GET'])]
-    public function answer(QuizQuestion $question): JsonResponse
+    public function answer(QuizQuestion $question, #[CurrentUser] User $user, QuizService $quizService): JsonResponse
     {
+        if ('A0' !== $user->getLevel()->getCode()) {
+            return new JsonResponse(['message' => 'Ce quiz est réservé aux apprenants de niveau A0.'], 403);
+        }
+
+        // Recorded server-side so attempts() can zero this question's point
+        // itself - see QuizService::recordAnswerRevealed()/submitAttempt().
+        $quizService->recordAnswerRevealed($user->getId(), $question->getId());
+
         return new JsonResponse(['answer' => $question->getCorrectAnswer()]);
     }
 
@@ -107,17 +122,11 @@ final class QuizController
             $answers[(int) $questionId] = (string) $answer;
         }
 
-        // Question IDs for which the frontend revealed the correct answer
-        // after a detected "I don't know" (see /quiz/questions/{id}/answer) -
-        // trusted client-side like the rest of this payload (the same trust
-        // boundary as $answers itself), since nothing sensitive hinges on it
-        // beyond the XP of the learner's own attempt.
-        $helpedQuestionIds = [];
-        foreach ((array) ($data['helpedQuestionIds'] ?? []) as $questionId) {
-            $helpedQuestionIds[(int) $questionId] = true;
-        }
-
-        $result = $quizService->submitAttempt($user, $module, $answers, $helpedQuestionIds);
+        // Which questions were helped (answer revealed via GET
+        // /quiz/questions/{id}/answer) is tracked server-side now -
+        // QuizService::submitAttempt() reads it itself, so a client can no
+        // longer game its score by simply omitting a question id here.
+        $result = $quizService->submitAttempt($user, $module, $answers);
 
         $newBadges = $gamificationService->checkAndAwardBadges($user);
         $newTrophies = $gamificationService->checkAndAwardTrophies($user);

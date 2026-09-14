@@ -126,10 +126,13 @@ export function QuizModulePage() {
     setSubmitError(null);
     setAvatarState("thinking");
     try {
+      // helpedQuestionIds is no longer sent - the backend now tracks which
+      // questions were revealed itself (QuizController::answer() records it
+      // server-side, see QuizService::recordAnswerRevealed), so a client
+      // can no longer omit an id here to score an unearned point.
       const response = await api.post<QuizAttemptResult>("/quiz/attempts", {
         moduleId: Number(moduleId),
         answers: finalAnswers,
-        helpedQuestionIds,
       });
       setResult(response.data);
       setLastSubmitAnswers(null);

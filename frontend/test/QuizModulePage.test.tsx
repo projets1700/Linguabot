@@ -192,7 +192,7 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
     expect(screen.getByRole("button", { name: /Afficher la réponse/ })).toBeInTheDocument();
   });
 
-  it("reveals the answer once the B1/B2 reveal button is clicked, and adds the question to helpedQuestionIds", async () => {
+  it("reveals the answer once the B1/B2 reveal button is clicked, and hides it again for that question", async () => {
     useAuthStore.setState({
       user: baseUser({ transcriptMode: "onDemand", translationMode: "onDemand", hintMode: "keywords", helpVisibleByDefault: false }),
     });
@@ -211,6 +211,11 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
 
     await waitFor(() => expect(apiGetSpy).toHaveBeenCalledWith("/quiz/questions/101/answer"));
     await waitFor(() => expect(latestUtterance().text).toBe("You can say: hello."));
+    // Which question was revealed is now tracked server-side (the GET call
+    // above already records it - see QuizService::recordAnswerRevealed) -
+    // the reveal button itself just shouldn't offer to reveal the same
+    // question twice.
+    expect(screen.queryByRole("button", { name: /Afficher la réponse/ })).not.toBeInTheDocument();
 
     await endLatestSpeech();
     await act(async () => {
@@ -221,12 +226,12 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
       await voiceInputState.current?.onResult("thank you");
     });
 
-    await waitFor(() =>
-      expect(apiPostSpy).toHaveBeenCalledWith(
-        "/quiz/attempts",
-        expect.objectContaining({ helpedQuestionIds: [101] }),
-      ),
-    );
+    // The submission payload no longer carries a client-supplied
+    // helpedQuestionIds field at all (the server already knows from the GET
+    // above) - only moduleId/answers are sent.
+    await waitFor(() => expect(apiPostSpy).toHaveBeenCalledWith("/quiz/attempts", expect.any(Object)));
+    const [, body] = apiPostSpy.mock.calls.find(([url]) => url === "/quiz/attempts")!;
+    expect(body).not.toHaveProperty("helpedQuestionIds");
   });
 
   it("resets the reveal-button unlock when moving to a new question", async () => {

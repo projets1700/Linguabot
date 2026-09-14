@@ -152,7 +152,10 @@ final class QuizControllerTest extends ApiTestCase
         // P0 stabilization fix: revealing the correct answer after a
         // detected "I don't know" (GET /quiz/questions/{id}/answer) must not
         // let the learner then repeat it back and have it scored identically
-        // to a question answered without help.
+        // to a question answered without help. The submission itself never
+        // lists which question was helped (that used to be a client-trusted
+        // "helpedQuestionIds" field, now removed) - the server already knows,
+        // from having served that GET request itself.
         $client = static::createClient();
         $token = $this->registerAndGetToken($client);
         $moduleId = $this->findModuleId($client, $token, 'M0-1');
@@ -164,12 +167,13 @@ final class QuizControllerTest extends ApiTestCase
         foreach ($questions as $index => $question) {
             $answers[(string) $question['id']] = self::M0_1_ANSWERS[$index];
         }
-        $helpedQuestionId = $questions[0]['id'];
+
+        $this->jsonRequest($client, 'GET', "/api/quiz/questions/{$questions[0]['id']}/answer", $token);
+        self::assertResponseIsSuccessful();
 
         $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
             'moduleId' => $moduleId,
             'answers' => $answers,
-            'helpedQuestionIds' => [$helpedQuestionId],
         ]);
 
         self::assertResponseStatusCodeSame(201);
@@ -184,6 +188,56 @@ final class QuizControllerTest extends ApiTestCase
         // the 150 a fully-unaided perfect attempt earns (see the perfect-
         // attempt test above) - exactly the one helped question's share.
         self::assertSame(140, $result['xpEarned']);
+    }
+
+    public function testASubmittedHelpedQuestionIdsFieldHasNoEffect(): void
+    {
+        // Audit A6: helpedQuestionIds used to be entirely client-supplied -
+        // a client could call answer() to see a question's correct answer,
+        // then simply not list its id here to still score the point. It's
+        // now ignored entirely: the previous test proves the server catches
+        // a real reveal on its own; this one proves the field itself, even
+        // when present, can no longer grant a point back (nor cost one for
+        // a question that was never actually revealed).
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $moduleId = $this->findModuleId($client, $token, 'M0-1');
+
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
+        $questions = $this->decodeResponse($client);
+
+        $answers = [];
+        foreach ($questions as $index => $question) {
+            $answers[(string) $question['id']] = self::M0_1_ANSWERS[$index];
+        }
+
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answers,
+            // Never actually revealed via GET .../answer - listing it here
+            // must not zero the point either.
+            'helpedQuestionIds' => [$questions[0]['id']],
+        ]);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(10, $this->decodeResponse($client)['score']);
+    }
+
+    public function testQuestionsListAndAnswerRevealAreRejectedForALearnerAboveA0(): void
+    {
+        $client = static::createClient();
+        $a0Token = $this->registerAndGetToken($client);
+        $moduleId = $this->findModuleId($client, $a0Token, 'M0-1');
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $a0Token);
+        $questionId = $this->decodeResponse($client)[0]['id'];
+
+        $token = $this->registerAndGetTokenAtLevel($client, 'B1');
+
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
+        self::assertResponseStatusCodeSame(403);
+
+        $this->jsonRequest($client, 'GET', "/api/quiz/questions/{$questionId}/answer", $token);
+        self::assertResponseStatusCodeSame(403);
     }
 
     public function testFourthPassedModuleUnlocksLevelA1(): void
