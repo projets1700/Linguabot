@@ -10,6 +10,7 @@ use App\Repository\QuizModuleRepository;
 use App\Repository\QuizQuestionRepository;
 use App\Service\GamificationService;
 use App\Service\QuizService;
+use App\Service\RewardPayloadFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -135,8 +136,8 @@ final class QuizController
             ...$result,
             'userLevel' => $user->getLevel()->getCode(),
             'userTotalXp' => $user->getTotalXp(),
-            'newBadges' => array_map(static fn ($b) => ['code' => $b->getCode(), 'name' => $b->getName(), 'icon' => $b->getIcon()], $newBadges),
-            'newTrophies' => array_map(static fn ($t) => ['code' => $t->getCode(), 'name' => $t->getName(), 'rarity' => $t->getRarity()->value], $newTrophies),
+            'newBadges' => RewardPayloadFactory::badges($newBadges),
+            'newTrophies' => RewardPayloadFactory::trophies($newTrophies),
         ], 201);
     }
 }

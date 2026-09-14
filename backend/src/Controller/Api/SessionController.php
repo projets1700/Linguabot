@@ -13,6 +13,7 @@ use App\Service\AiInputLimits;
 use App\Service\CecrlProfileService;
 use App\Service\GamificationService;
 use App\Service\LearningAidService;
+use App\Service\RewardPayloadFactory;
 use App\Service\SessionSummaryService;
 use App\Service\VoiceService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -302,9 +303,9 @@ final class SessionController
             'xpEarned' => $xpEarned,
             'userTotalXp' => $user->getTotalXp(),
             'userSessionsCount' => $user->getSessionsCount(),
-            'levelUp' => null !== $newLevel ? ['code' => $newLevel->getCode(), 'name' => $newLevel->getName()] : null,
-            'newBadges' => array_map(static fn ($b) => ['code' => $b->getCode(), 'name' => $b->getName(), 'icon' => $b->getIcon()], $newBadges),
-            'newTrophies' => array_map(static fn ($t) => ['code' => $t->getCode(), 'name' => $t->getName(), 'rarity' => $t->getRarity()->value], $newTrophies),
+            'levelUp' => RewardPayloadFactory::levelUp($newLevel),
+            'newBadges' => RewardPayloadFactory::badges($newBadges),
+            'newTrophies' => RewardPayloadFactory::trophies($newTrophies),
             'summary' => [
                 'summary' => $bilan['summary'],
                 'exchangeCount' => $userTurns,
