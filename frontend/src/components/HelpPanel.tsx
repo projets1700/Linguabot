@@ -12,8 +12,6 @@ type Props = {
   hintEndpoint: string;
   /** The AI's last question, or null before there is anything to translate/get unstuck on. */
   textToTranslate: string | null;
-  /** Extra fields merged into the hint request body - the daily challenge is stateless server-side, so it needs the conversation `history` sent along; a scenario session doesn't (SessionController already has it). */
-  hintBody?: Record<string, unknown>;
   /** fullAnswer profiles (A0/A1) give a complete example sentence meant to be
    * repeated aloud, not just read - wired to the page's speakAssistantLine
    * so the avatar actually says it. Never called for keywords/progressive. */
@@ -49,7 +47,6 @@ export function HelpPanel({
   translateEndpoint,
   hintEndpoint,
   textToTranslate,
-  hintBody,
   onHintReceived,
 }: Props) {
   const [translation, setTranslation] = useState<string | null>(null);
@@ -82,10 +79,7 @@ export function HelpPanel({
     setHintLoading(true);
     setHintError(false);
     try {
-      const response = await api.post<{ tier: number; content: string }>(hintEndpoint, {
-        tier: nextTier,
-        ...hintBody,
-      });
+      const response = await api.post<{ tier: number; content: string }>(hintEndpoint, { tier: nextTier });
       setHints((current) => [...current, { tier: response.data.tier, content: response.data.content }]);
       // fullAnswer's example sentence is meant to be repeated aloud, not
       // just read - the avatar says it too (never for keywords/progressive).

@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ChallengeSessionRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ChallengeSessionRepository::class)]
@@ -28,6 +30,16 @@ class ChallengeSession
 
     #[ORM\Column(name: 'completed_at', type: 'datetimetz_immutable', nullable: true)]
     private ?\DateTimeImmutable $completedAt = null;
+
+    /** @var Collection<int, ChallengeMessage> */
+    #[ORM\OneToMany(targetEntity: ChallengeMessage::class, mappedBy: 'challengeSession', orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'ASC'])]
+    private Collection $messages;
+
+    public function __construct()
+    {
+        $this->messages = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -85,5 +97,26 @@ class ChallengeSession
     public function isCompleted(): bool
     {
         return null !== $this->completedAt;
+    }
+
+    /** @return Collection<int, ChallengeMessage> */
+    public function getMessages(): Collection
+    {
+        return $this->messages;
+    }
+
+    /**
+     * Keeps both sides of the relation in sync so a freshly-added message is
+     * reflected immediately, without needing a reload - same pattern as
+     * Session::addMessage().
+     */
+    public function addMessage(ChallengeMessage $message): static
+    {
+        if (!$this->messages->contains($message)) {
+            $this->messages->add($message);
+            $message->setChallengeSession($this);
+        }
+
+        return $this;
     }
 }

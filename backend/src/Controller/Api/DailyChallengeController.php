@@ -2,8 +2,11 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\ChallengeMessage;
 use App\Entity\ChallengeSession;
+use App\Entity\DailyChallenge;
 use App\Entity\User;
+use App\Enum\MessageRole;
 use App\Repository\ChallengeSessionRepository;
 use App\Service\CecrlProfileService;
 use App\Service\DailyChallengeService;
@@ -55,21 +58,10 @@ final class DailyChallengeController
         EntityManagerInterface $em,
     ): JsonResponse {
         $challenge = $dailyChallengeService->findOrCreateTodaysChallenge($user->getLevel());
-        $participation = $challengeSessionRepository->findOneForUserAndChallenge($user, $challenge);
-
-        if (null === $participation) {
-            $participation = (new ChallengeSession())->setUser($user)->setChallenge($challenge);
-            $em->persist($participation);
-            $em->flush();
-        }
+        $participation = $this->getOrCreateParticipation($user, $challenge, $challengeSessionRepository, $em);
 
         return new JsonResponse([
-            'openingMessage' => \sprintf(
-                "Hello! I'm %s. %s Ready? %s",
-                $challenge->getCharacterName(),
-                $challenge->getContext(),
-                $challenge->getObjective(),
-            ),
+            'openingMessage' => $this->ensureOpeningMessage($participation, $challenge, $em),
         ], 201);
     }
 
@@ -79,7 +71,9 @@ final class DailyChallengeController
         VoiceService $voiceService,
         #[CurrentUser] User $user,
         DailyChallengeService $dailyChallengeService,
+        ChallengeSessionRepository $challengeSessionRepository,
         CecrlProfileService $cecrlProfileService,
+        EntityManagerInterface $em,
         #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
         $rejected = $this->rejectIfAiRateLimited($aiCallsLimiter, $user);
@@ -89,7 +83,6 @@ final class DailyChallengeController
 
         $data = json_decode($request->getContent(), true) ?? [];
         $transcript = $voiceService->transcribeAudio((string) ($data['message'] ?? ''));
-        $turnNumber = (int) ($data['turnNumber'] ?? 0);
         // Set by the frontend's detectLearnerBlock() - see SessionController
         // for the same signal on scenario sessions; the daily challenge is
         // also an open-ended conversation, so it gets the exact same
@@ -101,13 +94,16 @@ final class DailyChallengeController
         }
 
         $challenge = $dailyChallengeService->findOrCreateTodaysChallenge($user->getLevel());
+        $participation = $this->getOrCreateParticipation($user, $challenge, $challengeSessionRepository, $em);
+        $this->ensureOpeningMessage($participation, $challenge, $em);
 
-        // No ChallengeMessage entity is persisted for this stateless
-        // endpoint (turnNumber alone drives the simulated fallback), so the
-        // frontend - which already renders the full transcript locally -
-        // is the one source of truth for what was actually said so far.
-        $conversationHistory = self::parseHistory($data);
-
+        // Rebuilt from what was actually persisted (audit P1-03) - a client
+        // can no longer fabricate assistant turns to steer the AI's context
+        // the way a client-supplied `history` array used to allow.
+        $conversationHistory = array_map(
+            static fn (ChallengeMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
+            $participation->getMessages()->toArray(),
+        );
         $lastAssistantMessage = null;
         for ($i = \count($conversationHistory) - 1; $i >= 0; --$i) {
             if ('assistant' === $conversationHistory[$i]['role']) {
@@ -116,6 +112,8 @@ final class DailyChallengeController
             }
         }
 
+        // "Can you repeat that?" is not an answer: re-say the same line
+        // without persisting anything, same as SessionController::message().
         if (null !== $lastAssistantMessage && $voiceService->isRepeatRequest($transcript)) {
             return new JsonResponse([
                 'userTranscript' => $transcript,
@@ -127,7 +125,15 @@ final class DailyChallengeController
             return new JsonResponse(['message' => "On dirait que tu répètes la question posée - réponds avec tes propres mots."], 422);
         }
 
-        $conversationHistory[] = ['role' => 'user', 'content' => $transcript];
+        $userMessage = (new ChallengeMessage())->setRole(MessageRole::USER)->setContent($transcript);
+        $participation->addMessage($userMessage);
+        $em->persist($userMessage);
+
+        $turnNumber = $participation->getMessages()->count();
+        $conversationHistory = array_map(
+            static fn (ChallengeMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
+            $participation->getMessages()->toArray(),
+        );
 
         $systemPrompt = \sprintf(
             "You are %s, a character in an English conversation practice scenario. Context: %s Objective: %s. ".
@@ -141,17 +147,23 @@ final class DailyChallengeController
         // Same labeled CECRL/correction/support/blocked composition as
         // SessionController - see CecrlProfileService::buildConversationInstruction().
         $levelInstruction = $cecrlProfileService->buildConversationInstruction($user->getLevel()->getCode(), $turnNumber, $learnerBlocked);
+        $reply = $voiceService->generateAnswer(
+            $systemPrompt,
+            $conversationHistory,
+            $turnNumber,
+            $levelInstruction,
+            $learnerBlocked,
+            $user->getLevel()->getCode(),
+        );
+
+        $assistantMessage = (new ChallengeMessage())->setRole(MessageRole::ASSISTANT)->setContent($reply);
+        $participation->addMessage($assistantMessage);
+        $em->persist($assistantMessage);
+        $em->flush();
 
         return new JsonResponse([
             'userTranscript' => $transcript,
-            'assistantMessage' => $voiceService->generateAnswer(
-                $systemPrompt,
-                $conversationHistory,
-                $turnNumber,
-                $levelInstruction,
-                $learnerBlocked,
-                $user->getLevel()->getCode(),
-            ),
+            'assistantMessage' => $reply,
         ]);
     }
 
@@ -159,8 +171,11 @@ final class DailyChallengeController
     public function hint(
         Request $request,
         #[CurrentUser] User $user,
+        DailyChallengeService $dailyChallengeService,
+        ChallengeSessionRepository $challengeSessionRepository,
         LearningAidService $learningAidService,
         CecrlProfileService $cecrlProfileService,
+        EntityManagerInterface $em,
         #[Autowire(service: 'limiter.ai_calls')] RateLimiterFactory $aiCallsLimiter,
     ): JsonResponse {
         $rejected = $this->rejectIfAiRateLimited($aiCallsLimiter, $user);
@@ -174,11 +189,19 @@ final class DailyChallengeController
             return new JsonResponse(['message' => 'Palier d\'aide invalide.'], 422);
         }
 
+        $challenge = $dailyChallengeService->findOrCreateTodaysChallenge($user->getLevel());
+        $participation = $this->getOrCreateParticipation($user, $challenge, $challengeSessionRepository, $em);
+        $this->ensureOpeningMessage($participation, $challenge, $em);
+
+        $conversationHistory = array_map(
+            static fn (ChallengeMessage $m) => ['role' => $m->getRole()->value, 'content' => $m->getContent()],
+            $participation->getMessages()->toArray(),
+        );
         $levelInstruction = $cecrlProfileService->complexityInstruction($user->getLevel()->getCode());
 
         return new JsonResponse([
             'tier' => $tier,
-            'content' => $learningAidService->hint(self::parseHistory($data), $tier, $levelInstruction),
+            'content' => $learningAidService->hint($conversationHistory, $tier, $levelInstruction),
         ]);
     }
 
@@ -244,25 +267,52 @@ final class DailyChallengeController
     }
 
     /**
-     * No ChallengeMessage entity is persisted for this stateless flow, so
-     * the frontend - which already renders the full transcript locally - is
-     * the one source of truth for what was said so far, for message(), and
-     * for the context hint() needs to build a relevant hint.
-     *
-     * @param array<string, mixed> $data
-     *
-     * @return array<int, array{role: string, content: string}>
+     * The learner's own participation row for today's challenge, created on
+     * first touch (start(), or message()/hint() called without an explicit
+     * start() first - the endpoint stays as lenient as it was before).
      */
-    private static function parseHistory(array $data): array
-    {
-        $history = \is_array($data['history'] ?? null) ? $data['history'] : [];
-        $conversationHistory = [];
-        foreach ($history as $entry) {
-            if (\is_array($entry) && \in_array($entry['role'] ?? null, ['user', 'assistant'], true) && \is_string($entry['content'] ?? null)) {
-                $conversationHistory[] = ['role' => $entry['role'], 'content' => $entry['content']];
-            }
+    private function getOrCreateParticipation(
+        User $user,
+        DailyChallenge $challenge,
+        ChallengeSessionRepository $challengeSessionRepository,
+        EntityManagerInterface $em,
+    ): ChallengeSession {
+        $participation = $challengeSessionRepository->findOneForUserAndChallenge($user, $challenge);
+        if (null === $participation) {
+            $participation = (new ChallengeSession())->setUser($user)->setChallenge($challenge);
+            $em->persist($participation);
+            $em->flush();
         }
 
-        return $conversationHistory;
+        return $participation;
+    }
+
+    /**
+     * Persists the character's opening line as this participation's first
+     * ChallengeMessage the first time it's touched, and returns it - every
+     * later call (a repeat start(), or message()/hint() reusing the same
+     * participation) just returns the one already persisted, so the
+     * opening line - and the conversation it anchors - never changes mid-challenge.
+     */
+    private function ensureOpeningMessage(ChallengeSession $participation, DailyChallenge $challenge, EntityManagerInterface $em): string
+    {
+        $existingOpening = $participation->getMessages()->first();
+        if (false !== $existingOpening) {
+            return $existingOpening->getContent();
+        }
+
+        $opening = \sprintf(
+            "Hello! I'm %s. %s Ready? %s",
+            $challenge->getCharacterName(),
+            $challenge->getContext(),
+            $challenge->getObjective(),
+        );
+
+        $message = (new ChallengeMessage())->setRole(MessageRole::ASSISTANT)->setContent($opening);
+        $participation->addMessage($message);
+        $em->persist($message);
+        $em->flush();
+
+        return $opening;
     }
 }

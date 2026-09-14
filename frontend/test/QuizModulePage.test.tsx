@@ -230,7 +230,7 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
     // helpedQuestionIds field at all (the server already knows from the GET
     // above) - only moduleId/answers are sent.
     await waitFor(() => expect(apiPostSpy).toHaveBeenCalledWith("/quiz/attempts", expect.any(Object)));
-    const [, body] = apiPostSpy.mock.calls.find(([url]) => url === "/quiz/attempts")!;
+    const [, body] = apiPostSpy.mock.calls.find(([url]: [string, unknown]) => url === "/quiz/attempts")!;
     expect(body).not.toHaveProperty("helpedQuestionIds");
   });
 

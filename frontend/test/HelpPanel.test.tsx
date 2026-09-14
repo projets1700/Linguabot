@@ -72,28 +72,6 @@ describe("HelpPanel", () => {
     expect(screen.getByText(/name, I am, my name/)).toBeInTheDocument();
   });
 
-  it("merges hintBody into the hint request (daily challenge sends its stateless history)", async () => {
-    vi.mocked(api.post).mockResolvedValueOnce({ data: { tier: 1, content: "some hint" } });
-    const user = userEvent.setup();
-
-    render(
-      <HelpPanel
-        profile={profile()}
-        translateEndpoint="/daily-challenge/translate"
-        hintEndpoint="/daily-challenge/hint"
-        textToTranslate={null}
-        hintBody={{ history: [{ role: "assistant", content: "What would you like to order?" }] }}
-      />,
-    );
-
-    await user.click(screen.getByRole("button", { name: /Je suis bloqué/ }));
-
-    expect(api.post).toHaveBeenCalledWith("/daily-challenge/hint", {
-      tier: 1,
-      history: [{ role: "assistant", content: "What would you like to order?" }],
-    });
-  });
-
   it("shows a retryable error banner when the hint request fails", async () => {
     vi.mocked(api.post).mockRejectedValueOnce(new Error("network error"));
     const user = userEvent.setup();

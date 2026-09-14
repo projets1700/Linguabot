@@ -28,11 +28,7 @@ export function DailyChallengePage() {
   const [sendError, setSendError] = useState<ApiError | null>(null);
   // The exact request behind the current sendError, so "Réessayer" can
   // resend it verbatim without the learner repeating it by voice (V1.1 §4.3).
-  const [failedSend, setFailedSend] = useState<{
-    transcript: string;
-    turnNumber: number;
-    history: { role: string; content: string }[];
-  } | null>(null);
+  const [failedSend, setFailedSend] = useState<{ transcript: string } | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<DailyChallengeFinishResult | null>(null);
   // Sticky once true - see the identical helpUnlocked comment in SessionPage.tsx.
@@ -68,9 +64,12 @@ export function DailyChallengePage() {
   }
 
   // Split from handleVoiceResult below so a failed send can be retried with
-  // the exact same request (transcript/turnNumber/history) without adding a
-  // second user bubble or requiring a new voice turn.
-  async function sendMessage(transcript: string, turnNumber: number, history: { role: string; content: string }[]) {
+  // the exact same transcript without adding a second user bubble or
+  // requiring a new voice turn. The backend now persists this conversation
+  // itself (ChallengeMessage, mirroring SessionMessage - audit A5), so it no
+  // longer needs turnNumber/history sent along; it rebuilds both from what
+  // was actually said.
+  async function sendMessage(transcript: string) {
     setSending(true);
     setSendError(null);
     setAvatarState("thinking");
@@ -85,8 +84,6 @@ export function DailyChallengePage() {
     try {
       const response = await api.post<{ assistantMessage: string }>("/daily-challenge/message", {
         message: transcript,
-        turnNumber,
-        history,
         learnerBlocked: blocked,
       });
       setMessages((current) => [
@@ -104,7 +101,7 @@ export function DailyChallengePage() {
       setAvatarState("idle");
       if (status !== 422) {
         setSendError(normalizeApiError(error));
-        setFailedSend({ transcript, turnNumber, history });
+        setFailedSend({ transcript });
       }
     } finally {
       setSending(false);
@@ -113,14 +110,8 @@ export function DailyChallengePage() {
 
   function handleVoiceResult(transcript: string) {
     const userMessage: ChatMessage = { id: Date.now(), role: "user", content: transcript };
-    const turnNumber = messages.filter((m) => m.role === "user").length;
-    // The backend doesn't persist this conversation, so it has no way to
-    // know what was already said - the frontend (which does render the
-    // full transcript) is the source of truth it needs for real GPT-4o
-    // replies and for detecting an echo/repeat request server-side.
-    const history = messages.map(({ role, content }) => ({ role, content }));
     setMessages((current) => [...current, userMessage]);
-    return sendMessage(transcript, turnNumber, history);
+    return sendMessage(transcript);
   }
 
   async function handleFinish() {
@@ -165,7 +156,6 @@ export function DailyChallengePage() {
   }
 
   const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant")?.content ?? null;
-  const historyForHint = messages.map(({ role, content }) => ({ role, content }));
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8 max-w-2xl mx-auto">
@@ -209,7 +199,6 @@ export function DailyChallengePage() {
               translateEndpoint="/daily-challenge/translate"
               hintEndpoint="/daily-challenge/hint"
               textToTranslate={lastAssistantMessage}
-              hintBody={{ history: historyForHint }}
               onHintReceived={speakAssistantLine}
             />
           ) : (
@@ -239,7 +228,7 @@ export function DailyChallengePage() {
                 message={sendError.message}
                 onRetry={
                   sendError.retryable && failedSend
-                    ? () => sendMessage(failedSend.transcript, failedSend.turnNumber, failedSend.history)
+                    ? () => sendMessage(failedSend.transcript)
                     : undefined
                 }
               />
