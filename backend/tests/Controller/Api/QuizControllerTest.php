@@ -37,6 +37,33 @@ final class QuizControllerTest extends ApiTestCase
         }
     }
 
+    public function testModulesListIsEmptyForALearnerAboveA0(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'B1');
+
+        $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->decodeResponse($client));
+    }
+
+    public function testAttemptsIsRejectedForALearnerAboveA0EvenWithAGuessedModuleId(): void
+    {
+        $client = static::createClient();
+        $a0Token = $this->registerAndGetToken($client);
+        $moduleId = $this->findModuleId($client, $a0Token, 'M0-1');
+
+        $token = $this->registerAndGetTokenAtLevel($client, 'B1');
+
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => [],
+        ]);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
     public function testQuestionsListNeverExposesTheCorrectAnswer(): void
     {
         $client = static::createClient();

@@ -3,6 +3,7 @@
 namespace App\Tests\Controller\Api;
 
 use App\Entity\Badge;
+use App\Entity\Level;
 use App\Entity\User;
 use App\Entity\UserBadge;
 use App\Tests\ApiTestCase;
@@ -13,15 +14,11 @@ final class MeStatsControllerTest extends ApiTestCase
     public function testStatsReflectRealActivityAndIsolatePerUser(): void
     {
         $client = static::createClient();
-        $token = $this->registerAndGetTokenAtLevel($client, 'A1', 'stats-user-a@linguabot.fr');
-        $scenarioId = $this->findAnyScenarioId($client, $token);
-
-        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
-        $sessionId = $this->decodeResponse($client)['id'];
-        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, ['message' => 'Hello!']);
-        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/finish", $token);
-        $sessionXp = $this->decodeResponse($client)['xpEarned'];
-        self::assertGreaterThan(0, $sessionXp);
+        // A0 first (default registration level) - the quiz is A0-only (see
+        // QuizController::modules()), so it must be completed before the
+        // level bump below, exactly like a real learner would: pass the
+        // quiz while still A0, then move on to scenario sessions once past it.
+        $token = $this->registerAndGetToken($client, 'stats-user-a@linguabot.fr');
 
         $moduleId = $this->findQuizModuleId($client, $token, 'M0-1');
         $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
@@ -34,16 +31,35 @@ final class MeStatsControllerTest extends ApiTestCase
         $quizXp = $this->decodeResponse($client)['xpEarned'];
         self::assertGreaterThan(0, $quizXp);
 
-        // A badge earned directly (not through the 5-session trigger) so the
-        // SQL join against user_badges/badges.xp_bonus can be verified
-        // without orchestrating the full real trigger condition.
         /** @var EntityManagerInterface $em */
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $user = $em->getRepository(User::class)->findOneBy(['email' => 'stats-user-a@linguabot.fr']);
-        $badge = $em->getRepository(Badge::class)->findOneBy(['code' => 'BADGE_SPEAKER']);
-        self::assertNotNull($badge, 'BADGE_SPEAKER fixture not found - are GamificationFixtures loaded?');
-        $em->persist((new UserBadge())->setUser($user)->setBadge($badge));
+        $levelA1 = $em->getRepository(Level::class)->findOneBy(['code' => 'A1']);
+        $user->setLevel($levelA1);
         $em->flush();
+
+        $scenarioId = $this->findAnyScenarioId($client, $token);
+        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $sessionId = $this->decodeResponse($client)['id'];
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, ['message' => 'Hello!']);
+        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/finish", $token);
+        $sessionXp = $this->decodeResponse($client)['xpEarned'];
+        self::assertGreaterThan(0, $sessionXp);
+
+        // A badge earned directly (not through the 5-session trigger) so the
+        // SQL join against user_badges/badges.xp_bonus can be verified
+        // without orchestrating the full real trigger condition. Re-fetched
+        // fresh here (not reusing $user/$em from above) - the several
+        // jsonRequest() calls since then each go through a fresh kernel
+        // sub-request, which leaves the earlier entity manager reference
+        // stale/detached (confirmed by reproducing "a new entity was found
+        // through the relationship" otherwise).
+        $em2 = self::getContainer()->get(EntityManagerInterface::class);
+        $freshUser = $em2->getRepository(User::class)->findOneBy(['email' => 'stats-user-a@linguabot.fr']);
+        $badge = $em2->getRepository(Badge::class)->findOneBy(['code' => 'BADGE_SPEAKER']);
+        self::assertNotNull($badge, 'BADGE_SPEAKER fixture not found - are GamificationFixtures loaded?');
+        $em2->persist((new UserBadge())->setUser($freshUser)->setBadge($badge));
+        $em2->flush();
 
         $this->jsonRequest($client, 'GET', '/api/me/stats?days=30', $token);
         self::assertResponseIsSuccessful();

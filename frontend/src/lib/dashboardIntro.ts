@@ -114,6 +114,8 @@ export type DashboardDestination = {
   route: string;
   /** Spoken before navigating (§16) - deterministic, no AI call needed. */
   confirmSpeech: string;
+  /** French translation of confirmSpeech, shown by DashboardPage's own CECRL-level-driven translation aid (never spoken - the Dashboard's own conversation stays 100% English, same rule as scenario sessions). */
+  confirmSpeechFr: string;
 };
 
 // A negated request ("je ne veux pas faire le quiz") must not still match
@@ -129,47 +131,54 @@ const NEGATION_TOKENS = new Set(["pas", "jamais", "dont", "not", "non"]);
 // in the nav/dashboard cards) - kept as two destinations because the
 // spoken confirmation differs by what the learner actually asked for (§16
 // gives distinct example lines for "Progression" vs "Trophées").
-const DESTINATIONS: { key: DashboardDestinationKey; route: string; confirmSpeech: string; aliases: string[] }[] = [
+const DESTINATIONS: { key: DashboardDestinationKey; route: string; confirmSpeech: string; confirmSpeechFr: string; aliases: string[] }[] = [
   {
     key: "scenarios",
     route: "/catalog",
-    confirmSpeech: "Très bien, allons voir les scénarios.",
+    confirmSpeech: "Great, let's go check out the scenarios.",
+    confirmSpeechFr: "Très bien, allons voir les scénarios.",
     aliases: ["scenario", "scenarios", "les scenarios", "conversation", "conversations"],
   },
   {
     key: "quiz",
     route: "/quiz",
-    confirmSpeech: "Très bien, commençons le quiz.",
+    confirmSpeech: "Great, let's start the quiz.",
+    confirmSpeechFr: "Très bien, commençons le quiz.",
     aliases: ["quiz", "quiz vocal", "le quiz", "vocabulaire"],
   },
   {
     key: "dailyChallenge",
     route: "/defi-du-jour",
-    confirmSpeech: "Parfait, commençons le défi du jour.",
+    confirmSpeech: "Perfect, let's start today's challenge.",
+    confirmSpeechFr: "Parfait, commençons le défi du jour.",
     aliases: ["defi", "defi du jour", "le defi", "le defi du jour", "challenge", "daily challenge"],
   },
   {
     key: "progress",
     route: "/trophees",
-    confirmSpeech: "Regardons ta progression.",
+    confirmSpeech: "Let's take a look at your progress.",
+    confirmSpeechFr: "Regardons ta progression.",
     aliases: ["progression", "ma progression", "progres", "mes progres", "progress", "my progress"],
   },
   {
     key: "badges",
     route: "/badges",
-    confirmSpeech: "Allons voir tes badges.",
+    confirmSpeech: "Let's go check out your badges.",
+    confirmSpeechFr: "Allons voir tes badges.",
     aliases: ["badge", "badges", "mes badges"],
   },
   {
     key: "trophies",
     route: "/trophees",
-    confirmSpeech: "Allons voir tes trophées.",
+    confirmSpeech: "Let's go check out your trophies.",
+    confirmSpeechFr: "Allons voir tes trophées.",
     aliases: ["trophee", "trophees", "mes trophees", "trophy", "trophies"],
   },
   {
     key: "profile",
     route: "/mon-compte",
-    confirmSpeech: "Allons voir ton profil.",
+    confirmSpeech: "Let's go check out your profile.",
+    confirmSpeechFr: "Allons voir ton profil.",
     aliases: ["profil", "mon profil", "compte", "mon compte", "profile", "account"],
   },
 ];
@@ -192,7 +201,12 @@ export function detectDashboardDestination(transcript: string): DashboardDestina
     for (const alias of destination.aliases) {
       const aliasWords = alias.split(" ");
       if (containsSequence(words, aliasWords) || normalizedTranscript === alias) {
-        return { key: destination.key, route: destination.route, confirmSpeech: destination.confirmSpeech };
+        return {
+          key: destination.key,
+          route: destination.route,
+          confirmSpeech: destination.confirmSpeech,
+          confirmSpeechFr: destination.confirmSpeechFr,
+        };
       }
     }
   }

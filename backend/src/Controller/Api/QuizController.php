@@ -23,6 +23,16 @@ final class QuizController
         QuizModuleRepository $moduleRepository,
         QuizAttemptRepository $attemptRepository,
     ): JsonResponse {
+        // The 6 existing modules (QuizFixtures) are all A0 vocabulary - this
+        // is "the A0 quiz", not a level-agnostic bank, so it's only ever
+        // shown to A0 learners rather than following Scenario's "show
+        // locked, above your level" preview convention (which points the
+        // other way: content ABOVE the learner's level, not already-passed
+        // beginner content below it).
+        if ('A0' !== $user->getLevel()->getCode()) {
+            return new JsonResponse([]);
+        }
+
         $modules = $moduleRepository->findBy(['isActive' => true], ['orderNum' => 'ASC']);
         $passedModuleIds = $attemptRepository->findPassedModuleIds($user);
 
@@ -77,6 +87,13 @@ final class QuizController
         QuizService $quizService,
         GamificationService $gamificationService,
     ): JsonResponse {
+        // Same restriction as modules() above, enforced again here since
+        // this is the consequential action (scoring/XP) - the listing
+        // filter alone wouldn't stop a direct POST with a guessed moduleId.
+        if ('A0' !== $user->getLevel()->getCode()) {
+            return new JsonResponse(['message' => 'Ce quiz est réservé aux apprenants de niveau A0.'], 403);
+        }
+
         $data = json_decode($request->getContent(), true) ?? [];
         $module = $moduleRepository->find($data['moduleId'] ?? 0);
 

@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
-import { LearnerStatsSection } from "../components/LearnerStatsSection";
 import { VoiceInput } from "../components/VoiceInput";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -48,15 +47,29 @@ function progressToNextLevel(levelCode: string, totalXp: number): { percent: num
   return { percent, nextLevelCode };
 }
 
-const GREETING_QUESTION = "Prêt pour ton cours d'anglais aujourd'hui ?";
-const READY_NOT_UNDERSTOOD_TEXT = "Je n'ai pas bien compris. Tu peux dire oui, ou continuer avec le bouton.";
-const WHAT_NEXT_QUESTION = "Par quoi commençons-nous aujourd'hui ?";
+// The Dashboard's own guided greeting/navigation now speaks English, same as
+// every other page where the avatar talks (scenarios, quiz, onboarding
+// below) - it used to speak French here specifically, which was the one
+// inconsistency in an otherwise all-English conversation. Each line keeps
+// its own French translation (the _FR constants / dashboardIntro.ts's
+// confirmSpeechFr) - never spoken, only shown by the CECRL-level-driven
+// translation aid below (same helpVisibleByDefault/translationMode rule as
+// HelpPanel on the scenario/quiz/daily-challenge pages - see
+// CecrlProfileService::PROFILES), so a beginner isn't just left guessing.
+const GREETING_QUESTION = "Ready for your English lesson today?";
+const GREETING_QUESTION_FR = "Prêt pour ton cours d'anglais aujourd'hui ?";
+const READY_NOT_UNDERSTOOD_TEXT = "I didn't quite catch that. You can say yes, or continue with the button.";
+const READY_NOT_UNDERSTOOD_TEXT_FR = "Je n'ai pas bien compris. Tu peux dire oui, ou continuer avec le bouton.";
+const WHAT_NEXT_QUESTION = "What shall we start with today?";
+const WHAT_NEXT_QUESTION_FR = "Par quoi commençons-nous aujourd'hui ?";
 const ONBOARDING_GREETING = "Hello! I'm LinguaBot, your English teacher. What's your name?";
 const ONBOARDING_READY_QUESTION = "Are you ready to start?";
 const ONBOARDING_REFORMULATED_READY_QUESTION =
   "I didn't quite catch that. You can say: yes, I'm ready — or no, not yet.";
 const ONBOARDING_DECLINED_MESSAGE = "No problem. Come back when you're ready!";
 const DESTINATION_NOT_UNDERSTOOD_TEXT =
+  "I didn't understand your choice. You can say, for example: Scenarios, Quiz, Daily challenge, or Progress.";
+const DESTINATION_NOT_UNDERSTOOD_TEXT_FR =
   "Je n'ai pas compris ton choix. Tu peux dire par exemple : Scénarios, Quiz, Défi du jour ou Progression.";
 // Long enough to read as a deliberate move (not a flicker), short enough to
 // stay out of the way - matches the ~0.5-0.8s range used for the app's
@@ -172,6 +185,16 @@ export function DashboardPage() {
   const transitionStartedRef = useRef(false);
   const pendingNavigationRef = useRef<string | null>(null);
   const previousAvatarStateRef = useRef(avatarState);
+  // The French translation of whatever LinguaBot's guided greeting/nav just
+  // said in English (never set by the onboarding lines above, which stay
+  // English-only by design - see LOT 2). Auto-revealed or click-to-reveal
+  // per the learner's own CecrlProfile.translationMode, exactly the same
+  // visible/onDemand/rare rule HelpPanel already applies on the scenario/
+  // quiz/daily-challenge pages (CecrlProfileService::PROFILES) - reused here
+  // instead of a fresh ad hoc rule, and always reachable regardless of level
+  // (RF-03), just less prominent by default at higher levels.
+  const [translationText, setTranslationText] = useState<string | null>(null);
+  const [translationRevealed, setTranslationRevealed] = useState(false);
 
   useEffect(() => {
     fetchMe();
@@ -219,8 +242,11 @@ export function DashboardPage() {
       return;
     }
 
-    const greeting = user.prenom ? `Bonjour ${user.prenom}. ${GREETING_QUESTION}` : `Bonjour. ${GREETING_QUESTION}`;
-    speakAssistantLine(greeting, "fr-FR");
+    const greeting = user.prenom ? `Hello ${user.prenom}! ${GREETING_QUESTION}` : `Hello! ${GREETING_QUESTION}`;
+    const greetingFr = user.prenom
+      ? `Bonjour ${user.prenom}. ${GREETING_QUESTION_FR}`
+      : `Bonjour. ${GREETING_QUESTION_FR}`;
+    speakDashboardLine(greeting, greetingFr);
     // speakAssistantLine is a fresh function reference every render (from
     // useConversationSession) and must not retrigger this - it only ever
     // needs to run once, guarded by greetingSpokenRef above.
@@ -241,6 +267,16 @@ export function DashboardPage() {
     }
   }, [avatarState, navigate]);
 
+  // Speaks an English line (same speakAssistantLine pipeline as everywhere
+  // else) while also recording its French translation for the aid below -
+  // only ever called for the Dashboard's own greeting/navigation lines,
+  // never the onboarding ones above (which have no translation, by design).
+  function speakDashboardLine(en: string, fr: string) {
+    setTranslationText(fr);
+    setTranslationRevealed(user?.cecrlProfile.translationMode === "visible");
+    speakAssistantLine(en, "en-US");
+  }
+
   function beginDashboardTransition() {
     if (transitionStartedRef.current) return;
     transitionStartedRef.current = true;
@@ -260,7 +296,7 @@ export function DashboardPage() {
       () => {
         setTransitioning(false);
         setCardsRevealed(true);
-        speakAssistantLine(WHAT_NEXT_QUESTION, "fr-FR");
+        speakDashboardLine(WHAT_NEXT_QUESTION, WHAT_NEXT_QUESTION_FR);
       },
       reduced ? 0 : TRANSITION_MS,
     );
@@ -270,7 +306,7 @@ export function DashboardPage() {
     if (detectDashboardReadyIntent(transcript)) {
       beginDashboardTransition();
     } else {
-      speakAssistantLine(READY_NOT_UNDERSTOOD_TEXT, "fr-FR");
+      speakDashboardLine(READY_NOT_UNDERSTOOD_TEXT, READY_NOT_UNDERSTOOD_TEXT_FR);
     }
   }
 
@@ -278,9 +314,9 @@ export function DashboardPage() {
     const destination = detectDashboardDestination(transcript);
     if (destination) {
       pendingNavigationRef.current = destination.route;
-      speakAssistantLine(destination.confirmSpeech, "fr-FR");
+      speakDashboardLine(destination.confirmSpeech, destination.confirmSpeechFr);
     } else {
-      speakAssistantLine(DESTINATION_NOT_UNDERSTOOD_TEXT, "fr-FR");
+      speakDashboardLine(DESTINATION_NOT_UNDERSTOOD_TEXT, DESTINATION_NOT_UNDERSTOOD_TEXT_FR);
     }
   }
 
@@ -349,6 +385,10 @@ export function DashboardPage() {
   }
 
   const isNewLearner = user.totalXp === 0 && user.sessionsCount === 0;
+  // The A0 vocabulary quiz (QuizController::modules() enforces this
+  // server-side too) has nothing to offer past A0 - once a learner is A1+,
+  // "Commencer le quiz A0" would either 403 or (now) list nothing.
+  const isA0 = user.level.code === "A0";
   const { percent: xpPercent, nextLevelCode } = progressToNextLevel(user.level.code, user.totalXp);
   const reducedMotion = prefersReducedMotion();
   const micDisabled = avatarState === "speaking" || transitioning;
@@ -512,16 +552,40 @@ export function DashboardPage() {
                         {micListening ? "Je t'écoute…" : "Disponible pour parler"}
                       </span>
                     </div>
-                    <VoiceInput
-                      onResult={handleVoiceResult}
-                      disabled={micDisabled}
-                      lang="fr-FR"
-                      variant="brand"
-                      size="compact"
-                      onListeningChange={setMicListening}
-                      hideStatusText
-                    />
+                    <div className="flex items-center gap-2">
+                      {translationText && (
+                        <button
+                          type="button"
+                          onClick={() => setTranslationRevealed((current) => !current)}
+                          aria-expanded={translationRevealed}
+                          aria-label="Traduction en français"
+                          title="Traduction en français"
+                          className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-sm"
+                        >
+                          🇫🇷
+                        </button>
+                      )}
+                      <VoiceInput
+                        onResult={handleVoiceResult}
+                        disabled={micDisabled}
+                        variant="brand"
+                        size="compact"
+                        onListeningChange={setMicListening}
+                        hideStatusText
+                      />
+                    </div>
                   </div>
+                )}
+                {/* Same CECRL-level-driven translation aid as HelpPanel on the
+                    scenario/quiz/daily-challenge pages (visible/onDemand/rare -
+                    see CecrlProfileService::PROFILES), just a lighter local
+                    version since these lines are fixed strings, not
+                    AI-generated text needing a translate API call. Rendered
+                    right under the mic (which the button above sits next to),
+                    inside this same card - never below the unrelated hero
+                    card next to it. */}
+                {phase === "dashboard" && translationRevealed && translationText && (
+                  <p className="px-4 pb-3 -mt-1 text-xs text-slate-400 bg-slate-900/40">🇫🇷 {translationText}</p>
                 )}
               </div>
 
@@ -535,10 +599,33 @@ export function DashboardPage() {
                   mid-thigh and reads as detached from the body). */}
               {phase === "intro" && (
                 <div className="absolute top-[87%] right-1 sm:top-[66%] sm:right-4 flex flex-col items-center gap-1">
+                  {translationText && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setTranslationRevealed((current) => !current)}
+                        aria-expanded={translationRevealed}
+                        aria-label="Traduction en français"
+                        title="Traduction en français"
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-900/80 hover:bg-slate-800 text-sm shadow-md"
+                      >
+                        🇫🇷
+                      </button>
+                      {/* Opens upward (bottom-full), same direction
+                          AvatarSpeechBubble already uses safely from this same
+                          overflow-hidden classroom box - this corner cluster
+                          sits well below the box's own top edge, so there's
+                          room for it without getting clipped. */}
+                      {translationRevealed && (
+                        <div className="absolute bottom-full right-0 mb-2 w-56 max-w-[70vw] bg-slate-900/95 text-slate-200 text-xs rounded-lg px-3 py-2 shadow-lg">
+                          {translationText}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <VoiceInput
                     onResult={handleVoiceResult}
                     disabled={micDisabled}
-                    lang={introStage === "greeting" ? "fr-FR" : "en-US"}
                     variant="brand"
                     size="compact"
                   />
@@ -614,8 +701,8 @@ export function DashboardPage() {
                   <p className="text-xs text-slate-500 mt-1">{user.totalXp} XP</p>
                 </div>
 
-                <Button to={isNewLearner ? "/quiz" : "/catalog"} size="lg" className="self-start">
-                  {isNewLearner ? "Commencer le quiz A0 →" : "▶ Reprendre"}
+                <Button to={isNewLearner && isA0 ? "/quiz" : "/catalog"} size="lg" className="self-start">
+                  {isNewLearner && isA0 ? "Commencer le quiz A0 →" : "▶ Reprendre"}
                 </Button>
               </div>
             </RevealSection>
@@ -679,7 +766,7 @@ export function DashboardPage() {
             {/* ---------- Choisir une activité ---------- */}
             <RevealSection visible={cardsRevealed} delayMs={200} reducedMotion={reducedMotion}>
               <h2 className="text-lg font-bold mb-2.5">Choisir une activité</h2>
-              <div className="grid md:grid-cols-3 gap-4 mb-5">
+              <div className={`grid gap-4 mb-5 ${isA0 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                 <Link
                   to="/catalog"
                   className="block bg-slate-800 hover:bg-slate-700/80 hover:-translate-y-0.5 px-6 py-4 rounded-xl transition-all"
@@ -691,17 +778,24 @@ export function DashboardPage() {
                   <p className="text-slate-400 text-sm mb-2">Converse avec LinguaBot dans des situations réelles.</p>
                   <p className="text-blue-400 text-sm">Explorer →</p>
                 </Link>
-                <Link
-                  to="/quiz"
-                  className="block bg-slate-800 hover:bg-slate-700/80 hover:-translate-y-0.5 px-6 py-4 rounded-xl transition-all"
-                >
-                  <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-blue-500/15 text-2xl mb-2">
-                    🎙️
-                  </span>
-                  <p className="font-bold mb-0.5">Quiz vocal</p>
-                  <p className="text-slate-400 text-sm mb-2">Entraîne ton vocabulaire à l'oral.</p>
-                  <p className="text-blue-400 text-sm">Commencer →</p>
-                </Link>
+                {/* The A0 quiz has nothing left to offer past A0
+                    (QuizController::modules() enforces this server-side
+                    too) - hidden entirely rather than shown locked, since
+                    there's no "unlock later" story for content the learner
+                    has already moved past. */}
+                {isA0 && (
+                  <Link
+                    to="/quiz"
+                    className="block bg-slate-800 hover:bg-slate-700/80 hover:-translate-y-0.5 px-6 py-4 rounded-xl transition-all"
+                  >
+                    <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-blue-500/15 text-2xl mb-2">
+                      🎙️
+                    </span>
+                    <p className="font-bold mb-0.5">Quiz vocal</p>
+                    <p className="text-slate-400 text-sm mb-2">Entraîne ton vocabulaire à l'oral.</p>
+                    <p className="text-blue-400 text-sm">Commencer →</p>
+                  </Link>
+                )}
                 <Link
                   to="/trophees"
                   className="block bg-slate-800 hover:bg-slate-700/80 hover:-translate-y-0.5 px-6 py-4 rounded-xl transition-all"
@@ -714,11 +808,6 @@ export function DashboardPage() {
                   <p className="text-blue-400 text-sm">Voir mes récompenses →</p>
                 </Link>
               </div>
-            </RevealSection>
-
-            {/* ---------- Statistiques détaillées (V1.1 LOT 4) ---------- */}
-            <RevealSection visible={cardsRevealed} delayMs={300} reducedMotion={reducedMotion}>
-              <LearnerStatsSection />
             </RevealSection>
 
             {/* Voice destination navigation is still a bonus on top of the

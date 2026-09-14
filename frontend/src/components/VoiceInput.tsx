@@ -3,9 +3,7 @@ import { useEffect, useRef, useState } from "react";
 type Props = {
   onResult: (transcript: string) => void;
   disabled?: boolean;
-  // Defaults to English (every existing caller's conversation is in
-  // English). The Dashboard's guided intro talks to the learner in French,
-  // so it passes "fr-FR" here for better recognition of its own replies.
+  // Defaults to English - every caller's conversation is in English.
   lang?: string;
   // "default" (red mic, unchanged) matches every existing caller. "brand"
   // swaps the listening color to LinguaBot's own blue accent instead of a

@@ -25,10 +25,10 @@ export function useConversationSession() {
   const avatarReadyRef = useRef(false);
   const pendingSpeechRef = useRef<(() => void) | null>(null);
 
-  // Defaults to English (every existing caller's assistant lines are
-  // English) - callers speaking French (e.g. the Dashboard's intro
-  // greeting) pass lang="fr-FR", same as the A0 quiz's forced-French
-  // prompts already do directly through speakText.
+  // Defaults to English - every caller's assistant lines are English (the
+  // Dashboard's own guided greeting/navigation included, since it switched
+  // off French speech - see DashboardPage's speakDashboardLine/CECRL
+  // translation aid).
   function speakAssistantLine(text: string, lang: string = "en-US") {
     charIndexRef.current = null;
     setSpeechText(text);

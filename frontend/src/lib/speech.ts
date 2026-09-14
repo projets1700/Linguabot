@@ -104,10 +104,10 @@ function speakNow(text: string, options: SpeakOptions): void {
   const lang = options.lang ?? "en-US";
   utterance.lang = lang;
 
-  // The voice picker only offers English voices (that's where nearly all
-  // of the app's speech happens), so the saved preference is only applied
-  // to English utterances - it must never hijack the A0 quiz's forced
-  // lang="fr-FR" prompts, which need a French voice regardless.
+  // The voice picker only offers English voices (every line the app speaks
+  // is English now), so the saved preference is only applied to English
+  // utterances - any future non-English lang here would fall through to
+  // the gender-matched default below instead.
   const preferredVoiceURI =
     options.voiceURI ?? (lang.startsWith("en") ? useVoiceSettingsStore.getState().selectedVoiceURI : null);
   let matchedVoice = preferredVoiceURI

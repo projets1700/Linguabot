@@ -210,8 +210,8 @@ describe("DashboardPage", () => {
     renderDashboard();
     await flushMicrotasks();
 
-    expect(latestUtterance().text).toBe("Bonjour Chloé. Prêt pour ton cours d'anglais aujourd'hui ?");
-    expect(screen.getByRole("status")).toHaveTextContent("Bonjour Chloé");
+    expect(latestUtterance().text).toBe("Hello Chloé! Ready for your English lesson today?");
+    expect(screen.getByRole("status")).toHaveTextContent("Hello Chloé");
   });
 
   it("falls back to a generic greeting when no first name is available", async () => {
@@ -219,7 +219,7 @@ describe("DashboardPage", () => {
     renderDashboard();
     await flushMicrotasks();
 
-    expect(latestUtterance().text).toBe("Bonjour. Prêt pour ton cours d'anglais aujourd'hui ?");
+    expect(latestUtterance().text).toBe("Hello! Ready for your English lesson today?");
   });
 
   it("keeps the mic disabled while the avatar is greeting, then enables it once it finishes", async () => {
@@ -253,7 +253,7 @@ describe("DashboardPage", () => {
     });
     await waitFor(() => expect(speak.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 2000 });
 
-    expect(latestUtterance().text).toBe("Par quoi commençons-nous aujourd'hui ?");
+    expect(latestUtterance().text).toBe("What shall we start with today?");
   });
 
   it("never remounts the avatar across the intro -> dashboard transition", async () => {
@@ -275,6 +275,11 @@ describe("DashboardPage", () => {
     });
 
     expect(avatarSceneMountCount.current).toBe(1);
+    // Drains the "what next" question's own real 700ms transition timeout
+    // before the test ends - see the identical note on the "skip straight
+    // to the dashboard" test above.
+    await waitFor(() => expect(speak.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 2000 });
+    await endLatestSpeech();
   });
 
   it("does not transition on an unrelated reply, and asks the learner to retry", async () => {
@@ -288,7 +293,7 @@ describe("DashboardPage", () => {
     });
     await flushMicrotasks();
 
-    expect(latestUtterance().text).toBe("Je n'ai pas bien compris. Tu peux dire oui, ou continuer avec le bouton.");
+    expect(latestUtterance().text).toBe("I didn't quite catch that. You can say yes, or continue with the button.");
     expect(screen.queryByText(/Choisir une activité/)).not.toBeInTheDocument();
   });
 
@@ -304,6 +309,13 @@ describe("DashboardPage", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: /Choisir une activité/ })).toBeInTheDocument(), {
       timeout: 2000,
     });
+    // Drains the "what next" question's own real 700ms transition timeout
+    // (TRANSITION_MS in DashboardPage.tsx, not mocked here) before the test
+    // ends - otherwise it fires later, mid a *different* test, and calls
+    // that test's speechSynthesis mock instead (confirmed by reproducing
+    // exactly that cross-test pollution without this).
+    await waitFor(() => expect(speak.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 2000 });
+    await endLatestSpeech();
   });
 
   it("does not replay the guided intro on a later arrival within the same session", async () => {
@@ -352,7 +364,7 @@ describe("DashboardPage", () => {
     });
     await flushMicrotasks();
 
-    expect(latestUtterance().text).toBe("Très bien, commençons le quiz.");
+    expect(latestUtterance().text).toBe("Great, let's start the quiz.");
     expect(navigateMock).not.toHaveBeenCalled();
 
     await endLatestSpeech();
@@ -368,7 +380,7 @@ describe("DashboardPage", () => {
     });
     await flushMicrotasks();
 
-    expect(latestUtterance().text).toBe("Allons voir tes trophées.");
+    expect(latestUtterance().text).toBe("Let's go check out your trophies.");
     await endLatestSpeech();
     expect(navigateMock).toHaveBeenCalledWith("/trophees");
   });
@@ -382,7 +394,7 @@ describe("DashboardPage", () => {
     await flushMicrotasks();
 
     expect(latestUtterance().text).toBe(
-      "Je n'ai pas compris ton choix. Tu peux dire par exemple : Scénarios, Quiz, Défi du jour ou Progression.",
+      "I didn't understand your choice. You can say, for example: Scenarios, Quiz, Daily challenge, or Progress.",
     );
 
     await endLatestSpeech();
@@ -398,18 +410,97 @@ describe("DashboardPage", () => {
     });
     await flushMicrotasks();
 
-    expect(latestUtterance().text).not.toBe("Très bien, commençons le quiz.");
+    expect(latestUtterance().text).not.toBe("Great, let's start the quiz.");
     await endLatestSpeech();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it("keeps every dashboard card clickable on its own, with no vocal confirmation required", async () => {
-    await enterDashboardPhase();
+    // Quiz vocal only shows for A0 learners (see the dedicated describe
+    // block below) - A0 here so this test still covers all 3 cards.
+    await enterDashboardPhase({ level: { code: "A0", name: "Débutant absolu", xpThreshold: 0 } });
 
     expect(screen.getByRole("link", { name: /Quiz vocal/ })).toHaveAttribute("href", "/quiz");
     expect(screen.getByRole("link", { name: /Explorer/ })).toHaveAttribute("href", "/catalog");
     expect(screen.getByRole("link", { name: /Badges & trophées/ })).toHaveAttribute("href", "/trophees");
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  describe("Quiz vocal A0 visibility", () => {
+    it("shows the Quiz vocal card and CTA for an A0 learner", async () => {
+      await enterDashboardPhase({
+        level: { code: "A0", name: "Débutant absolu", xpThreshold: 0 },
+        totalXp: 0,
+        sessionsCount: 0,
+      });
+
+      expect(screen.getByRole("link", { name: /Quiz vocal/ })).toHaveAttribute("href", "/quiz");
+      expect(screen.getByRole("link", { name: /Commencer le quiz A0/ })).toHaveAttribute("href", "/quiz");
+    });
+
+    it("hides the Quiz vocal card and CTA for a learner past A0", async () => {
+      await enterDashboardPhase({
+        level: { code: "A1", name: "Grands débuts", xpThreshold: 300 },
+        totalXp: 0,
+        sessionsCount: 0,
+      });
+
+      expect(screen.queryByRole("link", { name: /Quiz vocal/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: /Commencer le quiz A0/ })).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "▶ Reprendre" })).toHaveAttribute("href", "/catalog");
+    });
+  });
+
+  describe("CECRL-level translation aid for the guided greeting/navigation", () => {
+    // A small "🇫🇷" button right next to the avatar (in the intro's own
+    // mic/skip corner cluster, or the dashboard card's mic footer) - never a
+    // standalone block elsewhere on the page. Always present once a line has
+    // been spoken (RF-03); only whether it *starts* expanded depends on the
+    // learner's own CecrlProfile.translationMode.
+    const translationButton = () => screen.getByRole("button", { name: "Traduction en français" });
+
+    it("auto-reveals the French translation for a learner whose profile marks it visible (A0-A2)", async () => {
+      useAuthStore.setState({
+        user: baseUser({ cecrlProfile: { transcriptMode: "auto", translationMode: "visible", hintMode: "fullAnswer", helpVisibleByDefault: true } }),
+      });
+      renderDashboard();
+      await flushMicrotasks();
+
+      expect(latestUtterance().text).toBe("Hello Adam! Ready for your English lesson today?");
+      expect(translationButton()).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText("Bonjour Adam. Prêt pour ton cours d'anglais aujourd'hui ?")).toBeInTheDocument();
+    });
+
+    it("hides the French translation behind the reveal button for a learner whose profile marks it onDemand/rare (B1/B2)", async () => {
+      useAuthStore.setState({
+        user: baseUser({ cecrlProfile: { transcriptMode: "onDemand", translationMode: "onDemand", hintMode: "keywords", helpVisibleByDefault: false } }),
+      });
+      renderDashboard();
+      await flushMicrotasks();
+
+      expect(latestUtterance().text).toBe("Hello Adam! Ready for your English lesson today?");
+      expect(translationButton()).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByText("Bonjour Adam. Prêt pour ton cours d'anglais aujourd'hui ?")).not.toBeInTheDocument();
+
+      await act(async () => {
+        translationButton().click();
+      });
+
+      expect(screen.getByText("Bonjour Adam. Prêt pour ton cours d'anglais aujourd'hui ?")).toBeInTheDocument();
+    });
+
+    it("keeps the same button next to the avatar's mic after transitioning to the dashboard cards", async () => {
+      await enterDashboardPhase();
+
+      const button = translationButton();
+      expect(button).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText("Par quoi commençons-nous aujourd'hui ?", { exact: false })).toBeInTheDocument();
+
+      await act(async () => {
+        button.click();
+      });
+      expect(button).toHaveAttribute("aria-expanded", "false");
+    });
   });
 
   it("shows a retry option instead of an infinite spinner when the profile fails to load", async () => {
