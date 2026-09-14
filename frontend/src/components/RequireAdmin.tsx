@@ -1,26 +1,13 @@
-import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 
+// Audit C6/C9: always nested inside RequireAuth now (see App.tsx's layout
+// route), which already guarantees `user` is resolved and non-null before
+// this ever renders - no more separate fetchMe()/loading state of its own.
 export function RequireAdmin({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
-  const fetchMe = useAuthStore((state) => state.fetchMe);
 
-  useEffect(() => {
-    if (!user) {
-      fetchMe();
-    }
-  }, [user, fetchMe]);
-
-  if (!user) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white p-8">
-        <p>Chargement...</p>
-      </main>
-    );
-  }
-
-  if (user.role !== "ROLE_ADMIN") {
+  if (user?.role !== "ROLE_ADMIN") {
     return <Navigate to="/dashboard" replace />;
   }
 

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../src/api/client";
 import { useAuthStore } from "../src/stores/authStore";
@@ -27,21 +27,27 @@ const BASE_USER: Me = {
   cecrlProfile: { transcriptMode: "auto", translationMode: "visible", hintMode: "fullAnswer", helpVisibleByDefault: true },
 };
 
+// /onboarding and /placement-test are nested under the SAME RequireAuth
+// layout as /dashboard - matching App.tsx's real route tree (one
+// RequireAuth layout wrapping every protected route via Outlet), not each
+// wrapped in its own separate, independent RequireAuth. This is what
+// actually exercises the mutual-exclusion between the two gates: nesting
+// them independently previously masked a real infinite-redirect-loop bug
+// (a fresh registration has both flags false at once; the onboarding gate
+// sent it to /onboarding, then the placement gate's own check - still
+// seeing pathname !== "/placement-test" - bounced it to /placement-test,
+// whose onboarding check then bounced it straight back), only caught by
+// live browser verification, not by the previous, more lenient test setup.
 function renderWithRouter(initialPath = "/dashboard") {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route path="/login" element={<p>Login page</p>} />
-        <Route path="/onboarding" element={<p>Onboarding page</p>} />
-        <Route path="/placement-test" element={<p>Placement test page</p>} />
-        <Route
-          path="/dashboard"
-          element={
-            <RequireAuth>
-              <p>Protected content</p>
-            </RequireAuth>
-          }
-        />
+        <Route element={<RequireAuth><Outlet /></RequireAuth>}>
+          <Route path="/onboarding" element={<p>Onboarding page</p>} />
+          <Route path="/placement-test" element={<p>Placement test page</p>} />
+          <Route path="/dashboard" element={<p>Protected content</p>} />
+        </Route>
       </Routes>
     </MemoryRouter>,
   );

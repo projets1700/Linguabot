@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -35,162 +35,35 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route
-          path="/onboarding"
-          element={
-            <RequireAuth>
-              <OnboardingPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/placement-test"
-          element={
-            <RequireAuth>
-              <PlacementTestPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <RequireAuth>
-              <DashboardPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/catalog"
-          element={
-            <RequireAuth>
-              <CatalogPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/quiz"
-          element={
-            <RequireAuth>
-              <QuizPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/quiz/:moduleId"
-          element={
-            <RequireAuth>
-              <QuizModulePage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/sessions/:id"
-          element={
-            <RequireAuth>
-              <SessionPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/badges"
-          element={
-            <RequireAuth>
-              <BadgesPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/trophees"
-          element={
-            <RequireAuth>
-              <TrophiesPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/defi-du-jour"
-          element={
-            <RequireAuth>
-              <DailyChallengePage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/voix"
-          element={
-            <RequireAuth>
-              <VoiceSettingsPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/mon-compte"
-          element={
-            <RequireAuth>
-              <AccountPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <RequireAuth>
-              <RequireAdmin>
-                <AdminDashboardPage />
-              </RequireAdmin>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin/utilisateurs"
-          element={
-            <RequireAuth>
-              <RequireAdmin>
-                <AdminUsersPage />
-              </RequireAdmin>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin/scenarios"
-          element={
-            <RequireAuth>
-              <RequireAdmin>
-                <AdminScenariosPage />
-              </RequireAdmin>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin/defis"
-          element={
-            <RequireAuth>
-              <RequireAdmin>
-                <AdminChallengesPage />
-              </RequireAdmin>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin/gamification"
-          element={
-            <RequireAuth>
-              <RequireAdmin>
-                <AdminGamificationPage />
-              </RequireAdmin>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/admin/logs"
-          element={
-            <RequireAuth>
-              <RequireAdmin>
-                <AdminLogsPage />
-              </RequireAdmin>
-            </RequireAuth>
-          }
-        />
+
+        {/* Audit C6: one RequireAuth guard per protected route used to be
+            repeated at every single Route below - a layout route runs the
+            guard once and renders whichever child route matched via
+            Outlet, same runtime behavior, far fewer places to forget it. */}
+        <Route element={<RequireAuth><Outlet /></RequireAuth>}>
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/placement-test" element={<PlacementTestPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/catalog" element={<CatalogPage />} />
+          <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/quiz/:moduleId" element={<QuizModulePage />} />
+          <Route path="/sessions/:id" element={<SessionPage />} />
+          <Route path="/badges" element={<BadgesPage />} />
+          <Route path="/trophees" element={<TrophiesPage />} />
+          <Route path="/defi-du-jour" element={<DailyChallengePage />} />
+          <Route path="/voix" element={<VoiceSettingsPage />} />
+          <Route path="/mon-compte" element={<AccountPage />} />
+
+          <Route element={<RequireAdmin><Outlet /></RequireAdmin>}>
+            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/utilisateurs" element={<AdminUsersPage />} />
+            <Route path="/admin/scenarios" element={<AdminScenariosPage />} />
+            <Route path="/admin/defis" element={<AdminChallengesPage />} />
+            <Route path="/admin/gamification" element={<AdminGamificationPage />} />
+            <Route path="/admin/logs" element={<AdminLogsPage />} />
+          </Route>
+        </Route>
+
         <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>

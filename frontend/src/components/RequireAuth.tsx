@@ -38,15 +38,22 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   // protected route redirects to whichever of the two is still outstanding.
   // Admin accounts are created outside this flow entirely (no registration,
   // no onboarding, no placement test) and must not get stuck behind either gate.
-  if (
-    user.role !== "ROLE_ADMIN" &&
-    !user.onboardingCompleted &&
-    location.pathname !== "/onboarding"
-  ) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
-  if (
+  //
+  // `else if`, not two independent `if`s: a fresh registration has BOTH
+  // flags false at once (the common case, not an edge case) - two
+  // independent checks let the onboarding gate send a learner to
+  // /onboarding, then the placement gate (still seeing !placementTestCompleted
+  // and pathname !== "/placement-test") immediately bounce them to
+  // /placement-test, whose own onboarding check then bounces them straight
+  // back - an infinite redirect loop, confirmed by reproducing it live
+  // (React's "Maximum update depth exceeded"). `else if` makes the two
+  // gates mutually exclusive: only ever evaluate the placement gate once
+  // onboarding is actually done.
+  if (user.role !== "ROLE_ADMIN" && !user.onboardingCompleted) {
+    if (location.pathname !== "/onboarding") {
+      return <Navigate to="/onboarding" replace />;
+    }
+  } else if (
     user.role !== "ROLE_ADMIN" &&
     !user.placementTestCompleted &&
     location.pathname !== "/placement-test"
