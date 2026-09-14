@@ -20,25 +20,34 @@ final class AdminUserControllerTest extends ApiTestCase
 
     public function testAdminCanListAndToggleUsers(): void
     {
+        // Two distinct accounts - one client, both tokens issued from it,
+        // since createClient() can only be called once per test (see
+        // ApiTestCase's own single-kernel-boot constraint). The admin
+        // toggles the OTHER user, not itself - see
+        // testAdminCannotDeactivateItself for the self-toggle case, which
+        // this exact scenario used to (incorrectly) exercise.
         $client = static::createClient();
-        $email = 'admin-'.uniqid().'@linguabot.fr';
-        $token = $this->registerAndGetToken($client, $email);
-        $this->promoteToAdmin($email);
+        $adminEmail = 'admin-'.uniqid().'@linguabot.fr';
+        $adminToken = $this->registerAndGetToken($client, $adminEmail);
+        $this->promoteToAdmin($adminEmail);
 
-        $this->jsonRequest($client, 'GET', '/api/admin/users', $token);
+        $targetEmail = 'admin-target-'.uniqid().'@linguabot.fr';
+        $this->registerAndGetToken($client, $targetEmail);
+
+        $this->jsonRequest($client, 'GET', '/api/admin/users', $adminToken);
         self::assertResponseIsSuccessful();
         $users = $this->decodeResponse($client);
         self::assertNotEmpty($users);
 
-        $target = current(array_filter($users, static fn (array $u) => $u['email'] === $email));
+        $target = current(array_filter($users, static fn (array $u) => $u['email'] === $targetEmail));
         self::assertNotFalse($target);
         self::assertTrue($target['isActive']);
 
-        $this->jsonRequest($client, 'PATCH', "/api/admin/users/{$target['id']}/toggle-active", $token);
+        $this->jsonRequest($client, 'PATCH', "/api/admin/users/{$target['id']}/toggle-active", $adminToken);
         self::assertResponseIsSuccessful();
         self::assertFalse($this->decodeResponse($client)['isActive']);
 
-        $this->jsonRequest($client, 'GET', '/api/admin/logs', $token);
+        $this->jsonRequest($client, 'GET', '/api/admin/logs', $adminToken);
         self::assertResponseIsSuccessful();
         $logs = $this->decodeResponse($client);
         self::assertSame('user.disable', $logs[0]['action']);
