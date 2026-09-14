@@ -1,4 +1,3 @@
-
 ###> symfony/framework-bundle ###
 # Inverted from Symfony's usual default on purpose for this repo: .env
 # holds the real, machine-local values (git-ignored here) and .env.local
@@ -16,12 +15,6 @@
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
-
-###> symfony/asset-mapper ###
-/public/assets/
-/assets/vendor/
-###< symfony/asset-mapper ###
-
 ###> lexik/jwt-authentication-bundle ###
 /config/jwt/*.pem
 ###< lexik/jwt-authentication-bundle ###
