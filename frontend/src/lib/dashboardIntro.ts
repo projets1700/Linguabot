@@ -2,6 +2,7 @@
 // (§2-3 of the chantier: avatar greets, learner answers "yes"/picks a card).
 // No AI call needed - same normalize-then-exact-match discipline as
 // detectLearnerBlock.ts, deliberately not a naive `.includes()` search.
+import { normalizeSpeechTranscript, stripFillerWords } from "./speechNormalization";
 
 // One session = one login, not one browser tab lifetime: DashboardPage
 // reads this once (on mount) to decide whether to skip straight to the
@@ -37,35 +38,13 @@ export function clearDashboardIntroSeen(): void {
   }
 }
 
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    // Strips accents (é -> e, ê -> e...) so both accented and unaccented
-    // transcripts match the same (unaccented) alias/phrase tables below -
-    // speech recognition doesn't reliably preserve them either way.
-    .normalize("NFD")
-    .replaceAll(/[̀-ͯ]/g, "")
-    .replaceAll(/['’‘]/g, "")
-    .replaceAll(/[.,!?;:"“”()]/g, "")
-    .replaceAll(/\s+/g, " ")
-    .trim();
-}
-
 const FILLER_WORDS = new Set([
   "um", "umm", "uh", "uhh", "well", "so", "hmm", "euh", "bah", "donc", "alors", "ok", "okay",
 ]);
 
-function stripFillerWords(words: string[]): string[] {
-  let start = 0;
-  let end = words.length;
-  while (start < end && FILLER_WORDS.has(words[start])) start++;
-  while (end > start && FILLER_WORDS.has(words[end - 1])) end--;
-  return words.slice(start, end);
-}
-
 function coreOf(transcript: string): string {
-  const words = normalize(transcript).split(" ").filter(Boolean);
-  return stripFillerWords(words).join(" ");
+  const words = normalizeSpeechTranscript(transcript).split(" ").filter(Boolean);
+  return stripFillerWords(words, FILLER_WORDS).join(" ");
 }
 
 // Exact phrases only (post-normalization) - a fixed, short list of common
@@ -192,7 +171,7 @@ const DESTINATIONS: { key: DashboardDestinationKey; route: string; confirmSpeech
  * callers must not navigate on null.
  */
 export function detectDashboardDestination(transcript: string): DashboardDestination | null {
-  const words = normalize(transcript).split(" ").filter(Boolean);
+  const words = normalizeSpeechTranscript(transcript).split(" ").filter(Boolean);
   if (words.some((word) => NEGATION_TOKENS.has(word))) return null;
 
   const normalizedTranscript = words.join(" ");

@@ -1,3 +1,5 @@
+import { normalizeSpeechTranscript, stripFillerWords } from "./speechNormalization";
+
 export type BlockDetection = {
   blocked: boolean;
 };
@@ -27,23 +29,6 @@ const FILLER_WORDS = new Set([
   "um", "umm", "uh", "uhh", "well", "so", "hmm", "sorry", "actually", "like", "ok", "okay",
 ]);
 
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .replaceAll(/['’‘]/g, "")
-    .replaceAll(/[.,!?;:"“”()]/g, "")
-    .replaceAll(/\s+/g, " ")
-    .trim();
-}
-
-function stripFillerWords(words: string[]): string[] {
-  let start = 0;
-  let end = words.length;
-  while (start < end && FILLER_WORDS.has(words[start])) start++;
-  while (end > start && FILLER_WORDS.has(words[end - 1])) end--;
-  return words.slice(start, end);
-}
-
 /**
  * Detects an EXPLICIT "I'm stuck" statement from the learner - a
  * deterministic match against a short, fixed list of common ways to say "I
@@ -56,8 +41,8 @@ function stripFillerWords(words: string[]): string[] {
  * phrase itself.
  */
 export function detectLearnerBlock(transcript: string): BlockDetection {
-  const words = normalize(transcript).split(" ").filter(Boolean);
-  const core = stripFillerWords(words).join(" ");
+  const words = normalizeSpeechTranscript(transcript).split(" ").filter(Boolean);
+  const core = stripFillerWords(words, FILLER_WORDS).join(" ");
 
   return { blocked: BLOCK_PHRASES.includes(core) };
 }

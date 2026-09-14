@@ -1,32 +1,15 @@
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replaceAll(/[̀-ͯ]/g, "")
-    .replaceAll(/['’‘]/g, "")
-    .replaceAll(/[.,!?;:"“”()]/g, "")
-    .replaceAll(/\s+/g, " ")
-    .trim();
-}
+import { normalizeSpeechTranscript, stripFillerWords } from "./speechNormalization";
 
 const FILLER_WORDS = new Set(["um", "umm", "uh", "uhh", "well", "so", "hmm"]);
 
-function stripFillerWords(words: string[]): string[] {
-  let start = 0;
-  let end = words.length;
-  while (start < end && FILLER_WORDS.has(words[start])) start++;
-  while (end > start && FILLER_WORDS.has(words[end - 1])) end--;
-  return words.slice(start, end);
-}
-
 function coreOf(transcript: string): string {
-  return stripFillerWords(normalize(transcript).split(" ").filter(Boolean)).join(" ");
+  return stripFillerWords(normalizeSpeechTranscript(transcript).split(" ").filter(Boolean), FILLER_WORDS).join(" ");
 }
 
 const NAME_LEAD_INS: readonly string[] = ["my name is", "im", "i am"];
 
 export function isRecognizableNameReply(transcript: string): boolean {
-  const words = stripFillerWords(normalize(transcript).split(" ").filter(Boolean));
+  const words = stripFillerWords(normalizeSpeechTranscript(transcript).split(" ").filter(Boolean), FILLER_WORDS);
   if (words.length === 0) return false;
 
   const joined = words.join(" ");
