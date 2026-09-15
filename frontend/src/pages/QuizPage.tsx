@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { api } from "../api/client";
 import { LearnerNav } from "../components/LearnerNav";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { isQuizHiddenForLevel } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { QuizModule } from "../types";
 
 export function QuizPage() {
-  const isA0 = useAuthStore((state) => state.user?.level.code) === "A0";
+  const levelCode = useAuthStore((state) => state.user?.level.code);
+  const isA0 = levelCode === "A0";
   const [modules, setModules] = useState<QuizModule[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -30,6 +32,13 @@ export function QuizPage() {
   }, [isA0, retryCount]);
 
   const passedCount = modules.filter((m) => m.passed).length;
+
+  // A2/B1/B2 have nothing to gain from this page (see isQuizHiddenForLevel) -
+  // sent straight back to the Dashboard instead of the "reserved for A0"
+  // dead end that A1 still legitimately sees.
+  if (isQuizHiddenForLevel(levelCode)) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950">

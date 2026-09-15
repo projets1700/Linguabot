@@ -114,6 +114,7 @@ function renderQuizModulePage() {
   return render(
     <MemoryRouter initialEntries={["/quiz/1"]}>
       <Routes>
+        <Route path="/dashboard" element={<p>Dashboard page</p>} />
         <Route path="/quiz/:moduleId" element={<QuizModulePage />} />
       </Routes>
     </MemoryRouter>,
@@ -334,5 +335,67 @@ describe("QuizModulePage - retry without re-answering on submit failure (LOT 1)"
       ),
     );
     await waitFor(() => expect(screen.getByText("Module validé ✅")).toBeInTheDocument());
+  });
+});
+
+describe("QuizModulePage - hidden past A1 (isQuizHiddenForLevel)", () => {
+  beforeEach(() => {
+    speak = vi.fn();
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        speak,
+        cancel: vi.fn(),
+        getVoices: vi.fn().mockReturnValue([fakeVoice("Test Voice")]),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+    });
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      class implements FakeUtterance {
+        text: string;
+        lang = "";
+        onstart: (() => void) | null = null;
+        onend: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        constructor(text: string) {
+          this.text = text;
+        }
+      },
+    );
+  });
+
+  afterEach(() => {
+    // @ts-expect-error test-only cleanup of a property defined above
+    delete window.speechSynthesis;
+    vi.unstubAllGlobals();
+    apiGetSpy?.mockRestore();
+    apiPostSpy?.mockRestore();
+  });
+
+  it.each(["A2", "B1", "B2"])(
+    "redirects a %s learner straight to the Dashboard without fetching questions",
+    async (levelCode) => {
+      mockQuizApi();
+      useAuthStore.setState({ user: { ...baseUser({ transcriptMode: "onDemand", translationMode: "onDemand", hintMode: "keywords", helpVisibleByDefault: false }), level: { code: levelCode, name: levelCode, xpThreshold: 0 } } });
+
+      renderQuizModulePage();
+
+      await waitFor(() => expect(screen.getByText("Dashboard page")).toBeInTheDocument());
+      expect(apiGetSpy).not.toHaveBeenCalledWith("/quiz/modules/1/questions");
+    },
+  );
+
+  it("still loads the module normally for an A1 learner", async () => {
+    mockQuizApi();
+    useAuthStore.setState({
+      user: { ...baseUser({ transcriptMode: "auto", translationMode: "visible", hintMode: "fullAnswer", helpVisibleByDefault: true }), level: { code: "A1", name: "A1", xpThreshold: 300 } },
+    });
+
+    renderQuizModulePage();
+
+    await waitFor(() => expect(apiGetSpy).toHaveBeenCalledWith("/quiz/modules/1/questions"));
+    expect(screen.queryByText("Dashboard page")).not.toBeInTheDocument();
   });
 });

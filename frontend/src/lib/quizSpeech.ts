@@ -28,3 +28,14 @@ export function buildBlockedHelpMessage(correctAnswer: string): string {
 export function buildHelpAvailableMessage(): string {
   return "No problem, take your time. Tap the help button whenever you're ready to see the answer.";
 }
+
+// The A0 quiz is already meaningless past A1 (QuizController enforces
+// A0-only server-side) - A1 still sees the "reserved for A0" page since
+// it's the level right before unlocking it, but A2/B1/B2 learners are far
+// enough past it that the nav link and the page itself are just dead ends,
+// so both are hidden outright for those three levels.
+const LEVELS_WITHOUT_QUIZ_ACCESS = new Set(["A2", "B1", "B2"]);
+
+export function isQuizHiddenForLevel(levelCode: string | undefined): boolean {
+  return levelCode !== undefined && LEVELS_WITHOUT_QUIZ_ACCESS.has(levelCode);
+}

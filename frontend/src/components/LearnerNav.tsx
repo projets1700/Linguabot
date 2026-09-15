@@ -1,4 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
+import { isQuizHiddenForLevel } from "../lib/quizSpeech";
+import { useAuthStore } from "../stores/authStore";
 
 // The hub pages a learner needs to jump between without relying on the
 // browser's back button - deliberately not rendered on the immersive,
@@ -21,6 +23,8 @@ const NAV: { to: string; label: string; matches?: string[] }[] = [
 
 export function LearnerNav() {
   const location = useLocation();
+  const levelCode = useAuthStore((state) => state.user?.level.code);
+  const items = isQuizHiddenForLevel(levelCode) ? NAV.filter((item) => item.to !== "/quiz") : NAV;
 
   return (
     <nav
@@ -31,7 +35,7 @@ export function LearnerNav() {
         <Link to="/dashboard" className="font-bold text-white pr-4 mr-1 border-r border-slate-700">
           LinguaBot
         </Link>
-        {NAV.map((item) => {
+        {items.map((item) => {
           const active = (item.matches ?? [item.to]).includes(location.pathname);
           return (
             <Link

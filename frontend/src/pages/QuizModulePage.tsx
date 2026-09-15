@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
@@ -12,13 +12,19 @@ import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
 import { normalizeApiError, type ApiError } from "../lib/apiError";
 import { detectLearnerBlock } from "../lib/detectLearnerBlock";
-import { buildBlockedHelpMessage, buildHelpAvailableMessage, buildSpokenQuizQuestion } from "../lib/quizSpeech";
+import {
+  buildBlockedHelpMessage,
+  buildHelpAvailableMessage,
+  buildSpokenQuizQuestion,
+  isQuizHiddenForLevel,
+} from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
 export function QuizModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const user = useAuthStore((state) => state.user);
+  const quizHidden = isQuizHiddenForLevel(user?.level.code);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<ApiError | null>(null);
@@ -62,6 +68,10 @@ export function QuizModulePage() {
     // `questions` had genuinely changed and re-fire speakText a second time
     // mid-utterance, which is what left the avatar's mouth stuck frozen.
     let ignore = false;
+    if (quizHidden) {
+      setLoading(false);
+      return;
+    }
     setLoadError(null);
 
     api
@@ -79,7 +89,7 @@ export function QuizModulePage() {
     return () => {
       ignore = true;
     };
-  }, [moduleId, retryCount]);
+  }, [moduleId, retryCount, quizHidden]);
 
   useEffect(() => {
     if (questions.length > 0) {
@@ -179,6 +189,13 @@ export function QuizModulePage() {
     }
 
     return submitAttempt(nextAnswers);
+  }
+
+  // A2/B1/B2 learners have no legitimate way to reach this route (the
+  // module list and nav link are both hidden for them), but a direct URL
+  // visit must not be able to bypass that - see isQuizHiddenForLevel.
+  if (quizHidden) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (loading) {
