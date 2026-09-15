@@ -93,6 +93,12 @@ async function endLatestSpeech(): Promise<void> {
   });
 }
 
+function latestUtteranceText(): string {
+  const calls = speak.mock.calls;
+  if (calls.length === 0) throw new Error("speechSynthesis.speak() was never called");
+  return (calls[calls.length - 1][0] as FakeUtterance).text;
+}
+
 function baseUser(): Me {
   return {
     id: 1,
@@ -185,6 +191,26 @@ function renderPage() {
   );
 }
 
+/**
+ * Gets past the mandatory pre-launch briefing ("Today's mission... Are you
+ * ready?") and clicks the manual button to launch the challenge - the
+ * button path, as opposed to the voice "yes" path covered by its own tests
+ * below. Leaves the opening line's speech still in flight (avatarState
+ * "speaking"), matching where the old (pre-briefing) tests used to start
+ * their own assertions right after clicking.
+ */
+async function startViaButtonAfterBriefing(): Promise<void> {
+  await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
+  await waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+  await endLatestSpeech();
+
+  await act(async () => {
+    screen.getByRole("button", { name: /Relever le défi/ }).click();
+  });
+
+  await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
+}
+
 describe("DailyChallengePage", () => {
   beforeEach(() => {
     voiceInputState.current = null;
@@ -219,14 +245,90 @@ describe("DailyChallengePage", () => {
     expect(avatar).toHaveAttribute("data-show-state-label", "false");
   });
 
+  it("has LinguaBot brief the real mission by voice as soon as it loads, driving the same lip-sync pipeline (speechText/charIndexRef) as every other page", async () => {
+    mockApi({ challenge: baseChallenge() });
+    renderPage();
+
+    await waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    // Built from the real challenge fields, never a fabricated line.
+    expect(latestUtteranceText()).toBe(
+      "Today's mission: Rainy Day Plans. It's raining and your outdoor plans are cancelled. " +
+        "Suggest an alternative indoor activity to a friend. Are you ready?",
+    );
+    // avatarState "speaking" drives AvatarScene's speechText/charIndexRef
+    // (the lip-sync pipeline) - not re-tested here (own test files), but the
+    // status line and speech bubble reacting to it confirm the same
+    // useConversationSession wiring used everywhere else is active here too.
+    expect(screen.getByText("LinguaBot parle...")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Today's mission");
+
+    const mic = screen.getByTestId("voice-input-stub");
+    expect(mic).toHaveAttribute("data-variant", "brand");
+    expect(mic).toHaveAttribute("data-disabled", "true");
+  });
+
+  it("does not brief an already-completed challenge out loud (no avatar shown on the result screen)", async () => {
+    mockApi({ challenge: baseChallenge({ completed: true, started: true }) });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("Défi relevé ! 🎉")).toBeInTheDocument());
+    expect(speak).not.toHaveBeenCalled();
+  });
+
+  it("launches the challenge when the learner says 'yes' to the briefing, without needing the button", async () => {
+    mockApi({ challenge: baseChallenge() });
+    renderPage();
+    await waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    await endLatestSpeech();
+
+    expect(screen.getByText('Dis "yes" quand tu es prêt')).toBeInTheDocument();
+    expect(screen.getByTestId("voice-input-stub")).toHaveAttribute("data-disabled", "false");
+
+    await act(async () => {
+      await voiceInputState.current?.onResult("yes");
+    });
+
+    expect(apiPostSpy).toHaveBeenCalledWith("/daily-challenge/start");
+    await waitFor(() => expect(screen.getByText("En cours")).toBeInTheDocument());
+    await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
+  });
+
+  it("acknowledges a decline without launching the challenge, and keeps the presentation on screen", async () => {
+    mockApi({ challenge: baseChallenge() });
+    renderPage();
+    await waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    await endLatestSpeech();
+
+    await act(async () => {
+      await voiceInputState.current?.onResult("no");
+    });
+
+    await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
+    expect(latestUtteranceText()).toBe("No problem. Tap the button below whenever you're ready.");
+    expect(apiPostSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument();
+  });
+
+  it("reformulates the ready question on an ambiguous reply, without launching the challenge", async () => {
+    mockApi({ challenge: baseChallenge() });
+    renderPage();
+    await waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    await endLatestSpeech();
+
+    await act(async () => {
+      await voiceInputState.current?.onResult("what time is it");
+    });
+
+    await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
+    expect(latestUtteranceText()).toBe("I didn't quite catch that. Say yes when you're ready, or use the button below.");
+    expect(apiPostSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument();
+  });
+
   it("collapses the detailed presentation into a compact reminder once the challenge starts, and keeps the same avatar framing", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
-
-    await act(async () => {
-      screen.getByRole("button", { name: /Relever le défi/ }).click();
-    });
+    await startViaButtonAfterBriefing();
 
     await waitFor(() => expect(screen.getByText("En cours")).toBeInTheDocument());
     // The full mission card, its keywords and the XP badge are gone - only
@@ -243,20 +345,15 @@ describe("DailyChallengePage", () => {
     expect(avatar).toHaveAttribute("data-transparent-background", "true");
   });
 
-  it("starts the challenge, frames the avatar as 'portrait' without the debug state label, and speaks the opening line", async () => {
+  it("starts the challenge via the button, frames the avatar as 'portrait' without the debug state label, and speaks the real opening line", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
+    await startViaButtonAfterBriefing();
 
-    await act(async () => {
-      screen.getByRole("button", { name: /Relever le défi/ }).click();
-    });
-
-    await waitFor(() => expect(screen.getByTestId("avatar-scene-stub")).toBeInTheDocument());
     const avatar = screen.getByTestId("avatar-scene-stub");
     expect(avatar).toHaveAttribute("data-framing", "portrait");
     expect(avatar).toHaveAttribute("data-show-state-label", "false");
-    await waitFor(() => expect(speak).toHaveBeenCalled());
+    expect(latestUtteranceText()).toBe("Hello! I'm Friend. Ready?");
     expect(screen.getByText("LinguaBot parle...")).toBeInTheDocument();
 
     const mic = screen.getByTestId("voice-input-stub");
@@ -267,11 +364,7 @@ describe("DailyChallengePage", () => {
   it("shows 'À toi de parler' once the opening line finishes, then 'Analyse de ta réponse...' while a reply is in flight", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
-    await act(async () => {
-      screen.getByRole("button", { name: /Relever le défi/ }).click();
-    });
-    await waitFor(() => expect(speak).toHaveBeenCalled());
+    await startViaButtonAfterBriefing();
     await endLatestSpeech();
 
     expect(screen.getByText("À toi de parler")).toBeInTheDocument();
@@ -287,18 +380,14 @@ describe("DailyChallengePage", () => {
 
     expect(screen.getByText("Analyse de ta réponse...")).toBeInTheDocument();
 
-    await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(speak).toHaveBeenCalledTimes(3));
     expect(screen.getByText("LinguaBot parle...")).toBeInTheDocument();
   });
 
   it("submits the learner's spoken answer and displays the AI's real reply", async () => {
     mockApi({ challenge: baseChallenge(), assistantMessage: "Great idea! What would you suggest?" });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
-    await act(async () => {
-      screen.getByRole("button", { name: /Relever le défi/ }).click();
-    });
-    await waitFor(() => expect(speak).toHaveBeenCalled());
+    await startViaButtonAfterBriefing();
     await endLatestSpeech();
 
     await act(async () => {
@@ -309,7 +398,7 @@ describe("DailyChallengePage", () => {
       message: "Let's watch a movie together!",
       learnerBlocked: false,
     });
-    await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(speak).toHaveBeenCalledTimes(3));
     // Speech bubble dismissed once the reply finishes speaking, so the
     // transcript (shown by default for transcriptMode "auto") is the only
     // remaining match.
@@ -320,11 +409,7 @@ describe("DailyChallengePage", () => {
   it("shows the help panel directly for a profile with helpVisibleByDefault, and a toggle button otherwise", async () => {
     mockApi({ challenge: baseChallenge({}, { helpVisibleByDefault: false, hintMode: "keywords" }) });
     renderPage();
-    await waitFor(() => screen.getByRole("button", { name: /Relever le défi/ }));
-    await act(async () => {
-      screen.getByRole("button", { name: /Relever le défi/ }).click();
-    });
-    await waitFor(() => expect(speak).toHaveBeenCalled());
+    await startViaButtonAfterBriefing();
 
     expect(screen.getByRole("button", { name: "Besoin d'aide ?" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Je suis bloqué/ })).not.toBeInTheDocument();
@@ -347,11 +432,7 @@ describe("DailyChallengePage", () => {
       return Promise.reject(new Error(`unexpected POST ${url}`));
     });
     renderPage();
-    await waitFor(() => screen.getByRole("button", { name: /Relever le défi/ }));
-    await act(async () => {
-      screen.getByRole("button", { name: /Relever le défi/ }).click();
-    });
-    await waitFor(() => expect(speak).toHaveBeenCalled());
+    await startViaButtonAfterBriefing();
     await endLatestSpeech();
 
     await act(async () => {
@@ -365,11 +446,7 @@ describe("DailyChallengePage", () => {
   it("keeps 'Terminer le défi' disabled until the learner has actually answered", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await waitFor(() => screen.getByRole("button", { name: /Relever le défi/ }));
-    await act(async () => {
-      screen.getByRole("button", { name: /Relever le défi/ }).click();
-    });
-    await waitFor(() => expect(speak).toHaveBeenCalled());
+    await startViaButtonAfterBriefing();
 
     expect(screen.getByRole("button", { name: "Terminer le défi" })).toBeDisabled();
 
@@ -384,11 +461,7 @@ describe("DailyChallengePage", () => {
   it("shows the real XP earned on the result screen after finishing", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await waitFor(() => screen.getByRole("button", { name: /Relever le défi/ }));
-    await act(async () => {
-      screen.getByRole("button", { name: /Relever le défi/ }).click();
-    });
-    await waitFor(() => expect(speak).toHaveBeenCalled());
+    await startViaButtonAfterBriefing();
     await endLatestSpeech();
     await act(async () => {
       await voiceInputState.current?.onResult("Let's watch a movie together!");

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { AvatarScene } from "../components/AvatarScene";
 import { AvatarSpeechBubble } from "../components/AvatarSpeechBubble";
@@ -13,6 +13,7 @@ import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
 import { normalizeApiError, type ApiError } from "../lib/apiError";
 import { detectLearnerBlock } from "../lib/detectLearnerBlock";
+import { classifyOnboardingReadiness } from "../lib/onboardingIntro";
 import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge, DailyChallengeFinishResult } from "../types";
 
@@ -27,6 +28,18 @@ const AVATAR_HEIGHT_BEFORE_START =
   "h-[240px] sm:h-[320px] lg:h-[380px] transition-[height] duration-700 ease-out motion-reduce:transition-none";
 const AVATAR_HEIGHT_DURING_CHALLENGE =
   "h-[300px] sm:h-[360px] lg:h-[420px] transition-[height] duration-700 ease-out motion-reduce:transition-none";
+
+// The pre-launch briefing is built from the real challenge data (title/
+// context/objective), never invented - same idea as the backend's own
+// ensureOpeningMessage(), just spoken by LinguaBot the teacher before the
+// mission starts rather than by the challenge's in-character opening line.
+function buildMissionBriefing(challenge: DailyChallenge): string {
+  return `Today's mission: ${challenge.title}. ${challenge.context} ${challenge.objective} Are you ready?`;
+}
+
+const MISSION_REFORMULATED_READY_QUESTION =
+  "I didn't quite catch that. Say yes when you're ready, or use the button below.";
+const MISSION_DECLINED_MESSAGE = "No problem. Tap the button below whenever you're ready.";
 
 export function DailyChallengePage() {
   const user = useAuthStore((state) => state.user);
@@ -65,12 +78,50 @@ export function DailyChallengePage() {
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Speaks the mission briefing once the challenge has loaded, exactly once -
+  // same ref-guarded "fire once" pattern as OnboardingPage's greeting.
+  // speakAssistantLine itself defers to AvatarScene's own onReady gate
+  // (useConversationSession), so this doesn't need to wait on avatar
+  // readiness itself.
+  const missionBriefedRef = useRef(false);
+  useEffect(() => {
+    // challenge.completed short-circuits to the result screen below (no
+    // avatar rendered there at all) - must not speak into that screen.
+    if (!challenge || challenge.completed || chatStarted || missionBriefedRef.current) return;
+    missionBriefedRef.current = true;
+    speakAssistantLine(buildMissionBriefing(challenge), "en-US");
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [challenge]);
+
   async function handleStart() {
     if (!challenge) return;
     const response = await api.post<{ openingMessage: string }>("/daily-challenge/start");
     setMessages([{ id: Date.now(), role: "assistant", content: response.data.openingMessage }]);
     setChatStarted(true);
     speakAssistantLine(response.data.openingMessage);
+  }
+
+  // Same 3-way intent recognition already used by OnboardingPage's own
+  // "Are you ready?" question (classifyOnboardingReadiness) - reused as-is
+  // rather than reimplemented, so a learner saying "yes"/"ready"/"ok" here
+  // is understood exactly the same way it already is there. "No forced
+  // loop on a decline" is the same rule: a "no" is acknowledged once and
+  // the mic keeps listening (nothing re-asks on a timer), the manual
+  // button always stays the fallback either way.
+  function handleMissionReadyReply(transcript: string) {
+    const intent = classifyOnboardingReadiness(transcript);
+
+    if (intent === "affirmative") {
+      void handleStart();
+      return;
+    }
+
+    if (intent === "negative") {
+      speakAssistantLine(MISSION_DECLINED_MESSAGE, "en-US");
+      return;
+    }
+
+    speakAssistantLine(MISSION_REFORMULATED_READY_QUESTION, "en-US");
   }
 
   // Split from handleVoiceResult below so a failed send can be retried with
@@ -178,6 +229,12 @@ export function DailyChallengePage() {
         ? "LinguaBot parle..."
         : "À toi de parler";
 
+  // Same idea, for the pre-launch "are you ready?" exchange - no "sending"/
+  // "thinking" state exists here (classifyOnboardingReadiness runs locally,
+  // no network round-trip), so this only ever toggles between LinguaBot
+  // talking and listening for the reply.
+  const missionReadyStatusLabel = avatarState === "speaking" ? "LinguaBot parle..." : "Dis \"yes\" quand tu es prêt";
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-6 sm:p-8">
       <div className="max-w-2xl mx-auto">
@@ -226,6 +283,22 @@ export function DailyChallengePage() {
 
         {!chatStarted ? (
           <>
+            {/* LinguaBot explains the mission and asks if the learner is
+                ready (buildMissionBriefing effect above) - same mic, same
+                disabled-while-speaking rule, same intent classifier as
+                everywhere else the avatar asks a yes/no question. The
+                manual "Relever le défi" button below stays the fallback
+                for a learner without a working mic, or who just prefers it. */}
+            <div className="flex flex-col items-center gap-2 mt-3 mb-5">
+              <p className="text-sm font-semibold text-white">{missionReadyStatusLabel}</p>
+              <VoiceInput
+                onResult={handleMissionReadyReply}
+                disabled={avatarState === "speaking" || avatarState === "thinking"}
+                variant="brand"
+                size="compact"
+              />
+            </div>
+
             {/* Zone C - mission title, visually important, and zone D - the
                 mission card itself, deliberately narrower than the page
                 column (§3.D: 600-700px, not edge-to-edge). */}
