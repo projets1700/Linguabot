@@ -18,6 +18,16 @@ import type { DailyChallenge, DailyChallengeFinishResult } from "../types";
 
 type ChatMessage = { id: number; role: "user" | "assistant"; content: string };
 
+// Same "portrait" + transparentBackground pairing the Dashboard intro
+// already established for its "professeur face à l'élève" composition -
+// reused as-is (no new preset, no AvatarScene change). Height grows once
+// the mission starts, since the initial presentation chrome around it
+// disappears and LinguaBot becomes the main element on screen.
+const AVATAR_HEIGHT_BEFORE_START =
+  "h-[240px] sm:h-[320px] lg:h-[380px] transition-[height] duration-700 ease-out motion-reduce:transition-none";
+const AVATAR_HEIGHT_DURING_CHALLENGE =
+  "h-[300px] sm:h-[360px] lg:h-[420px] transition-[height] duration-700 ease-out motion-reduce:transition-none";
+
 export function DailyChallengePage() {
   const user = useAuthStore((state) => state.user);
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
@@ -169,67 +179,91 @@ export function DailyChallengePage() {
         : "À toi de parler";
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-6 sm:p-8 max-w-2xl mx-auto">
-      <div className="mb-4">
-        <p className="text-amber-400 text-xs font-bold uppercase tracking-wide mb-1">
-          🔥 Défi du jour · +{challenge.xpReward} XP
-        </p>
-        <h1 className="text-2xl font-bold">{challenge.title}</h1>
-        {!chatStarted && (
-          <p className="text-slate-400 text-sm mt-1">Une mini-mission pour pratiquer ton anglais.</p>
-        )}
-      </div>
-
-      <div className="bg-slate-800 rounded-xl p-4 mb-4">
-        <p className="text-blue-400 text-xs font-bold uppercase tracking-wide mb-2">🎯 Ta mission</p>
-        <p className="text-slate-300 text-sm mb-1.5">{challenge.context}</p>
-        <p className="text-white text-sm font-medium">{challenge.objective}</p>
-        {!chatStarted && challenge.keywords.length > 0 && (
-          <div className="flex gap-2 flex-wrap mt-3">
-            {challenge.keywords.map((keyword) => (
-              <span key={keyword} className="bg-slate-900 text-slate-400 text-xs px-3 py-1 rounded-full">
-                {keyword}
-              </span>
-            ))}
+    <main className="min-h-screen bg-slate-950 text-white p-6 sm:p-8">
+      <div className="max-w-2xl mx-auto">
+        {/* Zone A - header: full "Défi du jour · +XP reward" badge before
+            the mission starts, collapsed to a one-line reminder once it
+            does (§10.A - the detailed presentation must fully disappear,
+            not just shrink in place). */}
+        {!chatStarted ? (
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-amber-400 text-xs font-bold uppercase tracking-wide">🔥 Défi du jour</p>
+            <span className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full px-3 py-1 text-xs font-bold">
+              +{challenge.xpReward} XP
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-400 mb-1">
+            <span aria-hidden="true">🔥</span>
+            <span className="text-white font-semibold">{challenge.title}</span>
+            <span aria-hidden="true">·</span>
+            <span>En cours</span>
           </div>
         )}
-      </div>
 
-      {!chatStarted ? (
-        <Button onClick={handleStart} size="lg">Relever le défi</Button>
-      ) : (
-        <>
-          <div className="bg-slate-900/40 rounded-2xl overflow-hidden mb-4">
-            {/* relative wrapper, not AvatarScene's own root div - see the
-                comment in SessionPage.tsx for why. */}
-            <div className="relative">
-              <AvatarScene
-                state={avatarState}
-                avatarType={user?.avatarType ?? "male"}
-                speechText={speechText}
-                charIndexRef={charIndexRef}
-                onReady={handleAvatarReady}
-                framing="portrait"
-                showStateLabel={false}
-                heightClassName="h-[240px] sm:h-[280px]"
-              />
-              <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
+        {/* Zone B - the avatar itself: a single persistent AvatarScene
+            instance (never remounted between the two states, only its
+            height changes) so starting the challenge never reloads the 3D
+            model or avatar-ready gate - just grows it. "relative" wrapper,
+            not AvatarScene's own root div - see the comment in
+            SessionPage.tsx for why. No opaque Card around it on purpose
+            (§3.B/§10.B): transparentBackground lets it sit directly on the
+            page's own Deep Navy background instead of inside a boxed panel. */}
+        <div className="relative">
+          <AvatarScene
+            state={avatarState}
+            avatarType={user?.avatarType ?? "male"}
+            speechText={speechText}
+            charIndexRef={charIndexRef}
+            onReady={handleAvatarReady}
+            framing="portrait"
+            transparentBackground
+            showStateLabel={false}
+            heightClassName={chatStarted ? AVATAR_HEIGHT_DURING_CHALLENGE : AVATAR_HEIGHT_BEFORE_START}
+          />
+          <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
+        </div>
+
+        {!chatStarted ? (
+          <>
+            {/* Zone C - mission title, visually important, and zone D - the
+                mission card itself, deliberately narrower than the page
+                column (§3.D: 600-700px, not edge-to-edge). */}
+            <div className="text-center mt-4 mb-6">
+              <h1 className="text-3xl font-bold">{challenge.title}</h1>
+              <p className="text-slate-400 text-sm mt-1">Une mini-mission pour pratiquer ton anglais.</p>
             </div>
 
-            {/* The mic becomes the primary action once the mission starts -
-                attached directly under the avatar rather than floating in
-                its own row further down the page. Same VoiceInput/onResult/
-                disabled wiring as before; only variant/size changed (the
-                Dashboard intro already established this "brand"+"compact"
-                pairing for an avatar-attached mic). */}
-            <div className="flex flex-col items-center gap-2 px-4 py-3 bg-slate-900/60">
+            <div className="max-w-[640px] mx-auto bg-gradient-to-b from-slate-800/80 to-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg shadow-black/20 mb-6">
+              <p className="text-blue-400 text-xs font-bold uppercase tracking-wide mb-3">🎯 Ta mission</p>
+              <p className="text-slate-400 text-sm leading-relaxed mb-2">{challenge.context}</p>
+              <p className="text-white text-base font-semibold leading-relaxed">{challenge.objective}</p>
+              {challenge.keywords.length > 0 && (
+                <div className="flex gap-2 flex-wrap mt-4">
+                  {challenge.keywords.map((keyword) => (
+                    <span key={keyword} className="bg-slate-900/60 text-slate-500 text-[11px] px-2.5 py-1 rounded-full">
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-center">
+              <Button onClick={handleStart} size="lg">▶ Relever le défi</Button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Zone: turn status + mic, the primary interaction once the
+                mission is active (§ÉTAT 2.C). The mic must stay off while
+                the AI is talking or about to talk, otherwise it can pick
+                its own voice back up through the speakers and "answer its
+                own question" - "thinking" is included because avatarState
+                flips to "speaking" only once the browser's TTS actually
+                starts, which lags behind the reply arriving. */}
+            <div className="flex flex-col items-center gap-2 mt-3 mb-5">
               <p className="text-sm font-semibold text-white">{turnStatusLabel}</p>
-              {/* The mic must stay off while the AI is talking or about to
-                  talk, otherwise it can pick its own voice back up through
-                  the speakers and "answer its own question" - "thinking" is
-                  included because avatarState flips to "speaking" only once
-                  the browser's TTS actually starts, which lags behind the
-                  reply arriving. */}
               <VoiceInput
                 onResult={handleVoiceResult}
                 disabled={sending || avatarState === "speaking" || avatarState === "thinking"}
@@ -237,51 +271,51 @@ export function DailyChallengePage() {
                 size="compact"
               />
             </div>
-          </div>
 
-          <ConversationLog
-            messages={messages}
-            initialShowText={challenge.cecrlProfile.transcriptMode === "auto"}
-          />
-
-          {challenge.cecrlProfile.helpVisibleByDefault || helpUnlocked ? (
-            <HelpPanel
-              profile={challenge.cecrlProfile}
-              translateEndpoint="/daily-challenge/translate"
-              hintEndpoint="/daily-challenge/hint"
-              textToTranslate={lastAssistantMessage}
-              onHintReceived={speakAssistantLine}
+            <ConversationLog
+              messages={messages}
+              initialShowText={challenge.cecrlProfile.transcriptMode === "auto"}
             />
-          ) : (
-            <div className="mb-4">
-              <Button onClick={() => setHelpUnlocked(true)} variant="secondary" size="sm">
-                Besoin d'aide ?
-              </Button>
-            </div>
-          )}
 
-          {sendError && (
-            <div className="mb-4">
-              <ErrorBanner
-                message={sendError.message}
-                onRetry={
-                  sendError.retryable && failedSend
-                    ? () => sendMessage(failedSend.transcript)
-                    : undefined
-                }
+            {challenge.cecrlProfile.helpVisibleByDefault || helpUnlocked ? (
+              <HelpPanel
+                profile={challenge.cecrlProfile}
+                translateEndpoint="/daily-challenge/translate"
+                hintEndpoint="/daily-challenge/hint"
+                textToTranslate={lastAssistantMessage}
+                onHintReceived={speakAssistantLine}
               />
-            </div>
-          )}
+            ) : (
+              <div className="mb-4">
+                <Button onClick={() => setHelpUnlocked(true)} variant="secondary" size="sm">
+                  Besoin d'aide ?
+                </Button>
+              </div>
+            )}
 
-          <Button
-            onClick={handleFinish}
-            disabled={finishing || messages.filter((m) => m.role === "user").length === 0}
-            variant="success"
-          >
-            {finishing ? "..." : "Terminer le défi"}
-          </Button>
-        </>
-      )}
+            {sendError && (
+              <div className="mb-4">
+                <ErrorBanner
+                  message={sendError.message}
+                  onRetry={
+                    sendError.retryable && failedSend
+                      ? () => sendMessage(failedSend.transcript)
+                      : undefined
+                  }
+                />
+              </div>
+            )}
+
+            <Button
+              onClick={handleFinish}
+              disabled={finishing || messages.filter((m) => m.role === "user").length === 0}
+              variant="success"
+            >
+              {finishing ? "..." : "Terminer le défi"}
+            </Button>
+          </>
+        )}
+      </div>
     </main>
   );
 }

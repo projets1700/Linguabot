@@ -17,10 +17,12 @@ vi.mock("../src/components/AvatarScene", () => ({
     onReady,
     framing,
     showStateLabel,
+    transparentBackground,
   }: {
     onReady?: () => void;
     framing?: string;
     showStateLabel?: boolean;
+    transparentBackground?: boolean;
   }) => {
     const firedRef = useRef(false);
     useEffect(() => {
@@ -33,6 +35,7 @@ vi.mock("../src/components/AvatarScene", () => ({
         data-testid="avatar-scene-stub"
         data-framing={framing}
         data-show-state-label={String(showStateLabel)}
+        data-transparent-background={String(transparentBackground)}
       />
     );
   },
@@ -197,7 +200,7 @@ describe("DailyChallengePage", () => {
     apiPostSpy?.mockRestore();
   });
 
-  it("loads and shows the real title, mission and XP reward before starting", async () => {
+  it("loads and shows the real title, mission and XP reward before starting, with the avatar already visible", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
 
@@ -206,18 +209,47 @@ describe("DailyChallengePage", () => {
     expect(screen.getByText("It's raining and your outdoor plans are cancelled.")).toBeInTheDocument();
     expect(screen.getByText("Suggest an alternative indoor activity to a friend.")).toBeInTheDocument();
     expect(screen.getByText("rain")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Relever le défi" })).toBeInTheDocument();
-    // Nothing avatar/mic-related renders before the challenge is started.
-    expect(screen.queryByTestId("avatar-scene-stub")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument();
+
+    // LinguaBot is visible from the very first render, before the mission
+    // is even started - not just once the conversation begins.
+    const avatar = screen.getByTestId("avatar-scene-stub");
+    expect(avatar).toHaveAttribute("data-framing", "portrait");
+    expect(avatar).toHaveAttribute("data-transparent-background", "true");
+    expect(avatar).toHaveAttribute("data-show-state-label", "false");
+  });
+
+  it("collapses the detailed presentation into a compact reminder once the challenge starts, and keeps the same avatar framing", async () => {
+    mockApi({ challenge: baseChallenge() });
+    renderPage();
+    await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
+
+    await act(async () => {
+      screen.getByRole("button", { name: /Relever le défi/ }).click();
+    });
+
+    await waitFor(() => expect(screen.getByText("En cours")).toBeInTheDocument());
+    // The full mission card, its keywords and the XP badge are gone - only
+    // the compact reminder (title + "En cours") remains.
+    expect(screen.queryByText("🎯 Ta mission")).not.toBeInTheDocument();
+    expect(screen.queryByText("It's raining and your outdoor plans are cancelled.")).not.toBeInTheDocument();
+    expect(screen.queryByText("rain")).not.toBeInTheDocument();
+    expect(screen.queryByText(/\+120 XP/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
+
+    // Same avatar, same framing - grown, not swapped or remounted.
+    const avatar = screen.getByTestId("avatar-scene-stub");
+    expect(avatar).toHaveAttribute("data-framing", "portrait");
+    expect(avatar).toHaveAttribute("data-transparent-background", "true");
   });
 
   it("starts the challenge, frames the avatar as 'portrait' without the debug state label, and speaks the opening line", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Relever le défi" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
 
     await act(async () => {
-      screen.getByRole("button", { name: "Relever le défi" }).click();
+      screen.getByRole("button", { name: /Relever le défi/ }).click();
     });
 
     await waitFor(() => expect(screen.getByTestId("avatar-scene-stub")).toBeInTheDocument());
@@ -235,9 +267,9 @@ describe("DailyChallengePage", () => {
   it("shows 'À toi de parler' once the opening line finishes, then 'Analyse de ta réponse...' while a reply is in flight", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Relever le défi" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
     await act(async () => {
-      screen.getByRole("button", { name: "Relever le défi" }).click();
+      screen.getByRole("button", { name: /Relever le défi/ }).click();
     });
     await waitFor(() => expect(speak).toHaveBeenCalled());
     await endLatestSpeech();
@@ -262,9 +294,9 @@ describe("DailyChallengePage", () => {
   it("submits the learner's spoken answer and displays the AI's real reply", async () => {
     mockApi({ challenge: baseChallenge(), assistantMessage: "Great idea! What would you suggest?" });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Relever le défi" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
     await act(async () => {
-      screen.getByRole("button", { name: "Relever le défi" }).click();
+      screen.getByRole("button", { name: /Relever le défi/ }).click();
     });
     await waitFor(() => expect(speak).toHaveBeenCalled());
     await endLatestSpeech();
@@ -288,9 +320,9 @@ describe("DailyChallengePage", () => {
   it("shows the help panel directly for a profile with helpVisibleByDefault, and a toggle button otherwise", async () => {
     mockApi({ challenge: baseChallenge({}, { helpVisibleByDefault: false, hintMode: "keywords" }) });
     renderPage();
-    await waitFor(() => screen.getByRole("button", { name: "Relever le défi" }));
+    await waitFor(() => screen.getByRole("button", { name: /Relever le défi/ }));
     await act(async () => {
-      screen.getByRole("button", { name: "Relever le défi" }).click();
+      screen.getByRole("button", { name: /Relever le défi/ }).click();
     });
     await waitFor(() => expect(speak).toHaveBeenCalled());
 
@@ -315,9 +347,9 @@ describe("DailyChallengePage", () => {
       return Promise.reject(new Error(`unexpected POST ${url}`));
     });
     renderPage();
-    await waitFor(() => screen.getByRole("button", { name: "Relever le défi" }));
+    await waitFor(() => screen.getByRole("button", { name: /Relever le défi/ }));
     await act(async () => {
-      screen.getByRole("button", { name: "Relever le défi" }).click();
+      screen.getByRole("button", { name: /Relever le défi/ }).click();
     });
     await waitFor(() => expect(speak).toHaveBeenCalled());
     await endLatestSpeech();
@@ -333,9 +365,9 @@ describe("DailyChallengePage", () => {
   it("keeps 'Terminer le défi' disabled until the learner has actually answered", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await waitFor(() => screen.getByRole("button", { name: "Relever le défi" }));
+    await waitFor(() => screen.getByRole("button", { name: /Relever le défi/ }));
     await act(async () => {
-      screen.getByRole("button", { name: "Relever le défi" }).click();
+      screen.getByRole("button", { name: /Relever le défi/ }).click();
     });
     await waitFor(() => expect(speak).toHaveBeenCalled());
 
@@ -352,9 +384,9 @@ describe("DailyChallengePage", () => {
   it("shows the real XP earned on the result screen after finishing", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await waitFor(() => screen.getByRole("button", { name: "Relever le défi" }));
+    await waitFor(() => screen.getByRole("button", { name: /Relever le défi/ }));
     await act(async () => {
-      screen.getByRole("button", { name: "Relever le défi" }).click();
+      screen.getByRole("button", { name: /Relever le défi/ }).click();
     });
     await waitFor(() => expect(speak).toHaveBeenCalled());
     await endLatestSpeech();
