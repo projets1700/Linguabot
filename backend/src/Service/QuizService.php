@@ -20,6 +20,7 @@ final class QuizService
     private const XP_PER_CORRECT_ANSWER = 10;
     private const XP_PER_MODULE_PASSED = 50;
     private const MODULES_REQUIRED_FOR_A1 = 4;
+    private const TARGET_LEVEL_CODE = 'A1';
 
     // Long enough to cover a realistic module attempt (a handful of
     // questions, answered at a learner's own pace), short enough that a
@@ -127,7 +128,7 @@ final class QuizService
             return null;
         }
 
-        $levelA1 = $this->levelRepository->findOneBy(['code' => 'A1']);
+        $levelA1 = $this->levelRepository->findOneBy(['code' => self::TARGET_LEVEL_CODE]);
         if (null === $levelA1) {
             return null;
         }
@@ -135,6 +136,27 @@ final class QuizService
         $user->setLevel($levelA1);
 
         return $levelA1;
+    }
+
+    /**
+     * Exposed read-only so QuizController::modules() can surface the real
+     * pass/unlock rules to the frontend instead of it hardcoding 7/4/"A1" -
+     * these three getters change nothing about the rules themselves, only
+     * how they're read.
+     */
+    public static function passThreshold(): int
+    {
+        return self::PASS_THRESHOLD;
+    }
+
+    public static function modulesRequiredForLevelUp(): int
+    {
+        return self::MODULES_REQUIRED_FOR_A1;
+    }
+
+    public static function targetLevelCode(): string
+    {
+        return self::TARGET_LEVEL_CODE;
     }
 
     /**

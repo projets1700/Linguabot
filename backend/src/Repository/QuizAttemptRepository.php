@@ -38,4 +38,27 @@ class QuizAttemptRepository extends ServiceEntityRepository
     {
         return \count($this->findPassedModuleIds($user));
     }
+
+    /**
+     * @return array<int, int> module ID => the user's best (highest) score
+     *                          ever recorded for that module, from the
+     *                          already-persisted quiz_attempts rows.
+     */
+    public function findBestScoresByModule(User $user): array
+    {
+        $rows = $this->createQueryBuilder('a')
+            ->select('IDENTITY(a.module) AS module_id', 'MAX(a.score) AS best_score')
+            ->andWhere('a.user = :user')
+            ->groupBy('a.module')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getScalarResult();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int) $row['module_id']] = (int) $row['best_score'];
+        }
+
+        return $result;
+    }
 }

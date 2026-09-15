@@ -206,7 +206,7 @@ final class MeStatsControllerTest extends ApiTestCase
     private function findQuizModuleId(mixed $client, string $token, string $code): int
     {
         $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
-        foreach ($this->decodeResponse($client) as $module) {
+        foreach ($this->decodeResponse($client)['modules'] as $module) {
             if ($module['code'] === $code) {
                 return $module['id'];
             }

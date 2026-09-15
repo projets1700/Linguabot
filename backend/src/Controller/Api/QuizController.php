@@ -35,23 +35,40 @@ final class QuizController
         QuizModuleRepository $moduleRepository,
         QuizAttemptRepository $attemptRepository,
     ): JsonResponse {
+        // The rules below (7/10 to pass, 4 of 6 to unlock, which level that
+        // unlocks) are read from QuizService's own constants, never
+        // duplicated here - so the frontend can show real numbers instead of
+        // hardcoding them, without this response ever drifting from what
+        // submitAttempt() actually enforces.
+        $rules = [
+            'passThreshold' => QuizService::passThreshold(),
+            'requiredForLevelUp' => QuizService::modulesRequiredForLevelUp(),
+            'targetLevelCode' => QuizService::targetLevelCode(),
+        ];
+
         if (!self::isLevelAllowed($user)) {
-            return new JsonResponse([]);
+            return new JsonResponse([...$rules, 'modules' => []]);
         }
 
         $modules = $moduleRepository->findBy(['isActive' => true], ['orderNum' => 'ASC']);
         $passedModuleIds = $attemptRepository->findPassedModuleIds($user);
+        $bestScores = $attemptRepository->findBestScoresByModule($user);
 
-        return new JsonResponse(array_map(
-            fn (QuizModule $module) => [
-                'id' => $module->getId(),
-                'code' => $module->getCode(),
-                'title' => $module->getTitle(),
-                'questionCount' => $module->getQuestionCount(),
-                'passed' => \in_array($module->getId(), $passedModuleIds, true),
-            ],
-            $modules,
-        ));
+        return new JsonResponse([
+            ...$rules,
+            'modules' => array_map(
+                fn (QuizModule $module) => [
+                    'id' => $module->getId(),
+                    'code' => $module->getCode(),
+                    'title' => $module->getTitle(),
+                    'questionCount' => $module->getQuestionCount(),
+                    'passed' => \in_array($module->getId(), $passedModuleIds, true),
+                    'attempted' => isset($bestScores[$module->getId()]),
+                    'bestScore' => $bestScores[$module->getId()] ?? null,
+                ],
+                $modules,
+            ),
+        ]);
     }
 
     #[Route('/api/quiz/modules/{id}/questions', name: 'api_quiz_module_questions', methods: ['GET'])]

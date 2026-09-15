@@ -1,16 +1,25 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { api } from "../api/client";
 import { LearnerNav } from "../components/LearnerNav";
+import { QuizModuleCard } from "../components/QuizModuleCard";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { levelUpProgressPercent } from "../lib/quizModuleState";
 import { isQuizHiddenForLevel } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
-import type { QuizModule } from "../types";
+import type { QuizModulesResponse } from "../types";
+
+const EMPTY_RESPONSE: QuizModulesResponse = {
+  modules: [],
+  passThreshold: 0,
+  requiredForLevelUp: 0,
+  targetLevelCode: "",
+};
 
 export function QuizPage() {
   const levelCode = useAuthStore((state) => state.user?.level.code);
   const hidden = isQuizHiddenForLevel(levelCode);
-  const [modules, setModules] = useState<QuizModule[]>([]);
+  const [data, setData] = useState<QuizModulesResponse>(EMPTY_RESPONSE);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -25,13 +34,11 @@ export function QuizPage() {
     }
     setLoadError(false);
     api
-      .get<QuizModule[]>("/quiz/modules")
-      .then((response) => setModules(response.data))
+      .get<QuizModulesResponse>("/quiz/modules")
+      .then((response) => setData(response.data))
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [hidden, retryCount]);
-
-  const passedCount = modules.filter((m) => m.passed).length;
 
   // A2/B1/B2 have nothing to gain from this page - sent straight back to the
   // Dashboard rather than shown a dead end (same rule as the nav link and
@@ -40,16 +47,56 @@ export function QuizPage() {
     return <Navigate to="/dashboard" replace />;
   }
 
+  const { modules, passThreshold, requiredForLevelUp, targetLevelCode } = data;
+  const passedCount = modules.filter((m) => m.passed).length;
+  // The vocabulary test only ever unlocks targetLevelCode from below it
+  // (QuizService::maybeUnlockA1 only fires for A0) - a learner already at
+  // that level (A1, now allowed to revisit the modules) has nothing left to
+  // unlock here, so the progress framing must not claim otherwise.
+  const canUnlock = targetLevelCode !== "" && levelCode !== targetLevelCode;
+  const progressPercent = levelUpProgressPercent(passedCount, requiredForLevelUp);
+
   return (
     <div className="min-h-screen bg-slate-950">
       <LearnerNav />
-      <main className="text-white p-8">
-        <h1 className="text-3xl font-bold mb-2">Test de vocabulaire</h1>
-        <p className="text-slate-400 mb-8">
-          Validez 4 modules sur 6 (score ≥ 7/10) pour débloquer le niveau A1.{" "}
-          <span className="text-white font-semibold">{passedCount}/6</span> validé
-          {passedCount > 1 ? "s" : ""}.
+      <main className="text-white p-8 max-w-5xl mx-auto">
+        <h1 className="text-3xl font-bold mb-1">Test de vocabulaire</h1>
+        <p className="text-slate-400 mb-5">
+          Renforce ton vocabulaire{canUnlock ? ` et progresse vers le niveau ${targetLevelCode}` : ""}.
         </p>
+
+        {!loading && !loadError && (
+          <div className="bg-slate-800 rounded-xl p-5 mb-8">
+            <div className="flex items-center justify-between mb-1.5 gap-2">
+              <p className="text-sm font-semibold text-white">
+                {canUnlock ? `Progression vers ${targetLevelCode}` : "Modules validés"}
+              </p>
+              <p className="text-sm text-slate-400 shrink-0">
+                {canUnlock ? `${passedCount} / ${requiredForLevelUp} requis` : `${passedCount} / ${modules.length}`}
+              </p>
+            </div>
+            <div
+              role="progressbar"
+              aria-label={canUnlock ? `Progression vers le niveau ${targetLevelCode}` : "Modules de vocabulaire validés"}
+              aria-valuenow={progressPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              className="bg-slate-700 rounded-full h-2 overflow-hidden"
+            >
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              {canUnlock
+                ? `Valide ${requiredForLevelUp} modules sur ${modules.length} avec au moins ${passThreshold}/10.`
+                : `Niveau ${targetLevelCode} déjà débloqué — entraîne-toi librement sur ces modules.`}
+            </p>
+          </div>
+        )}
+
+        <h2 className="text-lg font-bold mb-4">Ton parcours</h2>
 
         {loading ? (
           <p>Chargement...</p>
@@ -59,25 +106,9 @@ export function QuizPage() {
             onRetry={() => setRetryCount((count) => count + 1)}
           />
         ) : (
-          <div className="grid md:grid-cols-3 gap-6">
-            {modules.map((module) => (
-              <article key={module.id} className="bg-slate-800 p-6 rounded-xl">
-                <div className="flex justify-between items-start">
-                  <h2 className="text-xl font-bold">{module.title}</h2>
-                  {module.passed && (
-                    <span className="text-green-400 text-sm font-semibold">✓ Validé</span>
-                  )}
-                </div>
-                <p className="text-slate-400 text-sm mt-2">
-                  {module.questionCount} questions
-                </p>
-                <Link
-                  to={`/quiz/${module.id}`}
-                  className="inline-block mt-4 bg-blue-600 px-4 py-2 rounded-lg"
-                >
-                  {module.passed ? "Rejouer" : "Commencer"}
-                </Link>
-              </article>
+          <div className="grid md:grid-cols-2 gap-4">
+            {modules.map((module, index) => (
+              <QuizModuleCard key={module.id} module={module} number={index + 1} passThreshold={passThreshold} />
             ))}
           </div>
         )}

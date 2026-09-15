@@ -22,7 +22,7 @@ final class QuizControllerTest extends ApiTestCase
         'M0-4' => ['mother', 'father', 'brother', 'sister', 'daughter', 'son', 'grandmother', 'grandfather', 'cousin', 'child'],
     ];
 
-    public function testModulesListShowsAllSixUnpassed(): void
+    public function testModulesListShowsAllSixUnpassedAndUnattempted(): void
     {
         $client = static::createClient();
         $token = $this->registerAndGetToken($client);
@@ -30,11 +30,151 @@ final class QuizControllerTest extends ApiTestCase
         $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
 
         self::assertResponseIsSuccessful();
-        $modules = $this->decodeResponse($client);
-        self::assertCount(6, $modules);
-        foreach ($modules as $module) {
+        $body = $this->decodeResponse($client);
+        self::assertCount(6, $body['modules']);
+        foreach ($body['modules'] as $module) {
             self::assertFalse($module['passed']);
+            self::assertFalse($module['attempted']);
+            self::assertNull($module['bestScore']);
         }
+    }
+
+    public function testModulesResponseExposesTheRealPassAndUnlockRules(): void
+    {
+        // These used to be private QuizService constants the frontend had no
+        // way to know - now surfaced read-only so it can show real numbers
+        // instead of hardcoding 7/4/"A1".
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+
+        $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
+
+        self::assertResponseIsSuccessful();
+        $body = $this->decodeResponse($client);
+        self::assertSame(7, $body['passThreshold']);
+        self::assertSame(4, $body['requiredForLevelUp']);
+        self::assertSame('A1', $body['targetLevelCode']);
+    }
+
+    public function testAttemptedButFailedModuleReportsBestScoreWithoutBeingPassed(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $moduleId = $this->findModuleId($client, $token, 'M0-1');
+
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
+        $questions = $this->decodeResponse($client);
+
+        // Only the first 3 answers correct - well under the 7-correct pass
+        // threshold, so this attempt fails but is still real and recorded.
+        $answers = [];
+        foreach ($questions as $index => $question) {
+            $answers[(string) $question['id']] = $index < 3 ? self::M0_1_ANSWERS[$index] : 'wrong';
+        }
+
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answers,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(3, $this->decodeResponse($client)['score']);
+        self::assertFalse($this->decodeResponse($client)['passed']);
+
+        $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
+        $module = $this->findModuleInList($client, 'M0-1');
+
+        self::assertTrue($module['attempted']);
+        self::assertFalse($module['passed']);
+        self::assertSame(3, $module['bestScore']);
+    }
+
+    public function testBestScoreReflectsTheHighestOfSeveralAttemptsIncludingAfterPassing(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $moduleId = $this->findModuleId($client, $token, 'M0-1');
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
+        $questions = $this->decodeResponse($client);
+
+        $answersScoring = function (int $correctCount) use ($questions): array {
+            $answers = [];
+            foreach ($questions as $index => $question) {
+                $answers[(string) $question['id']] = $index < $correctCount ? self::M0_1_ANSWERS[$index] : 'wrong';
+            }
+
+            return $answers;
+        };
+
+        // Attempt 1: fails with a low score.
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answersScoring(3),
+        ]);
+        self::assertSame(3, $this->decodeResponse($client)['score']);
+
+        // Attempt 2: still fails, but scores higher - bestScore must follow
+        // the highest attempt, not just the most recent one.
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answersScoring(6),
+        ]);
+        self::assertSame(6, $this->decodeResponse($client)['score']);
+
+        $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
+        $module = $this->findModuleInList($client, 'M0-1');
+        self::assertFalse($module['passed']);
+        self::assertTrue($module['attempted']);
+        self::assertSame(6, $module['bestScore']);
+
+        // Attempt 3: a full pass. bestScore now reflects the perfect score,
+        // and passed flips to true.
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answersScoring(10),
+        ]);
+        self::assertSame(10, $this->decodeResponse($client)['score']);
+
+        $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
+        $module = $this->findModuleInList($client, 'M0-1');
+        self::assertTrue($module['passed']);
+        self::assertSame(10, $module['bestScore']);
+    }
+
+    public function testReplayingAnAlreadyPassedModuleKeepsItPassedEvenIfTheRetryScoresLower(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetToken($client);
+        $moduleId = $this->findModuleId($client, $token, 'M0-1');
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
+        $questions = $this->decodeResponse($client);
+
+        $answers = [];
+        foreach ($questions as $index => $question) {
+            $answers[(string) $question['id']] = self::M0_1_ANSWERS[$index];
+        }
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answers,
+        ]);
+        self::assertTrue($this->decodeResponse($client)['passed']);
+
+        // Replay with a deliberately weaker attempt (still >= 7, module
+        // scoring/XP rules themselves are untouched by this task).
+        $weakerAnswers = $answers;
+        $lastQuestionId = (string) $questions[9]['id'];
+        $weakerAnswers[$lastQuestionId] = 'wrong';
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $weakerAnswers,
+        ]);
+        self::assertSame(9, $this->decodeResponse($client)['score']);
+
+        $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
+        $module = $this->findModuleInList($client, 'M0-1');
+        self::assertTrue($module['passed']);
+        self::assertTrue($module['attempted']);
+        // Best score still remembers the earlier perfect attempt.
+        self::assertSame(10, $module['bestScore']);
     }
 
     public function testModulesListIsEmptyForALearnerAboveA1(): void
@@ -45,7 +185,12 @@ final class QuizControllerTest extends ApiTestCase
         $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
 
         self::assertResponseIsSuccessful();
-        self::assertSame([], $this->decodeResponse($client));
+        $body = $this->decodeResponse($client);
+        self::assertSame([], $body['modules']);
+        // The pass/unlock rules are still returned even when the module list
+        // is empty - a page rendered before redirecting away can rely on a
+        // consistent response shape either way.
+        self::assertSame(7, $body['passThreshold']);
     }
 
     public function testModulesListAndAttemptStillWorkForAnA1Learner(): void
@@ -58,7 +203,7 @@ final class QuizControllerTest extends ApiTestCase
 
         $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
         self::assertResponseIsSuccessful();
-        $modules = $this->decodeResponse($client);
+        $modules = $this->decodeResponse($client)['modules'];
         self::assertCount(6, $modules);
 
         $moduleId = $this->findModuleId($client, $token, 'M0-1');
@@ -277,7 +422,7 @@ final class QuizControllerTest extends ApiTestCase
         $token = $this->registerAndGetToken($client);
 
         $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
-        $modules = $this->decodeResponse($client);
+        $modules = $this->decodeResponse($client)['modules'];
 
         $lastResult = null;
         foreach (\array_slice($modules, 0, 4) as $module) {
@@ -329,12 +474,30 @@ final class QuizControllerTest extends ApiTestCase
     private function findModuleId(mixed $client, string $token, string $code): int
     {
         $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
-        foreach ($this->decodeResponse($client) as $module) {
+        foreach ($this->decodeResponse($client)['modules'] as $module) {
             if ($module['code'] === $code) {
                 return $module['id'];
             }
         }
 
         self::fail("Quiz module {$code} not found - are fixtures loaded in the test database?");
+    }
+
+    /**
+     * Reads a module's full entry (id/code/title/questionCount/passed/
+     * attempted/bestScore) from the response of a GET /api/quiz/modules call
+     * already made on $client - unlike findModuleId(), does not re-request.
+     *
+     * @return array{id: int, code: string, title: string, questionCount: int, passed: bool, attempted: bool, bestScore: int|null}
+     */
+    private function findModuleInList(mixed $client, string $code): array
+    {
+        foreach ($this->decodeResponse($client)['modules'] as $module) {
+            if ($module['code'] === $code) {
+                return $module;
+            }
+        }
+
+        self::fail("Quiz module {$code} not found in the last /api/quiz/modules response.");
     }
 }

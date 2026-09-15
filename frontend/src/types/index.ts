@@ -45,6 +45,23 @@ export type QuizModule = {
   title: string;
   questionCount: number;
   passed: boolean;
+  /** True as soon as at least one attempt has been submitted for this module (regardless of pass/fail). */
+  attempted: boolean;
+  /** The learner's highest recorded score for this module, or null if never attempted. */
+  bestScore: number | null;
+};
+
+/**
+ * GET /api/quiz/modules response shape - the pass/unlock rules are read
+ * from the same QuizService constants that actually enforce them
+ * (backend/src/Service/QuizService.php), never duplicated as frontend
+ * literals.
+ */
+export type QuizModulesResponse = {
+  modules: QuizModule[];
+  passThreshold: number;
+  requiredForLevelUp: number;
+  targetLevelCode: string;
 };
 
 export type QuizQuestion = {
