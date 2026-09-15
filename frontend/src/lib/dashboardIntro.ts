@@ -121,9 +121,9 @@ const DESTINATIONS: { key: DashboardDestinationKey; route: string; confirmSpeech
   {
     key: "quiz",
     route: "/quiz",
-    confirmSpeech: "Great, let's start the quiz.",
-    confirmSpeechFr: "Très bien, commençons le quiz.",
-    aliases: ["quiz", "quiz vocal", "le quiz", "vocabulaire"],
+    confirmSpeech: "Great, let's start the vocabulary test.",
+    confirmSpeechFr: "Très bien, commençons le test de vocabulaire.",
+    aliases: ["quiz", "quiz vocal", "le quiz", "vocabulaire", "test de vocabulaire", "le test de vocabulaire"],
   },
   {
     key: "dailyChallenge",

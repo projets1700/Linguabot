@@ -37,7 +37,7 @@ final class QuizControllerTest extends ApiTestCase
         }
     }
 
-    public function testModulesListIsEmptyForALearnerAboveA0(): void
+    public function testModulesListIsEmptyForALearnerAboveA1(): void
     {
         $client = static::createClient();
         $token = $this->registerAndGetTokenAtLevel($client, 'B1');
@@ -48,7 +48,38 @@ final class QuizControllerTest extends ApiTestCase
         self::assertSame([], $this->decodeResponse($client));
     }
 
-    public function testAttemptsIsRejectedForALearnerAboveA0EvenWithAGuessedModuleId(): void
+    public function testModulesListAndAttemptStillWorkForAnA1Learner(): void
+    {
+        // A1 learners just unlocked past the vocabulary test (see
+        // testFourthPassedModuleUnlocksLevelA1 below) but can still revisit
+        // it - only A2 and above have moved on far enough that it's hidden.
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+
+        $this->jsonRequest($client, 'GET', '/api/quiz/modules', $token);
+        self::assertResponseIsSuccessful();
+        $modules = $this->decodeResponse($client);
+        self::assertCount(6, $modules);
+
+        $moduleId = $this->findModuleId($client, $token, 'M0-1');
+        $this->jsonRequest($client, 'GET', "/api/quiz/modules/{$moduleId}/questions", $token);
+        self::assertResponseIsSuccessful();
+        $questions = $this->decodeResponse($client);
+
+        $answers = [];
+        foreach ($questions as $index => $question) {
+            $answers[(string) $question['id']] = self::M0_1_ANSWERS[$index];
+        }
+
+        $this->jsonRequest($client, 'POST', '/api/quiz/attempts', $token, [
+            'moduleId' => $moduleId,
+            'answers' => $answers,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(10, $this->decodeResponse($client)['score']);
+    }
+
+    public function testAttemptsIsRejectedForALearnerAboveA1EvenWithAGuessedModuleId(): void
     {
         $client = static::createClient();
         $a0Token = $this->registerAndGetToken($client);
@@ -223,7 +254,7 @@ final class QuizControllerTest extends ApiTestCase
         self::assertSame(10, $this->decodeResponse($client)['score']);
     }
 
-    public function testQuestionsListAndAnswerRevealAreRejectedForALearnerAboveA0(): void
+    public function testQuestionsListAndAnswerRevealAreRejectedForALearnerAboveA1(): void
     {
         $client = static::createClient();
         $a0Token = $this->registerAndGetToken($client);

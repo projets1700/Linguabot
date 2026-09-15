@@ -359,7 +359,7 @@ describe("DashboardPage", () => {
     });
     await flushMicrotasks();
 
-    expect(latestUtterance().text).toBe("Great, let's start the quiz.");
+    expect(latestUtterance().text).toBe("Great, let's start the vocabulary test.");
     expect(navigateMock).not.toHaveBeenCalled();
 
     await endLatestSpeech();
@@ -405,43 +405,54 @@ describe("DashboardPage", () => {
     });
     await flushMicrotasks();
 
-    expect(latestUtterance().text).not.toBe("Great, let's start the quiz.");
+    expect(latestUtterance().text).not.toBe("Great, let's start the vocabulary test.");
     await endLatestSpeech();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it("keeps every dashboard card clickable on its own, with no vocal confirmation required", async () => {
-    // Quiz vocal only shows for A0 learners (see the dedicated describe
-    // block below) - A0 here so this test still covers all 3 cards.
+    // Test de vocabulaire only shows for A0/A1 learners (see the dedicated
+    // describe block below) - A0 here so this test still covers all 3 cards.
     await enterDashboardPhase({ level: { code: "A0", name: "Débutant absolu", xpThreshold: 0 } });
 
-    expect(screen.getByRole("link", { name: /Quiz vocal/ })).toHaveAttribute("href", "/quiz");
+    expect(screen.getByRole("link", { name: /Test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
     expect(screen.getByRole("link", { name: /Explorer/ })).toHaveAttribute("href", "/catalog");
     expect(screen.getByRole("link", { name: /Badges & trophées/ })).toHaveAttribute("href", "/trophees");
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  describe("Quiz vocal A0 visibility", () => {
-    it("shows the Quiz vocal card and CTA for an A0 learner", async () => {
+  describe("Test de vocabulaire visibility", () => {
+    it("shows the Test de vocabulaire card and CTA for an A0 learner", async () => {
       await enterDashboardPhase({
         level: { code: "A0", name: "Débutant absolu", xpThreshold: 0 },
         totalXp: 0,
         sessionsCount: 0,
       });
 
-      expect(screen.getByRole("link", { name: /Quiz vocal/ })).toHaveAttribute("href", "/quiz");
-      expect(screen.getByRole("link", { name: /Commencer le quiz A0/ })).toHaveAttribute("href", "/quiz");
+      expect(screen.getByRole("link", { name: /Test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
+      expect(screen.getByRole("link", { name: /Commencer le test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
     });
 
-    it("hides the Quiz vocal card and CTA for a learner past A0", async () => {
+    it("still shows the Test de vocabulaire card for an A1 learner", async () => {
       await enterDashboardPhase({
         level: { code: "A1", name: "Grands débuts", xpThreshold: 300 },
         totalXp: 0,
         sessionsCount: 0,
       });
 
-      expect(screen.queryByRole("link", { name: /Quiz vocal/ })).not.toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: /Commencer le quiz A0/ })).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /Test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
+      expect(screen.getByRole("link", { name: /Commencer le test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
+    });
+
+    it("hides the Test de vocabulaire card and CTA for a learner past A1", async () => {
+      await enterDashboardPhase({
+        level: { code: "A2", name: "Élémentaire", xpThreshold: 1000 },
+        totalXp: 0,
+        sessionsCount: 0,
+      });
+
+      expect(screen.queryByRole("link", { name: /Test de vocabulaire/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: /Commencer le test de vocabulaire/ })).not.toBeInTheDocument();
       expect(screen.getByRole("link", { name: "▶ Reprendre" })).toHaveAttribute("href", "/catalog");
     });
   });

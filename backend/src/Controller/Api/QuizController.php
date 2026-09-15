@@ -18,19 +18,24 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class QuizController
 {
+    // The 6 existing modules (QuizFixtures) are basic vocabulary - meant as
+    // "Test de vocabulaire" practice for absolute beginners (A0) and for A1
+    // learners who just unlocked past it and can still benefit from
+    // revisiting it, not a level-agnostic bank open to every level.
+    private const ALLOWED_LEVELS = ['A0', 'A1'];
+
+    private static function isLevelAllowed(User $user): bool
+    {
+        return \in_array($user->getLevel()->getCode(), self::ALLOWED_LEVELS, true);
+    }
+
     #[Route('/api/quiz/modules', name: 'api_quiz_modules', methods: ['GET'])]
     public function modules(
         #[CurrentUser] User $user,
         QuizModuleRepository $moduleRepository,
         QuizAttemptRepository $attemptRepository,
     ): JsonResponse {
-        // The 6 existing modules (QuizFixtures) are all A0 vocabulary - this
-        // is "the A0 quiz", not a level-agnostic bank, so it's only ever
-        // shown to A0 learners rather than following Scenario's "show
-        // locked, above your level" preview convention (which points the
-        // other way: content ABOVE the learner's level, not already-passed
-        // beginner content below it).
-        if ('A0' !== $user->getLevel()->getCode()) {
+        if (!self::isLevelAllowed($user)) {
             return new JsonResponse([]);
         }
 
@@ -52,11 +57,12 @@ final class QuizController
     #[Route('/api/quiz/modules/{id}/questions', name: 'api_quiz_module_questions', methods: ['GET'])]
     public function questions(QuizModule $module, #[CurrentUser] User $user, QuizQuestionRepository $questionRepository): JsonResponse
     {
-        // Same restriction as modules()/attempts() - without it, a non-A0
-        // learner could still list and answer A0 questions by guessing a
-        // module id, even though the module list itself already hides them.
-        if ('A0' !== $user->getLevel()->getCode()) {
-            return new JsonResponse(['message' => 'Ce quiz est réservé aux apprenants de niveau A0.'], 403);
+        // Same restriction as modules()/attempts() - without it, a learner
+        // outside ALLOWED_LEVELS could still list and answer questions by
+        // guessing a module id, even though the module list itself already
+        // hides them.
+        if (!self::isLevelAllowed($user)) {
+            return new JsonResponse(['message' => 'Ce test de vocabulaire est réservé aux niveaux A0 et A1.'], 403);
         }
 
         $questions = $questionRepository->findBy(['module' => $module], ['orderNum' => 'ASC']);
@@ -84,8 +90,8 @@ final class QuizController
     #[Route('/api/quiz/questions/{id}/answer', name: 'api_quiz_question_answer', methods: ['GET'])]
     public function answer(QuizQuestion $question, #[CurrentUser] User $user, QuizService $quizService): JsonResponse
     {
-        if ('A0' !== $user->getLevel()->getCode()) {
-            return new JsonResponse(['message' => 'Ce quiz est réservé aux apprenants de niveau A0.'], 403);
+        if (!self::isLevelAllowed($user)) {
+            return new JsonResponse(['message' => 'Ce test de vocabulaire est réservé aux niveaux A0 et A1.'], 403);
         }
 
         // Recorded server-side so attempts() can zero this question's point
@@ -106,8 +112,8 @@ final class QuizController
         // Same restriction as modules() above, enforced again here since
         // this is the consequential action (scoring/XP) - the listing
         // filter alone wouldn't stop a direct POST with a guessed moduleId.
-        if ('A0' !== $user->getLevel()->getCode()) {
-            return new JsonResponse(['message' => 'Ce quiz est réservé aux apprenants de niveau A0.'], 403);
+        if (!self::isLevelAllowed($user)) {
+            return new JsonResponse(['message' => 'Ce test de vocabulaire est réservé aux niveaux A0 et A1.'], 403);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];

@@ -17,6 +17,7 @@ import {
   hasSeenDashboardIntro,
   markDashboardIntroSeen,
 } from "../lib/dashboardIntro";
+import { isQuizHiddenForLevel } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { DailyChallenge } from "../types";
 
@@ -347,10 +348,10 @@ export function DashboardPage() {
   }
 
   const isNewLearner = user.totalXp === 0 && user.sessionsCount === 0;
-  // The A0 vocabulary quiz (QuizController::modules() enforces this
-  // server-side too) has nothing to offer past A0 - once a learner is A1+,
-  // "Commencer le quiz A0" would either 403 or (now) list nothing.
-  const isA0 = user.level.code === "A0";
+  // The Test de vocabulaire (QuizController enforces this server-side too)
+  // is open to A0 and A1 - once a learner is A2+, it would either 403 or
+  // (now) list nothing, so it's hidden rather than shown as a dead end.
+  const hasVocabTestAccess = !isQuizHiddenForLevel(user.level.code);
   const { percent: xpPercent, nextLevelCode } = progressToNextLevel(user.level.code, user.totalXp);
   const reducedMotion = prefersReducedMotion();
   const micDisabled = avatarState === "speaking" || transitioning;
@@ -663,8 +664,8 @@ export function DashboardPage() {
                   <p className="text-xs text-slate-500 mt-1">{user.totalXp} XP</p>
                 </div>
 
-                <Button to={isNewLearner && isA0 ? "/quiz" : "/catalog"} size="lg" className="self-start">
-                  {isNewLearner && isA0 ? "Commencer le quiz A0 →" : "▶ Reprendre"}
+                <Button to={isNewLearner && hasVocabTestAccess ? "/quiz" : "/catalog"} size="lg" className="self-start">
+                  {isNewLearner && hasVocabTestAccess ? "Commencer le test de vocabulaire →" : "▶ Reprendre"}
                 </Button>
               </div>
             </RevealSection>
@@ -683,7 +684,7 @@ export function DashboardPage() {
 
             {/* ---------- Choisir une activité ---------- */}
             <RevealSection visible={cardsRevealed} delayMs={200} reducedMotion={reducedMotion}>
-              <ActivityGrid isA0={isA0} />
+              <ActivityGrid hasVocabTestAccess={hasVocabTestAccess} />
             </RevealSection>
 
             {/* Voice destination navigation is still a bonus on top of the

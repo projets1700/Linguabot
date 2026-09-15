@@ -15,7 +15,7 @@ import { useAuthStore } from "../stores/authStore";
 const NAV: { to: string; label: string; matches?: string[] }[] = [
   { to: "/dashboard", label: "Accueil" },
   { to: "/catalog", label: "Scénarios" },
-  { to: "/quiz", label: "Quiz" },
+  { to: "/quiz", label: "Test de vocabulaire" },
   { to: "/defi-du-jour", label: "Défis" },
   { to: "/trophees", label: "Progression", matches: ["/trophees", "/badges"] },
   { to: "/mon-compte", label: "Profil" },

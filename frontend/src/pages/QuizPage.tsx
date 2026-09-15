@@ -9,17 +9,17 @@ import type { QuizModule } from "../types";
 
 export function QuizPage() {
   const levelCode = useAuthStore((state) => state.user?.level.code);
-  const isA0 = levelCode === "A0";
+  const hidden = isQuizHiddenForLevel(levelCode);
   const [modules, setModules] = useState<QuizModule[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    // The quiz is A0-only (QuizController::modules() also enforces this
-    // server-side) - not worth a network round-trip just to learn that,
-    // once the learner's own level already says so.
-    if (!isA0) {
+    // A2/B1/B2 never render past the redirect below - not worth a network
+    // round-trip just to learn that, once the learner's own level already
+    // says so (QuizController also enforces this server-side).
+    if (hidden) {
       setLoading(false);
       return;
     }
@@ -29,14 +29,14 @@ export function QuizPage() {
       .then((response) => setModules(response.data))
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, [isA0, retryCount]);
+  }, [hidden, retryCount]);
 
   const passedCount = modules.filter((m) => m.passed).length;
 
-  // A2/B1/B2 have nothing to gain from this page (see isQuizHiddenForLevel) -
-  // sent straight back to the Dashboard instead of the "reserved for A0"
-  // dead end that A1 still legitimately sees.
-  if (isQuizHiddenForLevel(levelCode)) {
+  // A2/B1/B2 have nothing to gain from this page - sent straight back to the
+  // Dashboard rather than shown a dead end (same rule as the nav link and
+  // ActivityGrid, all driven by isQuizHiddenForLevel).
+  if (hidden) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -44,50 +44,43 @@ export function QuizPage() {
     <div className="min-h-screen bg-slate-950">
       <LearnerNav />
       <main className="text-white p-8">
-      <h1 className="text-3xl font-bold mb-2">Quiz vocal A0</h1>
+        <h1 className="text-3xl font-bold mb-2">Test de vocabulaire</h1>
+        <p className="text-slate-400 mb-8">
+          Validez 4 modules sur 6 (score ≥ 7/10) pour débloquer le niveau A1.{" "}
+          <span className="text-white font-semibold">{passedCount}/6</span> validé
+          {passedCount > 1 ? "s" : ""}.
+        </p>
 
-      {!isA0 ? (
-        <p className="text-slate-400">Le quiz vocal A0 est réservé aux apprenants de niveau A0.</p>
-      ) : (
-      <>
-      <p className="text-slate-400 mb-8">
-        Validez 4 modules sur 6 (score ≥ 7/10) pour débloquer le niveau A1.{" "}
-        <span className="text-white font-semibold">{passedCount}/6</span> validé
-        {passedCount > 1 ? "s" : ""}.
-      </p>
-
-      {loading ? (
-        <p>Chargement...</p>
-      ) : loadError ? (
-        <ErrorBanner
-          message="Impossible de charger les modules du quiz."
-          onRetry={() => setRetryCount((count) => count + 1)}
-        />
-      ) : (
-        <div className="grid md:grid-cols-3 gap-6">
-          {modules.map((module) => (
-            <article key={module.id} className="bg-slate-800 p-6 rounded-xl">
-              <div className="flex justify-between items-start">
-                <h2 className="text-xl font-bold">{module.title}</h2>
-                {module.passed && (
-                  <span className="text-green-400 text-sm font-semibold">✓ Validé</span>
-                )}
-              </div>
-              <p className="text-slate-400 text-sm mt-2">
-                {module.questionCount} questions
-              </p>
-              <Link
-                to={`/quiz/${module.id}`}
-                className="inline-block mt-4 bg-blue-600 px-4 py-2 rounded-lg"
-              >
-                {module.passed ? "Rejouer" : "Commencer"}
-              </Link>
-            </article>
-          ))}
-        </div>
-      )}
-      </>
-      )}
+        {loading ? (
+          <p>Chargement...</p>
+        ) : loadError ? (
+          <ErrorBanner
+            message="Impossible de charger les modules du test de vocabulaire."
+            onRetry={() => setRetryCount((count) => count + 1)}
+          />
+        ) : (
+          <div className="grid md:grid-cols-3 gap-6">
+            {modules.map((module) => (
+              <article key={module.id} className="bg-slate-800 p-6 rounded-xl">
+                <div className="flex justify-between items-start">
+                  <h2 className="text-xl font-bold">{module.title}</h2>
+                  {module.passed && (
+                    <span className="text-green-400 text-sm font-semibold">✓ Validé</span>
+                  )}
+                </div>
+                <p className="text-slate-400 text-sm mt-2">
+                  {module.questionCount} questions
+                </p>
+                <Link
+                  to={`/quiz/${module.id}`}
+                  className="inline-block mt-4 bg-blue-600 px-4 py-2 rounded-lg"
+                >
+                  {module.passed ? "Rejouer" : "Commencer"}
+                </Link>
+              </article>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

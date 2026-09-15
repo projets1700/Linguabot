@@ -30,20 +30,20 @@ function renderNav() {
   );
 }
 
-describe("LearnerNav - Quiz link visibility past A1", () => {
-  it.each(["A0", "A1"])("still shows the Quiz link for a %s learner", (levelCode) => {
+describe("LearnerNav - Test de vocabulaire link visibility past A1", () => {
+  it.each(["A0", "A1"])("still shows the Test de vocabulaire link for a %s learner", (levelCode) => {
     useAuthStore.setState({ user: baseUser(levelCode) });
     renderNav();
-    expect(screen.getByRole("link", { name: "Quiz" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Test de vocabulaire" })).toBeInTheDocument();
   });
 
-  it.each(["A2", "B1", "B2"])("hides the Quiz link for a %s learner", (levelCode) => {
+  it.each(["A2", "B1", "B2"])("hides the Test de vocabulaire link for a %s learner", (levelCode) => {
     useAuthStore.setState({ user: baseUser(levelCode) });
     renderNav();
-    expect(screen.queryByRole("link", { name: "Quiz" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Test de vocabulaire" })).not.toBeInTheDocument();
   });
 
-  it("still shows every other nav entry when the Quiz link is hidden", () => {
+  it("still shows every other nav entry when the Test de vocabulaire link is hidden", () => {
     useAuthStore.setState({ user: baseUser("B2") });
     renderNav();
     expect(screen.getByRole("link", { name: "Accueil" })).toBeInTheDocument();

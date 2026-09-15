@@ -78,7 +78,7 @@ export function LearnerStatsSection() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
             <StatTile label="Sessions" value={stats.sessionsCount} />
             <StatTile label="Temps de pratique" value={formatPracticeTime(stats.practiceSeconds)} />
-            <StatTile label="Quiz réussis" value={stats.quizzesCompleted} />
+            <StatTile label="Tests de vocabulaire réussis" value={stats.quizzesCompleted} />
             <StatTile label="Défis réalisés" value={stats.challengesCompleted} />
             <StatTile label="XP gagnés" value={stats.xpEarned} highlight />
           </div>

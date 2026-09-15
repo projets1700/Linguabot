@@ -31,6 +31,11 @@ describe("detectDashboardDestination", () => {
     expect(detectDashboardDestination("le quiz")?.route).toBe("/quiz");
   });
 
+  it("also recognizes the Test de vocabulaire by its renamed label", () => {
+    expect(detectDashboardDestination("le test de vocabulaire")?.key).toBe("quiz");
+    expect(detectDashboardDestination("test de vocabulaire")?.route).toBe("/quiz");
+  });
+
   it("recognizes the daily challenge", () => {
     expect(detectDashboardDestination("défi du jour")?.key).toBe("dailyChallenge");
     expect(detectDashboardDestination("défi du jour")?.route).toBe("/defi-du-jour");
