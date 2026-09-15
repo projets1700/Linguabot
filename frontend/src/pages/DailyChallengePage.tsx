@@ -157,35 +157,86 @@ export function DailyChallengePage() {
 
   const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant")?.content ?? null;
 
+  // Mirrors the 3 real avatarState values (idle/thinking/speaking) plus the
+  // in-flight `sending` request into a single learner-facing line for the
+  // mic zone below - no new state, just a label over what useConversationSession
+  // and sendMessage() already track.
+  const turnStatusLabel =
+    sending || avatarState === "thinking"
+      ? "Analyse de ta réponse..."
+      : avatarState === "speaking"
+        ? "LinguaBot parle..."
+        : "À toi de parler";
+
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8 max-w-2xl mx-auto">
-      <p className="text-amber-400 text-sm font-semibold mb-1 uppercase">Défi du jour · +{challenge.xpReward} XP</p>
-      <h1 className="text-3xl font-bold mb-2">{challenge.title}</h1>
-      <p className="text-slate-300 mb-2">{challenge.context}</p>
-      <p className="text-slate-400 mb-4">🎯 {challenge.objective}</p>
-      <div className="flex gap-2 mb-6">
-        {challenge.keywords.map((keyword) => (
-          <span key={keyword} className="bg-slate-800 text-xs px-3 py-1 rounded-full">
-            {keyword}
-          </span>
-        ))}
+    <main className="min-h-screen bg-slate-950 text-white p-6 sm:p-8 max-w-2xl mx-auto">
+      <div className="mb-4">
+        <p className="text-amber-400 text-xs font-bold uppercase tracking-wide mb-1">
+          🔥 Défi du jour · +{challenge.xpReward} XP
+        </p>
+        <h1 className="text-2xl font-bold">{challenge.title}</h1>
+        {!chatStarted && (
+          <p className="text-slate-400 text-sm mt-1">Une mini-mission pour pratiquer ton anglais.</p>
+        )}
+      </div>
+
+      <div className="bg-slate-800 rounded-xl p-4 mb-4">
+        <p className="text-blue-400 text-xs font-bold uppercase tracking-wide mb-2">🎯 Ta mission</p>
+        <p className="text-slate-300 text-sm mb-1.5">{challenge.context}</p>
+        <p className="text-white text-sm font-medium">{challenge.objective}</p>
+        {!chatStarted && challenge.keywords.length > 0 && (
+          <div className="flex gap-2 flex-wrap mt-3">
+            {challenge.keywords.map((keyword) => (
+              <span key={keyword} className="bg-slate-900 text-slate-400 text-xs px-3 py-1 rounded-full">
+                {keyword}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {!chatStarted ? (
         <Button onClick={handleStart} size="lg">Relever le défi</Button>
       ) : (
         <>
-          {/* relative wrapper, not AvatarScene's own root div - see the
-              comment in SessionPage.tsx for why. */}
-          <div className="relative mb-4">
-            <AvatarScene
-              state={avatarState}
-              avatarType={user?.avatarType ?? "male"}
-              speechText={speechText}
-              charIndexRef={charIndexRef}
-              onReady={handleAvatarReady}
-            />
-            <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
+          <div className="bg-slate-900/40 rounded-2xl overflow-hidden mb-4">
+            {/* relative wrapper, not AvatarScene's own root div - see the
+                comment in SessionPage.tsx for why. */}
+            <div className="relative">
+              <AvatarScene
+                state={avatarState}
+                avatarType={user?.avatarType ?? "male"}
+                speechText={speechText}
+                charIndexRef={charIndexRef}
+                onReady={handleAvatarReady}
+                framing="portrait"
+                showStateLabel={false}
+                heightClassName="h-[240px] sm:h-[280px]"
+              />
+              <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
+            </div>
+
+            {/* The mic becomes the primary action once the mission starts -
+                attached directly under the avatar rather than floating in
+                its own row further down the page. Same VoiceInput/onResult/
+                disabled wiring as before; only variant/size changed (the
+                Dashboard intro already established this "brand"+"compact"
+                pairing for an avatar-attached mic). */}
+            <div className="flex flex-col items-center gap-2 px-4 py-3 bg-slate-900/60">
+              <p className="text-sm font-semibold text-white">{turnStatusLabel}</p>
+              {/* The mic must stay off while the AI is talking or about to
+                  talk, otherwise it can pick its own voice back up through
+                  the speakers and "answer its own question" - "thinking" is
+                  included because avatarState flips to "speaking" only once
+                  the browser's TTS actually starts, which lags behind the
+                  reply arriving. */}
+              <VoiceInput
+                onResult={handleVoiceResult}
+                disabled={sending || avatarState === "speaking" || avatarState === "thinking"}
+                variant="brand"
+                size="compact"
+              />
+            </div>
           </div>
 
           <ConversationLog
@@ -208,19 +259,6 @@ export function DailyChallengePage() {
               </Button>
             </div>
           )}
-
-          <div className="mb-4">
-            {/* The mic must stay off while the AI is talking or about to
-                talk, otherwise it can pick its own voice back up through
-                the speakers and "answer its own question" - "thinking" is
-                included because avatarState flips to "speaking" only once
-                the browser's TTS actually starts, which lags behind the
-                reply arriving. */}
-            <VoiceInput
-              onResult={handleVoiceResult}
-              disabled={sending || avatarState === "speaking" || avatarState === "thinking"}
-            />
-          </div>
 
           {sendError && (
             <div className="mb-4">
