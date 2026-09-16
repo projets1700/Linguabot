@@ -288,8 +288,12 @@ export function DailyChallengePage() {
             not AvatarScene's own root div - see the comment in
             SessionPage.tsx for why. No opaque Card around it on purpose
             (§3.B/§10.B): transparentBackground lets it sit directly on the
-            page's own Deep Navy background instead of inside a boxed panel. */}
-        <div className="relative">
+            page's own Deep Navy background instead of inside a boxed panel.
+            mt-28: AvatarSpeechBubble floats entirely ABOVE this wrapper
+            (bottom-full) - without this clearance, a multi-line line (the
+            mission briefing routinely wraps to 2-3 lines) got clipped by
+            the viewport's top edge, its top cut off above the header. */}
+        <div className="relative mt-28">
           <AvatarScene
             state={avatarState}
             avatarType={user?.avatarType ?? "male"}
