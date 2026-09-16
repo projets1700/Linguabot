@@ -27,7 +27,7 @@ function makeModule(overrides: Partial<QuizModule> = {}): QuizModule {
   return {
     id: 1,
     code: "M0-1",
-    title: "Salutations",
+    title: "Greetings",
     questionCount: 10,
     passed: false,
     attempted: false,
@@ -64,13 +64,13 @@ describe("QuizPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows a never-attempted module as 'À commencer', with no score shown", async () => {
+  it("shows a never-attempted module as 'To start', with no score shown", async () => {
     useAuthStore.setState({ user: baseUser("A0") });
     mockModules({ modules: [makeModule()] });
 
     renderQuizPage();
 
-    await waitFor(() => expect(screen.getByText("Salutations")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Greetings")).toBeInTheDocument());
     expect(screen.getByText("To start")).toBeInTheDocument();
     expect(screen.queryByText(/Score/)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Start/ })).toHaveAttribute("href", "/quiz/1");
@@ -115,12 +115,12 @@ describe("QuizPage", () => {
     useAuthStore.setState({ user: baseUser("A0") });
     mockModules({
       modules: [
-        makeModule({ id: 1, code: "M0-1", title: "Salutations", passed: true, attempted: true, bestScore: 10 }),
-        makeModule({ id: 2, code: "M0-2", title: "Chiffres", passed: true, attempted: true, bestScore: 8 }),
-        makeModule({ id: 3, code: "M0-3", title: "Couleurs" }),
-        makeModule({ id: 4, code: "M0-4", title: "Famille" }),
-        makeModule({ id: 5, code: "M0-5", title: "Nourriture" }),
-        makeModule({ id: 6, code: "M0-6", title: "Objets" }),
+        makeModule({ id: 1, code: "M0-1", title: "Greetings", passed: true, attempted: true, bestScore: 10 }),
+        makeModule({ id: 2, code: "M0-2", title: "Numbers", passed: true, attempted: true, bestScore: 8 }),
+        makeModule({ id: 3, code: "M0-3", title: "Colors" }),
+        makeModule({ id: 4, code: "M0-4", title: "Family" }),
+        makeModule({ id: 5, code: "M0-5", title: "Food" }),
+        makeModule({ id: 6, code: "M0-6", title: "Objects" }),
       ],
       requiredForLevelUp: 4,
     });
@@ -147,9 +147,9 @@ describe("QuizPage", () => {
     mockModules({
       modules: [
         makeModule({ id: 1, code: "M0-1", passed: true, attempted: true, bestScore: 10 }),
-        makeModule({ id: 2, code: "M0-2", title: "Chiffres", passed: true, attempted: true, bestScore: 10 }),
-        makeModule({ id: 3, code: "M0-3", title: "Couleurs", passed: true, attempted: true, bestScore: 10 }),
-        makeModule({ id: 4, code: "M0-4", title: "Famille", passed: true, attempted: true, bestScore: 10 }),
+        makeModule({ id: 2, code: "M0-2", title: "Numbers", passed: true, attempted: true, bestScore: 10 }),
+        makeModule({ id: 3, code: "M0-3", title: "Colors", passed: true, attempted: true, bestScore: 10 }),
+        makeModule({ id: 4, code: "M0-4", title: "Family", passed: true, attempted: true, bestScore: 10 }),
       ],
       requiredForLevelUp: 4,
     });
@@ -193,7 +193,7 @@ describe("QuizPage", () => {
 
     expect(screen.getByRole("heading", { name: "Vocabulary Test" })).toBeInTheDocument();
     await waitFor(() => expect(getSpy).toHaveBeenCalledWith("/quiz/modules"));
-    await waitFor(() => expect(screen.getByText("Salutations")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Greetings")).toBeInTheDocument());
   });
 
   it.each(["A2", "B1", "B2"])("redirects a %s learner to the Dashboard without fetching modules", async (levelCode) => {

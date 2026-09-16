@@ -91,8 +91,8 @@ function baseUser(cecrlProfile: CecrlProfile): Me {
 }
 
 const QUESTIONS = [
-  { id: 101, questionText: 'Comment dit-on "bonjour" ?' },
-  { id: 102, questionText: 'Comment dit-on "merci" ?' },
+  { id: 101, questionText: "What do you say when you meet someone?" },
+  { id: 102, questionText: "What do you say when someone helps you?" },
 ];
 
 function mockQuizApi() {

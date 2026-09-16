@@ -67,8 +67,7 @@ export function VoiceSettingsPage() {
       <p className="text-slate-400 mb-8 max-w-2xl">
         Choose the voice used during sessions, the daily challenge, the placement test and the
         vocabulary test. The voices on offer match the avatar chosen at sign-up (
-        {CATEGORY_LABELS[avatarType].toLowerCase()}). The vocabulary test's text stays in French, but
-        is read aloud with this English voice (no reliable French voice is available).
+        {CATEGORY_LABELS[avatarType].toLowerCase()}).
       </p>
 
       {loading && <p className="text-slate-400">Loading available voices...</p>}

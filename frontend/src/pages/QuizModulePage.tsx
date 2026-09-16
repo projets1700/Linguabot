@@ -12,12 +12,7 @@ import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
 import { normalizeApiError, type ApiError } from "../lib/apiError";
 import { detectLearnerBlock } from "../lib/detectLearnerBlock";
-import {
-  buildBlockedHelpMessage,
-  buildHelpAvailableMessage,
-  buildSpokenQuizQuestion,
-  isQuizHiddenForLevel,
-} from "../lib/quizSpeech";
+import { buildBlockedHelpMessage, buildHelpAvailableMessage, isQuizHiddenForLevel } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
@@ -93,17 +88,11 @@ export function QuizModulePage() {
 
   useEffect(() => {
     if (questions.length > 0) {
-      // The A0 quiz's prompts are stored in French ("Comment dit-on
-      // "X" ?" - QuizFixtures) since it's testing basic French-to-English
-      // vocabulary for absolute beginners, and the on-screen text (revealed
-      // on request below) stays exactly that. But reading the French
-      // sentence aloud with an English voice - a local French voice turned
-      // out unreliable, cutting audio short mid-sentence with no way to
-      // detect that from the Web Speech API - produced hard-to-understand
-      // "franglish". Spoken aloud, the question is translated to its
-      // English wrapper instead ("How do you say X?"), keeping only the
-      // quoted French word itself - the vocabulary being tested - unchanged.
-      speakAssistantLine(buildSpokenQuizQuestion(questions[currentIndex].questionText));
+      // The quiz question is an all-English clue (QuizFixtures, e.g. "What
+      // color is blood?") worded so the answer is never spoken by the clue
+      // itself - spoken aloud as-is, same as the on-screen text revealed on
+      // request below.
+      speakAssistantLine(questions[currentIndex].questionText);
       setShowQuestionText(false);
       setHelpUnlocked(false);
       setHelpError(null);
