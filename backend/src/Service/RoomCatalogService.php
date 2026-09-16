@@ -20,7 +20,10 @@ use App\Repository\WorldRepository;
  *
  * Unlock rules (deliberately simple for the pilot - see the plan's "Backend
  * - nouvelles entités" section for the full rationale):
- * - A World is unlocked if it's the first one (orderNum 0).
+ * - A World is unlocked as soon as it has content (any world seeded in the
+ *   database) - no cross-world progression gate yet (e.g. "finish Monde 1
+ *   first"), same principle as Scenario's catalog never gating on anything
+ *   but the learner's own level.
  * - A Room is unlocked iff its World is (no extra per-room condition yet).
  * - A Situation is unlocked if it's the first in its Room, or the previous
  *   Situation (by orderNum) has at least one completed Mission for this user.
@@ -140,7 +143,7 @@ final class RoomCatalogService
 
     private function isWorldUnlocked(World $world): bool
     {
-        return 0 === $world->getOrderNum();
+        return $world->isActive();
     }
 
     /**

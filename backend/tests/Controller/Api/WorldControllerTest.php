@@ -6,7 +6,7 @@ use App\Tests\ApiTestCase;
 
 final class WorldControllerTest extends ApiTestCase
 {
-    public function testWorldsIndexListsThePilotWorld(): void
+    public function testWorldsIndexListsBothSeededWorlds(): void
     {
         $client = static::createClient();
         $token = $this->registerAndGetToken($client);
@@ -15,10 +15,13 @@ final class WorldControllerTest extends ApiTestCase
 
         self::assertResponseIsSuccessful();
         $worlds = $this->decodeResponse($client);
-        self::assertCount(1, $worlds);
+        self::assertCount(2, $worlds);
         self::assertSame('W1', $worlds[0]['code']);
         self::assertTrue($worlds[0]['unlocked']);
         self::assertSame(7, $worlds[0]['roomsCount']);
+        self::assertSame('W2', $worlds[1]['code']);
+        self::assertTrue($worlds[1]['unlocked']);
+        self::assertSame(9, $worlds[1]['roomsCount']);
     }
 
     public function testWorldsIndexRequiresAuthentication(): void
@@ -45,6 +48,25 @@ final class WorldControllerTest extends ApiTestCase
         self::assertSame('W1-R1', $livingRoom['code']);
         self::assertCount(2, $livingRoom['situations']);
         self::assertCount(2, $livingRoom['situations'][0]['missions']);
+    }
+
+    public function testWorldTwoDetailListsItsNineRooms(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+
+        $this->jsonRequest($client, 'GET', '/api/worlds/W2', $token);
+
+        self::assertResponseIsSuccessful();
+        $world = $this->decodeResponse($client);
+        self::assertSame('W2', $world['code']);
+        self::assertTrue($world['unlocked']);
+        self::assertCount(9, $world['rooms']);
+
+        $coffeeShop = $world['rooms'][0];
+        self::assertSame('W2-R1', $coffeeShop['code']);
+        self::assertCount(2, $coffeeShop['situations']);
+        self::assertCount(2, $coffeeShop['situations'][0]['missions']);
     }
 
     public function testUnknownWorldCodeReturns404(): void

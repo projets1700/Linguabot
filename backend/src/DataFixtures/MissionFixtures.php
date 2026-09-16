@@ -11,12 +11,12 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * One A1 and one A2 Mission per Monde 1 situation (28 total across the 14
- * situations) - the mechanism that lets the same Situation stay relevant as
- * the learner's level rises (LinguaBot_V2_Conception.md §8's restaurant
- * example: A1 orders simply, A2 asks questions/modifies the order). baseXp
- * mirrors Scenario's own BASE_XP_BY_LEVEL (A1=60, A2=100) for consistency
- * across the two systems.
+ * One A1 and one A2 Mission per situation across Monde 1 (28, over 14
+ * situations) and Monde 2 (36, over 18 situations) - the mechanism that lets
+ * the same Situation stay relevant as the learner's level rises
+ * (LinguaBot_V2_Conception.md §8's restaurant example: A1 orders simply, A2
+ * asks questions/modifies the order). baseXp mirrors Scenario's own
+ * BASE_XP_BY_LEVEL (A1=60, A2=100) for consistency across the two systems.
  */
 final class MissionFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
 {
@@ -98,6 +98,97 @@ final class MissionFixtures extends Fixture implements DependentFixtureInterface
             SituationFixtures::SITUATION_BOOK_APPOINTMENT_REFERENCE, 'W1-R7-S2', 'Hairdresser',
             ['Prendre un rendez-vous', 'Book a hair appointment for a specific day and time.'],
             ['Déplacer un rendez-vous', 'Reschedule an existing hair appointment and explain why.'],
+        ],
+
+        [
+            SituationFixtures::SITUATION_ORDER_COFFEE_REFERENCE, 'W2-R1-S1', 'Barista',
+            ['Commander une boisson simple', 'Order a drink at the coffee shop.'],
+            ['Personnaliser sa commande', 'Order a drink at the coffee shop and ask for a modification, such as the size or the type of milk.'],
+        ],
+        [
+            SituationFixtures::SITUATION_WRONG_ORDER_REFERENCE, 'W2-R1-S2', 'Barista',
+            ['Signaler une erreur simple', 'Politely tell the barista your order is wrong and ask for the right one.'],
+            ['Résoudre le problème', 'Explain the mistake in your order, ask for a solution, and confirm the correction.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ORDER_MEAL_REFERENCE, 'W2-R2-S1', 'Waiter',
+            ['Commander un plat simple', 'Order a starter and a main course at the restaurant.'],
+            ['Signaler une allergie', 'Order a full meal at the restaurant and ask about ingredients because of a food allergy.'],
+        ],
+        [
+            SituationFixtures::SITUATION_CHANGE_ORDER_REFERENCE, 'W2-R2-S2', 'Waiter',
+            ['Demander un changement', 'Ask the waiter to change one item in your order.'],
+            ['Expliquer un problème', 'Explain a problem with your meal to the waiter and ask for a solution.'],
+        ],
+        [
+            SituationFixtures::SITUATION_CHOOSE_SHOWING_REFERENCE, 'W2-R3-S1', 'Cinema Cashier',
+            ['Acheter un billet', 'Buy a ticket for a movie showing at the cinema.'],
+            ['Choisir un horaire', 'Ask about showtimes for a movie and choose the best option for your schedule.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BOOKING_PROBLEM_REFERENCE, 'W2-R3-S2', 'Cinema Cashier',
+            ['Signaler un problème', 'Tell the cashier there is a problem with your ticket.'],
+            ['Résoudre une réservation', 'Explain a booking problem in detail and ask the cashier to resolve it.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FIND_SEAT_REFERENCE, 'W2-R4-S1', 'Usher',
+            ['Trouver sa place', 'Ask an usher to help you find your seat at the theatre.'],
+            ['Changer de place', 'Ask an usher about seat options and request to change seats.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BOOK_TICKETS_REFERENCE, 'W2-R4-S2', 'Box Office Clerk',
+            ['Acheter des billets', 'Buy tickets for a play at the theatre.'],
+            ['Choisir pour un groupe', 'Ask about ticket options for a play and choose seats for a group.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FIND_YOUR_WAY_REFERENCE, 'W2-R5-S1', 'Staff Member',
+            ['Demander son chemin', 'Ask a staff member where the entrance or restrooms are during a concert.'],
+            ['Se renseigner sur le programme', 'Ask a staff member for directions and information about the concert schedule.'],
+        ],
+        [
+            SituationFixtures::SITUATION_LOST_ITEM_REFERENCE, 'W2-R5-S2', 'Staff Member',
+            ['Signaler un objet perdu', 'Tell a staff member you lost an item at the concert.'],
+            ['Décrire un objet en détail', 'Describe a lost item in detail and ask staff how to find it.'],
+        ],
+        [
+            SituationFixtures::SITUATION_SUGGEST_GAME_REFERENCE, 'W2-R6-S1', 'Friend',
+            ['Proposer un jeu', 'Ask a friend to play an arcade game with you.'],
+            ['Expliquer les règles', 'Suggest a game to a friend and explain the rules.'],
+        ],
+        [
+            SituationFixtures::SITUATION_EXCHANGE_TOKENS_REFERENCE, 'W2-R6-S2', 'Staff Member',
+            ['Échanger des jetons', 'Ask staff to exchange money for game tokens.'],
+            ['Optimiser son échange', 'Ask about the best value for tokens and how to redeem prizes.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ORGANIZE_GAME_REFERENCE, 'W2-R7-S1', 'Staff Member',
+            ['Réserver une piste', 'Book a bowling lane with a friend.'],
+            ['Organiser pour un groupe', 'Book a bowling lane for a group and ask about shoe rental.'],
+        ],
+        [
+            SituationFixtures::SITUATION_CHEER_FRIEND_REFERENCE, 'W2-R7-S2', 'Friend',
+            ['Encourager un ami', 'Cheer on a friend during a bowling game.'],
+            ['Discuter de la partie', "Discuss the game's score and suggest a strategy to a friend."],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_EQUIPMENT_HELP_REFERENCE, 'W2-R8-S1', 'Gym Staff',
+            ['Demander de l\'aide simple', 'Ask a gym staff member how to use a piece of equipment.'],
+            ['Demander la bonne posture', 'Ask a gym staff member to explain proper form for an exercise.'],
+        ],
+        [
+            SituationFixtures::SITUATION_JOIN_CLASS_REFERENCE, 'W2-R8-S2', 'Gym Staff',
+            ['Se renseigner sur les cours', 'Ask about a fitness class schedule.'],
+            ["S'inscrire selon ses objectifs", 'Ask about different fitness classes and sign up for one that fits your goals.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_HOURS_REFERENCE, 'W2-R9-S1', 'Lifeguard',
+            ['Demander les horaires', "Ask a lifeguard about the pool's opening hours."],
+            ['Se renseigner sur les règles', 'Ask a lifeguard about pool rules and opening hours for different activities.'],
+        ],
+        [
+            SituationFixtures::SITUATION_RENT_EQUIPMENT_REFERENCE, 'W2-R9-S2', 'Staff Member',
+            ['Louer un casier', 'Ask to rent a locker or a towel at the pool.'],
+            ['Comparer les options', 'Ask about rental options and prices for pool equipment.'],
         ],
     ];
 

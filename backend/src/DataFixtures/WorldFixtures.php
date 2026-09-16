@@ -8,35 +8,43 @@ use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * V2 pilot (LinguaBot_V2_Conception.md §5): only "Monde 1 - Vie quotidienne"
- * is seeded for now, per the approved pilot scope - the other 7 worlds from
- * the conception doc are rendered as static "coming soon" cards by the
- * frontend rather than empty/inactive DB rows with no content.
+ * V2 (LinguaBot_V2_Conception.md §5): Monde 1 "Vie quotidienne" and Monde 2
+ * "Sorties & loisirs" are seeded - the remaining 6 worlds from the
+ * conception doc are rendered as static "coming soon" cards by the frontend
+ * rather than empty/inactive DB rows with no content.
  *
- * Tagged with the 'v2' group (FixtureGroupInterface) so these 4 new fixture
+ * Tagged with the 'v2' group (FixtureGroupInterface) so these fixture
  * classes can be loaded on their own via `--append --group=v2` on an
  * already-seeded database, without re-running (and unique-constraint-
  * colliding with) every other fixture class.
  */
 final class WorldFixtures extends Fixture implements FixtureGroupInterface
 {
+    public const WORLD_1_REFERENCE = 'world-w1';
+    public const WORLD_2_REFERENCE = 'world-w2';
+
     public static function getGroups(): array
     {
         return ['v2'];
     }
 
-    public const WORLD_1_REFERENCE = 'world-w1';
-
     public function load(ObjectManager $manager): void
     {
-        $world = (new World())
+        $world1 = (new World())
             ->setCode('W1')
             ->setTitle('Vie quotidienne')
             ->setDescription("Les lieux et situations de la vie de tous les jours : à la maison, au café, dans les commerces.")
             ->setOrderNum(0);
+        $manager->persist($world1);
+        $this->addReference(self::WORLD_1_REFERENCE, $world1);
 
-        $manager->persist($world);
-        $this->addReference(self::WORLD_1_REFERENCE, $world);
+        $world2 = (new World())
+            ->setCode('W2')
+            ->setTitle('Sorties & loisirs')
+            ->setDescription('Les endroits où sortir et se divertir : cafés, restaurants, cinéma, sport, culture.')
+            ->setOrderNum(1);
+        $manager->persist($world2);
+        $this->addReference(self::WORLD_2_REFERENCE, $world2);
 
         $manager->flush();
     }
