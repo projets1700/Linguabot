@@ -13,6 +13,10 @@ import { QuizModulePage } from "./pages/QuizModulePage";
 import { BadgesPage } from "./pages/BadgesPage";
 import { TrophiesPage } from "./pages/TrophiesPage";
 import { DailyChallengePage } from "./pages/DailyChallengePage";
+import { AdventurePage } from "./pages/AdventurePage";
+import { WorldPage } from "./pages/WorldPage";
+import { RoomPage } from "./pages/RoomPage";
+import { MissionPage } from "./pages/MissionPage";
 import { VoiceSettingsPage } from "./pages/VoiceSettingsPage";
 import { AccountPage } from "./pages/AccountPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -51,6 +55,10 @@ export default function App() {
           <Route path="/badges" element={<BadgesPage />} />
           <Route path="/trophees" element={<TrophiesPage />} />
           <Route path="/defi-du-jour" element={<DailyChallengePage />} />
+          <Route path="/aventure" element={<AdventurePage />} />
+          <Route path="/aventure/missions/:missionSessionId" element={<MissionPage />} />
+          <Route path="/aventure/:worldCode" element={<WorldPage />} />
+          <Route path="/aventure/:worldCode/:roomCode" element={<RoomPage />} />
           <Route path="/voix" element={<VoiceSettingsPage />} />
           <Route path="/mon-compte" element={<AccountPage />} />
 

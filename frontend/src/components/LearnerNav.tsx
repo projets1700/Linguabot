@@ -17,6 +17,10 @@ const NAV: { to: string; label: string; matches?: string[] }[] = [
   { to: "/catalog", label: "Scenarios" },
   { to: "/quiz", label: "Vocabulary Test" },
   { to: "/defi-du-jour", label: "Challenges" },
+  // V2 pilot (LinguaBot_V2_Conception.md) - World/Room/Mission navigation
+  // lives under nested dynamic routes (/aventure/:worldCode/:roomCode/...),
+  // so this stays active on any of them, not just the exact /aventure path.
+  { to: "/aventure", label: "Adventure" },
   { to: "/trophees", label: "Progress", matches: ["/trophees", "/badges"] },
   { to: "/mon-compte", label: "Profile" },
 ];
@@ -36,7 +40,10 @@ export function LearnerNav() {
           LinguaBot
         </Link>
         {items.map((item) => {
-          const active = (item.matches ?? [item.to]).includes(location.pathname);
+          const candidates = item.matches ?? [item.to];
+          const active = candidates.some(
+            (path) => location.pathname === path || location.pathname.startsWith(`${path}/`),
+          );
           return (
             <Link
               key={item.to}
