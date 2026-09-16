@@ -227,12 +227,12 @@ export function DailyChallengePage() {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
         <Card className="w-full max-w-md text-center">
-          <h1 className="text-3xl font-bold mb-4">Défi relevé ! 🎉</h1>
+          <h1 className="text-3xl font-bold mb-4">Challenge complete! 🎉</h1>
           {result && (
             <RewardBanner badges={result.newBadges} trophies={result.newTrophies} levelUp={result.levelUp} />
           )}
           <p className="text-slate-300 mb-6">
-            +{result?.xpEarned ?? challenge.xpReward} XP (bonus x2 défi du jour)
+            +{result?.xpEarned ?? challenge.xpReward} XP (daily challenge x2 bonus)
           </p>
           <Button to="/dashboard">Dashboard</Button>
         </Card>
@@ -248,15 +248,15 @@ export function DailyChallengePage() {
   // and sendMessage() already track.
   const turnStatusLabel =
     sending || avatarState === "thinking"
-      ? "Analyse de ta réponse..."
+      ? "Analyzing your answer..."
       : avatarState === "speaking"
-        ? "LinguaBot parle..."
-        : "À toi de parler";
+        ? "LinguaBot is speaking..."
+        : "Your turn to speak";
 
   // Same idea, for the pre-launch "are you ready?" exchange - only shown
   // while LinguaBot is actually talking; nothing is displayed while it's
   // just listening, so the mic itself is the only cue (no "say yes" nudge).
-  const missionReadyStatusLabel = avatarState === "speaking" ? "LinguaBot parle..." : null;
+  const missionReadyStatusLabel = avatarState === "speaking" ? "LinguaBot is speaking..." : null;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-6 sm:p-8">
@@ -267,7 +267,7 @@ export function DailyChallengePage() {
             not just shrink in place). */}
         {!chatStarted ? (
           <div className="flex items-center justify-between mb-2">
-            <p className="text-amber-400 text-xs font-bold uppercase tracking-wide">🔥 Défi du jour</p>
+            <p className="text-amber-400 text-xs font-bold uppercase tracking-wide">🔥 Daily Challenge</p>
             <span className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full px-3 py-1 text-xs font-bold">
               +{challenge.xpReward} XP
             </span>
@@ -277,7 +277,7 @@ export function DailyChallengePage() {
             <span aria-hidden="true">🔥</span>
             <span className="text-white font-semibold">{challenge.title}</span>
             <span aria-hidden="true">·</span>
-            <span>En cours</span>
+            <span>In progress</span>
           </div>
         )}
 
@@ -335,7 +335,7 @@ export function DailyChallengePage() {
                 duplicate of what was just heard, not new information. */}
             <div className="text-center mt-4 mb-8">
               <h1 className="text-3xl font-bold">{challenge.title}</h1>
-              <p className="text-slate-400 text-sm mt-1">Une mini-mission pour pratiquer ton anglais.</p>
+              <p className="text-slate-400 text-sm mt-1">A mini-mission to practice your English.</p>
             </div>
 
             {/* Manual fallback, not the default action - see
@@ -343,7 +343,7 @@ export function DailyChallengePage() {
                 silence since LinguaBot's last question). */}
             {showFallbackButton && (
               <div className="flex justify-center">
-                <Button onClick={handleStart} size="lg">▶ Relever le défi</Button>
+                <Button onClick={handleStart} size="lg">▶ Take the challenge</Button>
               </div>
             )}
           </>
@@ -382,7 +382,7 @@ export function DailyChallengePage() {
             ) : (
               <div className="mb-4">
                 <Button onClick={() => setHelpUnlocked(true)} variant="secondary" size="sm">
-                  Besoin d'aide ?
+                  Need help?
                 </Button>
               </div>
             )}
@@ -405,7 +405,7 @@ export function DailyChallengePage() {
               disabled={finishing || messages.filter((m) => m.role === "user").length === 0}
               variant="success"
             >
-              {finishing ? "..." : "Terminer le défi"}
+              {finishing ? "..." : "Finish the challenge"}
             </Button>
           </>
         )}

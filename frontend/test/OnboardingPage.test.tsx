@@ -276,7 +276,7 @@ describe("OnboardingPage", () => {
 
     expect(navigateMock).not.toHaveBeenCalled();
     expect(fetchMeMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
   it("retries and navigates once the retry succeeds", async () => {
@@ -294,11 +294,11 @@ describe("OnboardingPage", () => {
     await act(async () => {
       voiceInputState.current?.onResult("yes");
     });
-    await waitFor(() => expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument());
 
     apiPostSpy.mockResolvedValueOnce({ data: { onboardingCompleted: true } });
     await act(async () => {
-      screen.getByRole("button", { name: "Réessayer" }).click();
+      screen.getByRole("button", { name: "Try again" }).click();
     });
 
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith("/placement-test"));

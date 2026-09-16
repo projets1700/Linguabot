@@ -13,12 +13,12 @@ describe("PasswordInput", () => {
   it("reveals the value as plain text on toggle, then masks it again", async () => {
     render(<PasswordInput value="secret" onChange={vi.fn()} />);
 
-    const toggle = screen.getByRole("button", { name: "Afficher le mot de passe" });
+    const toggle = screen.getByRole("button", { name: "Show password" });
     await userEvent.click(toggle);
 
     expect(screen.getByDisplayValue("secret")).toHaveAttribute("type", "text");
 
-    await userEvent.click(screen.getByRole("button", { name: "Masquer le mot de passe" }));
+    await userEvent.click(screen.getByRole("button", { name: "Hide password" }));
 
     expect(screen.getByDisplayValue("secret")).toHaveAttribute("type", "password");
   });

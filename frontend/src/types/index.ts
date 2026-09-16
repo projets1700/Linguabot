@@ -95,7 +95,7 @@ export type SessionMessage = {
 export type CecrlProfile = {
   transcriptMode: "auto" | "available" | "onDemand";
   translationMode: "visible" | "onDemand" | "rare";
-  // How "Je suis bloqué ?" behaves: fullAnswer (A0/A1) gives the complete
+  // How "I'm stuck?" behaves: fullAnswer (A0/A1) gives the complete
   // example sentence directly, for the learner to repeat aloud; keywords
   // (A2/B1) gives only key words, nothing more; progressive (B2) keeps the
   // original 3-tier ladder (keywords -> sentence starter -> full example).

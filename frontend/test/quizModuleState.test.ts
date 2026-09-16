@@ -6,7 +6,7 @@ function makeModule(overrides: Partial<QuizModule> = {}): QuizModule {
   return {
     id: 1,
     code: "M0-1",
-    title: "Salutations",
+    title: "Greetings",
     questionCount: 10,
     passed: false,
     attempted: false,

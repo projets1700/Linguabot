@@ -21,9 +21,9 @@ type Props = {
 const MAX_HINT_TIER = 3;
 
 const HINT_TIER_LABEL: Record<number, string> = {
-  1: "💡 Mots-clés",
-  2: "✏️ Amorce de phrase",
-  3: "📝 Réponse possible",
+  1: "💡 Keywords",
+  2: "✏️ Sentence starter",
+  3: "📝 Sample answer",
 };
 
 // fullAnswer/keywords skip straight to a single, fixed tier (the complete
@@ -92,12 +92,12 @@ export function HelpPanel({
   }
 
   const hintButtonLabel = hintLoading
-    ? "Aide..."
+    ? "Help..."
     : hints.length === 0
-      ? "Je suis bloqué ?"
+      ? "I'm stuck?"
       : hints.length < maxHints
-        ? "Encore un peu d'aide"
-        : "Aide maximale atteinte";
+        ? "A bit more help"
+        : "Maximum help reached";
 
   return (
     <div className="flex flex-col gap-3 mb-4">
@@ -109,7 +109,7 @@ export function HelpPanel({
             variant={profile.translationMode === "visible" ? "primary" : "secondary"}
             size="sm"
           >
-            {translating ? "Traduction..." : "Traduire"}
+            {translating ? "Translating..." : "Translate"}
           </Button>
         )}
         <Button
@@ -125,19 +125,19 @@ export function HelpPanel({
       {translation && (
         <p className="text-sm text-slate-300 bg-slate-900 rounded-lg px-4 py-2">🇫🇷 {translation}</p>
       )}
-      {translateError && <ErrorBanner message="Traduction indisponible. Réessaie." onRetry={handleTranslate} />}
+      {translateError && <ErrorBanner message="Translation unavailable. Try again." onRetry={handleTranslate} />}
 
       {hints.length > 0 && (
         <div className="flex flex-col gap-2">
           {hints.map((hint) => (
             <p key={hint.tier} className="text-sm text-slate-300 bg-slate-900 rounded-lg px-4 py-2">
-              <span className="text-slate-500">{HINT_TIER_LABEL[hint.tier] ?? "Aide"} : </span>
+              <span className="text-slate-500">{HINT_TIER_LABEL[hint.tier] ?? "Help"} : </span>
               {hint.content}
             </p>
           ))}
         </div>
       )}
-      {hintError && <ErrorBanner message="Aide indisponible. Réessaie." onRetry={handleNextHint} />}
+      {hintError && <ErrorBanner message="Help unavailable. Try again." onRetry={handleNextHint} />}
     </div>
   );
 }

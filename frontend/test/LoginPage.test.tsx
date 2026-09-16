@@ -35,8 +35,8 @@ describe("LoginPage", () => {
     renderLoginPage();
 
     await user.type(screen.getByLabelText("Email"), "adam@test.fr");
-    await user.type(screen.getByLabelText("Mot de passe"), "Password123!");
-    await user.click(screen.getByRole("button", { name: "Se connecter" }));
+    await user.type(screen.getByLabelText("Password"), "Password123!");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
 
     expect(await screen.findByText("Dashboard page")).toBeInTheDocument();
     expect(api.post).toHaveBeenCalledWith("/auth/login", {
@@ -52,10 +52,10 @@ describe("LoginPage", () => {
     renderLoginPage();
 
     await user.type(screen.getByLabelText("Email"), "adam@test.fr");
-    await user.type(screen.getByLabelText("Mot de passe"), "wrong");
-    await user.click(screen.getByRole("button", { name: "Se connecter" }));
+    await user.type(screen.getByLabelText("Password"), "wrong");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
 
-    expect(await screen.findByText("Email ou mot de passe incorrect.")).toBeInTheDocument();
+    expect(await screen.findByText("Incorrect email or password.")).toBeInTheDocument();
     expect(screen.queryByText("Dashboard page")).not.toBeInTheDocument();
   });
 });

@@ -55,7 +55,7 @@ describe("AccountPage", () => {
     const user = userEvent.setup();
 
     renderAccountPage();
-    await user.click(screen.getByRole("button", { name: "Télécharger mes données" }));
+    await user.click(screen.getByRole("button", { name: "Download my data" }));
 
     expect(api.get).toHaveBeenCalledWith("/me/export");
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
@@ -66,28 +66,28 @@ describe("AccountPage", () => {
     const user = userEvent.setup();
 
     renderAccountPage();
-    await user.click(screen.getByRole("button", { name: "Télécharger mes données" }));
+    await user.click(screen.getByRole("button", { name: "Download my data" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Échec du téléchargement.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Download failed.");
   });
 
   it("requires typing a password before the delete confirmation button is enabled", async () => {
     const user = userEvent.setup();
     renderAccountPage();
 
-    await user.click(screen.getByRole("button", { name: "Supprimer mon compte" }));
+    await user.click(screen.getByRole("button", { name: "Delete my account" }));
 
-    expect(screen.getByRole("button", { name: "Confirmer la suppression" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Confirm deletion" })).toBeDisabled();
   });
 
   it("logs out and redirects to /login with a confirmation on a correct password", async () => {
-    vi.mocked(api.delete).mockResolvedValueOnce({ data: { message: "Compte supprimé." } });
+    vi.mocked(api.delete).mockResolvedValueOnce({ data: { message: "Account deleted." } });
     const user = userEvent.setup();
 
     renderAccountPage();
-    await user.click(screen.getByRole("button", { name: "Supprimer mon compte" }));
-    await user.type(screen.getByLabelText("Confirme avec ton mot de passe"), "Password123!");
-    await user.click(screen.getByRole("button", { name: "Confirmer la suppression" }));
+    await user.click(screen.getByRole("button", { name: "Delete my account" }));
+    await user.type(screen.getByLabelText("Confirm with your password"), "Password123!");
+    await user.click(screen.getByRole("button", { name: "Confirm deletion" }));
 
     expect(await screen.findByText("Login page")).toBeInTheDocument();
     expect(api.delete).toHaveBeenCalledWith("/me", { data: { password: "Password123!" } });
@@ -99,11 +99,11 @@ describe("AccountPage", () => {
     const user = userEvent.setup();
 
     renderAccountPage();
-    await user.click(screen.getByRole("button", { name: "Supprimer mon compte" }));
-    await user.type(screen.getByLabelText("Confirme avec ton mot de passe"), "wrong-password");
-    await user.click(screen.getByRole("button", { name: "Confirmer la suppression" }));
+    await user.click(screen.getByRole("button", { name: "Delete my account" }));
+    await user.type(screen.getByLabelText("Confirm with your password"), "wrong-password");
+    await user.click(screen.getByRole("button", { name: "Confirm deletion" }));
 
-    expect(await screen.findByText("Mot de passe incorrect.")).toBeInTheDocument();
+    expect(await screen.findByText("Incorrect password.")).toBeInTheDocument();
     expect(screen.queryByText("Login page")).not.toBeInTheDocument();
     expect(useAuthStore.getState().token).toBe("jwt-123");
   });
@@ -112,11 +112,11 @@ describe("AccountPage", () => {
     const user = userEvent.setup();
     renderAccountPage();
 
-    await user.click(screen.getByRole("button", { name: "Supprimer mon compte" }));
-    await user.type(screen.getByLabelText("Confirme avec ton mot de passe"), "something");
-    await user.click(screen.getByRole("button", { name: "Annuler" }));
+    await user.click(screen.getByRole("button", { name: "Delete my account" }));
+    await user.type(screen.getByLabelText("Confirm with your password"), "something");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(screen.getByRole("button", { name: "Supprimer mon compte" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Confirme avec ton mot de passe")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete my account" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Confirm with your password")).not.toBeInTheDocument();
   });
 });

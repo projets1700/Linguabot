@@ -91,8 +91,8 @@ function baseUser(cecrlProfile: CecrlProfile): Me {
 }
 
 const QUESTIONS = [
-  { id: 101, questionText: 'Comment dit-on "bonjour" ?' },
-  { id: 102, questionText: 'Comment dit-on "merci" ?' },
+  { id: 101, questionText: "What do you say when you meet someone?" },
+  { id: 102, questionText: "What do you say when someone helps you?" },
 ];
 
 function mockQuizApi() {
@@ -173,7 +173,7 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
 
     await waitFor(() => expect(apiGetSpy).toHaveBeenCalledWith("/quiz/questions/101/answer"));
     await waitFor(() => expect(latestUtterance().text).toBe("You can say: hello."));
-    expect(screen.queryByRole("button", { name: /Afficher la réponse/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show the answer/ })).not.toBeInTheDocument();
   });
 
   it("does not reveal the answer on the first block for a B1/B2 profile, and shows a reveal button instead", async () => {
@@ -189,7 +189,7 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
     });
 
     expect(apiGetSpy).not.toHaveBeenCalledWith("/quiz/questions/101/answer");
-    expect(screen.getByRole("button", { name: /Afficher la réponse/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Show the answer/ })).toBeInTheDocument();
   });
 
   it("reveals the answer once the B1/B2 reveal button is clicked, and hides it again for that question", async () => {
@@ -206,7 +206,7 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
     await endLatestSpeech();
 
     await act(async () => {
-      screen.getByRole("button", { name: /Afficher la réponse/ }).click();
+      screen.getByRole("button", { name: /Show the answer/ }).click();
     });
 
     await waitFor(() => expect(apiGetSpy).toHaveBeenCalledWith("/quiz/questions/101/answer"));
@@ -215,7 +215,7 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
     // above already records it - see QuizService::recordAnswerRevealed) -
     // the reveal button itself just shouldn't offer to reveal the same
     // question twice.
-    expect(screen.queryByRole("button", { name: /Afficher la réponse/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show the answer/ })).not.toBeInTheDocument();
 
     await endLatestSpeech();
     await act(async () => {
@@ -245,7 +245,7 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
     await act(async () => {
       await voiceInputState.current?.onResult("I don't know");
     });
-    expect(screen.getByRole("button", { name: /Afficher la réponse/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Show the answer/ })).toBeInTheDocument();
 
     await endLatestSpeech();
     await act(async () => {
@@ -253,7 +253,7 @@ describe("QuizModulePage - CECRL help policy (LOT 3)", () => {
     });
     await flushMicrotasks();
 
-    expect(screen.queryByRole("button", { name: /Afficher la réponse/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show the answer/ })).not.toBeInTheDocument();
   });
 });
 
@@ -325,7 +325,7 @@ describe("QuizModulePage - retry without re-answering on submit failure (LOT 1)"
     );
 
     await act(async () => {
-      screen.getByRole("button", { name: "Réessayer" }).click();
+      screen.getByRole("button", { name: "Try again" }).click();
     });
 
     await waitFor(() =>
@@ -334,7 +334,7 @@ describe("QuizModulePage - retry without re-answering on submit failure (LOT 1)"
         expect.objectContaining({ answers: expectedAnswers }),
       ),
     );
-    await waitFor(() => expect(screen.getByText("Module validé ✅")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Module passed ✅")).toBeInTheDocument());
   });
 });
 

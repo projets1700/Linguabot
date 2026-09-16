@@ -10,12 +10,12 @@ export type ApiError = {
 };
 
 const MESSAGE_FOR_KIND: Record<ApiErrorKind, string> = {
-  offline: "Pas de connexion internet. Vérifie ta connexion et réessaie.",
-  timeout: "La requête a mis trop de temps à répondre. Réessaie.",
-  unauthorized: "Ta session a expiré. Reconnecte-toi.",
-  rate_limit: "Trop de requêtes pour le moment. Patiente quelques secondes puis réessaie.",
-  server: "Le service est momentanément indisponible. Réessaie dans un instant.",
-  unknown: "Une erreur est survenue. Réessaie.",
+  offline: "No internet connection. Check your connection and try again.",
+  timeout: "The request took too long to respond. Try again.",
+  unauthorized: "Your session has expired. Log in again.",
+  rate_limit: "Too many requests right now. Wait a few seconds and try again.",
+  server: "The service is temporarily unavailable. Try again in a moment.",
+  unknown: "Something went wrong. Try again.",
 };
 
 const RETRYABLE_KINDS: readonly ApiErrorKind[] = ["offline", "timeout", "server", "rate_limit"];

@@ -11,9 +11,9 @@ type Props = {
 };
 
 const CTA_LABEL: Record<ReturnType<typeof quizModuleState>, string> = {
-  "not-started": "Commencer →",
-  retry: "Réessayer →",
-  passed: "Rejouer",
+  "not-started": "Start →",
+  retry: "Retry →",
+  passed: "Play again",
 };
 
 export function QuizModuleCard({ module, number, passThreshold }: Props) {
@@ -41,21 +41,21 @@ export function QuizModuleCard({ module, number, passThreshold }: Props) {
       <div className="text-sm">
         {state === "not-started" && (
           <p className="text-slate-400 flex items-center gap-1.5">
-            <span aria-hidden="true">●</span> À commencer
+            <span aria-hidden="true">●</span> To start
           </p>
         )}
 
         {state === "retry" && module.bestScore !== null && (
           <>
-            <p className="text-amber-400 font-semibold uppercase text-xs tracking-wide">À retenter</p>
+            <p className="text-amber-400 font-semibold uppercase text-xs tracking-wide">To retry</p>
             <p className="text-slate-300 mt-1">
-              Score : {module.bestScore}/{module.questionCount}
+              Score: {module.bestScore}/{module.questionCount}
             </p>
             {(() => {
               const remaining = remainingCorrectAnswers(passThreshold, module.bestScore ?? 0);
               return remaining > 0 ? (
                 <p className="text-slate-500 text-xs mt-0.5">
-                  Encore {remaining} bonne{remaining > 1 ? "s" : ""} réponse{remaining > 1 ? "s" : ""} pour valider
+                  {remaining} more correct answer{remaining > 1 ? "s" : ""} needed to pass
                 </p>
               ) : null;
             })()}
@@ -65,11 +65,11 @@ export function QuizModuleCard({ module, number, passThreshold }: Props) {
         {state === "passed" && (
           <>
             <p className="text-green-400 font-semibold flex items-center gap-1.5">
-              <span aria-hidden="true">✓</span> Validé
+              <span aria-hidden="true">✓</span> Passed
             </p>
             {module.bestScore !== null && (
               <p className="text-slate-300 mt-1">
-                Score : {module.bestScore}/{module.questionCount}
+                Score: {module.bestScore}/{module.questionCount}
               </p>
             )}
           </>
@@ -78,7 +78,7 @@ export function QuizModuleCard({ module, number, passThreshold }: Props) {
 
       <Link
         to={`/quiz/${module.id}`}
-        aria-label={`${CTA_LABEL[state].replace(" →", "")} le module ${module.title}`}
+        aria-label={`${CTA_LABEL[state].replace(" →", "")} module ${module.title}`}
         className="mt-auto inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium"
       >
         {CTA_LABEL[state]}

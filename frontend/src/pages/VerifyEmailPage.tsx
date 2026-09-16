@@ -42,25 +42,25 @@ export function VerifyEmailPage() {
       <div className="bg-slate-900 p-8 rounded-xl w-full max-w-sm flex flex-col gap-4 text-center">
         {status === "pending" && (
           <>
-            <h1 className="text-2xl font-bold">Activation en cours...</h1>
-            <p className="text-slate-300">Merci de patienter.</p>
+            <h1 className="text-2xl font-bold">Activating...</h1>
+            <p className="text-slate-300">Please wait.</p>
           </>
         )}
 
         {status === "success" && (
           <>
-            <h1 className="text-2xl font-bold">Compte activé !</h1>
-            <p className="text-slate-300">Redirection vers ton tableau de bord...</p>
+            <h1 className="text-2xl font-bold">Account activated!</h1>
+            <p className="text-slate-300">Redirecting to your dashboard...</p>
           </>
         )}
 
         {status === "error" && (
           <>
-            <h1 className="text-2xl font-bold">Lien invalide</h1>
-            <p className="text-red-400">{error ?? "Ce lien de vérification est invalide."}</p>
+            <h1 className="text-2xl font-bold">Invalid link</h1>
+            <p className="text-red-400">{error ?? "This verification link is invalid."}</p>
             <p className="text-sm text-slate-400">
               <Link to="/register" className="text-blue-400">
-                Recommencer l'inscription
+                Sign up again
               </Link>
             </p>
           </>

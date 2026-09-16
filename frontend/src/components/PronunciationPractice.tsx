@@ -21,9 +21,9 @@ type Props = {
 };
 
 const MATCH_FEEDBACK: Record<RecognitionMatch, { icon: string; label: string }> = {
-  matched: { icon: "✅", label: "Phrase reconnue" },
-  close: { icon: "🟡", label: "Presque, essaie encore" },
-  retry: { icon: "🔴", label: "Essaie encore" },
+  matched: { icon: "✅", label: "Phrase recognized" },
+  close: { icon: "🟡", label: "Almost, try again" },
+  retry: { icon: "🔴", label: "Try again" },
 };
 
 /**
@@ -72,7 +72,7 @@ export function PronunciationPractice({ targetText, prominence = "available", on
         variant={prominence === "auto" ? "primary" : "secondary"}
         size="sm"
       >
-        🎙️ M'entraîner à prononcer cette phrase
+        🎙️ Practice pronouncing this phrase
       </Button>
     );
   }
@@ -83,12 +83,12 @@ export function PronunciationPractice({ targetText, prominence = "available", on
     <div className="bg-slate-900 rounded-xl p-4 flex flex-col gap-3">
       <div className="flex justify-between items-start gap-2">
         <p className="text-sm text-slate-300">
-          Texte à répéter : <span className="italic">« {targetText} »</span>
+          Text to repeat: <span className="italic">"{targetText}"</span>
         </p>
         <button
           type="button"
           onClick={handleClose}
-          aria-label="Fermer l'entraînement de prononciation"
+          aria-label="Close pronunciation practice"
           className="text-slate-500 hover:text-slate-300 text-sm"
         >
           ✕
@@ -101,35 +101,35 @@ export function PronunciationPractice({ targetText, prominence = "available", on
           disabled={speaking}
           variant="secondary"
           size="sm"
-          aria-label="Écouter la phrase à répéter"
+          aria-label="Listen to the phrase to repeat"
         >
-          {speaking ? "🔊 Lecture..." : "🔊 Écouter"}
+          {speaking ? "🔊 Playing..." : "🔊 Listen"}
         </Button>
         <Button
           onClick={handleRetry}
           disabled={listening}
           variant="primary"
           size="sm"
-          aria-label="Réessayer - le micro va s'activer"
+          aria-label="Try again - the microphone will activate"
         >
-          {listening ? "🎙️ Écoute..." : "🎙️ Réessayer"}
+          {listening ? "🎙️ Listening..." : "🎙️ Try again"}
         </Button>
       </div>
 
       <p role="status" aria-live="polite" className="text-sm text-slate-400 min-h-[1.25rem]">
-        {listening && "Je t'écoute..."}
+        {listening && "Listening..."}
       </p>
 
       {showMicError && <ErrorBanner message={errorMessage ?? ""} />}
 
       {!showMicError && error === "no-speech" && (
-        <p className="text-sm text-slate-300">🔴 Essaie encore — je n'ai rien entendu.</p>
+        <p className="text-sm text-slate-300">🔴 Try again — I didn't hear anything.</p>
       )}
 
       {recognizedText && match && (
         <div className="flex flex-col gap-1">
           <p className="text-sm text-slate-300">
-            J'ai entendu :<br />« {recognizedText} »
+            I heard:<br />"{recognizedText}"
           </p>
           <p className="text-sm font-semibold">
             {MATCH_FEEDBACK[match].icon} {MATCH_FEEDBACK[match].label}

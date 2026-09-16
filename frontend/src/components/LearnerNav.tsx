@@ -13,12 +13,12 @@ import { useAuthStore } from "../stores/authStore";
 // dashboard's own quick-access cards) - it links to /trophees, and matches
 // active on either page so a learner on /badges still sees where they are.
 const NAV: { to: string; label: string; matches?: string[] }[] = [
-  { to: "/dashboard", label: "Accueil" },
-  { to: "/catalog", label: "Scénarios" },
-  { to: "/quiz", label: "Test de vocabulaire" },
-  { to: "/defi-du-jour", label: "Défis" },
-  { to: "/trophees", label: "Progression", matches: ["/trophees", "/badges"] },
-  { to: "/mon-compte", label: "Profil" },
+  { to: "/dashboard", label: "Home" },
+  { to: "/catalog", label: "Scenarios" },
+  { to: "/quiz", label: "Vocabulary Test" },
+  { to: "/defi-du-jour", label: "Challenges" },
+  { to: "/trophees", label: "Progress", matches: ["/trophees", "/badges"] },
+  { to: "/mon-compte", label: "Profile" },
 ];
 
 export function LearnerNav() {
@@ -28,7 +28,7 @@ export function LearnerNav() {
 
   return (
     <nav
-      aria-label="Navigation principale"
+      aria-label="Main navigation"
       className="bg-slate-900 border-b border-slate-800 px-4 sm:px-8 overflow-x-auto"
     >
       <div className="flex items-center gap-1 py-2 whitespace-nowrap">

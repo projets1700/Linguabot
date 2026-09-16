@@ -8,14 +8,14 @@ import { Card } from "./ui/Card";
 import { ErrorBanner } from "./ui/ErrorBanner";
 
 const PERIODS: { days: LearnerStats["days"]; label: string }[] = [
-  { days: 7, label: "7 jours" },
-  { days: 30, label: "30 jours" },
-  { days: 365, label: "1 an" },
+  { days: 7, label: "7 days" },
+  { days: 30, label: "30 days" },
+  { days: 365, label: "1 year" },
 ];
 
 const CATEGORY_LABEL: Record<LearnerStats["categoryBreakdown"][number]["category"], string> = {
-  quotidien: "Quotidien",
-  thematique: "Thématique",
+  quotidien: "Everyday",
+  thematique: "Thematic",
 };
 
 function formatPracticeTime(seconds: number): string {
@@ -52,7 +52,7 @@ export function LearnerStatsSection() {
   return (
     <Card variant="stat" className="border border-blue-500/15">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <p className="text-blue-400 text-xs font-bold uppercase">📈 Statistiques détaillées</p>
+        <p className="text-blue-400 text-xs font-bold uppercase">📈 Detailed statistics</p>
         <div className="flex gap-2">
           {PERIODS.map((period) => (
             <Button
@@ -71,21 +71,21 @@ export function LearnerStatsSection() {
         <ErrorBanner message={loadError.message} onRetry={loadError.retryable ? load : undefined} />
       )}
 
-      {!loadError && !stats && <p className="text-slate-400 text-sm">Chargement des statistiques...</p>}
+      {!loadError && !stats && <p className="text-slate-400 text-sm">Loading statistics...</p>}
 
       {stats && (
         <>
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
             <StatTile label="Sessions" value={stats.sessionsCount} />
-            <StatTile label="Temps de pratique" value={formatPracticeTime(stats.practiceSeconds)} />
-            <StatTile label="Tests de vocabulaire réussis" value={stats.quizzesCompleted} />
-            <StatTile label="Défis réalisés" value={stats.challengesCompleted} />
-            <StatTile label="XP gagnés" value={stats.xpEarned} highlight />
+            <StatTile label="Practice time" value={formatPracticeTime(stats.practiceSeconds)} />
+            <StatTile label="Vocabulary tests passed" value={stats.quizzesCompleted} />
+            <StatTile label="Challenges completed" value={stats.challengesCompleted} />
+            <StatTile label="XP earned" value={stats.xpEarned} highlight />
           </div>
 
           {stats.categoryBreakdown.length > 0 && (
             <div className="mb-5">
-              <p className="text-slate-400 text-xs uppercase font-bold mb-2">Répartition par catégorie</p>
+              <p className="text-slate-400 text-xs uppercase font-bold mb-2">Breakdown by category</p>
               <div className="flex flex-col gap-2">
                 {stats.categoryBreakdown.map((row) => (
                   <div key={row.category} className="flex items-center gap-3">
@@ -105,7 +105,7 @@ export function LearnerStatsSection() {
 
           {stats.history.length > 0 && (
             <div>
-              <p className="text-slate-400 text-xs uppercase font-bold mb-2">Évolution de l'XP gagné</p>
+              <p className="text-slate-400 text-xs uppercase font-bold mb-2">XP earned over time</p>
               <div className="h-40" data-testid="stats-history-chart">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={stats.history}>

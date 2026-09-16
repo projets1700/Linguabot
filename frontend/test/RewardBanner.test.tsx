@@ -25,7 +25,7 @@ describe("RewardBanner", () => {
   it("renders the level-up banner when levelUp is provided", () => {
     render(<RewardBanner badges={[]} trophies={[]} levelUp={{ code: "A2", name: "Explorateur" }} />);
 
-    expect(screen.getByText(/Niveau A2 débloqué/)).toBeInTheDocument();
+    expect(screen.getByText(/Level A2 unlocked/)).toBeInTheDocument();
     expect(screen.getByText(/Explorateur/)).toBeInTheDocument();
   });
 
@@ -48,7 +48,7 @@ describe("RewardBanner", () => {
       <RewardBanner badges={[{ code: "BADGE_FIRST_STEP", name: "Premier pas", icon: "🌟" }]} trophies={[]} />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Fermer" }));
+    await user.click(screen.getByRole("button", { name: "Close" }));
 
     expect(container).toBeEmptyDOMElement();
   });

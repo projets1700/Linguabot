@@ -8,8 +8,8 @@ import { useVoiceSettingsStore } from "../stores/voiceSettingsStore";
 const PREVIEW_TEXT = "Hello! I'm your English conversation partner. Nice to meet you!";
 
 const CATEGORY_LABELS: Record<keyof GroupedVoices, string> = {
-  male: "Voix homme",
-  female: "Voix femme",
+  male: "Male voice",
+  female: "Female voice",
 };
 
 export function VoiceSettingsPage() {
@@ -58,25 +58,24 @@ export function VoiceSettingsPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">🔊 Voix de l'IA</h1>
+        <h1 className="text-3xl font-bold">🔊 AI Voice</h1>
         <Link to="/dashboard" className="text-sm text-slate-400 hover:text-white">
-          Retour au dashboard
+          Back to dashboard
         </Link>
       </div>
 
       <p className="text-slate-400 mb-8 max-w-2xl">
-        Choisis la voix utilisée pendant les sessions, le défi du jour, le test de niveau et le
-        test de vocabulaire. Les voix proposées correspondent à l'avatar choisi à l'inscription (
-        {CATEGORY_LABELS[avatarType].toLowerCase()}). Le texte du test de vocabulaire reste en français, mais
-        est lu avec cette voix anglaise (aucune voix française fiable n'est disponible).
+        Choose the voice used during sessions, the daily challenge, the placement test and the
+        vocabulary test. The voices on offer match the avatar chosen at sign-up (
+        {CATEGORY_LABELS[avatarType].toLowerCase()}).
       </p>
 
-      {loading && <p className="text-slate-400">Chargement des voix disponibles...</p>}
+      {loading && <p className="text-slate-400">Loading available voices...</p>}
 
       {!loading && !hasAnyVoice && (
         <p className="text-slate-400">
-          Aucune voix anglaise de ce type détectée sur cet appareil. L'IA utilisera la voix par
-          défaut du navigateur.
+          No English voice of this type detected on this device. The AI will use the browser's
+          default voice.
         </p>
       )}
 
@@ -102,7 +101,7 @@ export function VoiceSettingsPage() {
                       disabled={previewing === voice.voiceURI}
                       className="text-xs bg-slate-700 px-2 py-1 rounded hover:bg-slate-600 disabled:opacity-50"
                     >
-                      {previewing === voice.voiceURI ? "..." : "Écouter"}
+                      {previewing === voice.voiceURI ? "..." : "Listen"}
                     </button>
                     <button
                       type="button"
@@ -112,7 +111,7 @@ export function VoiceSettingsPage() {
                         isSelected ? "bg-blue-600 text-white" : "bg-slate-700 hover:bg-slate-600"
                       }`}
                     >
-                      {isSelected ? "✓ Sélectionné" : "Choisir"}
+                      {isSelected ? "✓ Selected" : "Choose"}
                     </button>
                   </div>
                 );

@@ -12,12 +12,7 @@ import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { useConversationSession } from "../hooks/useConversationSession";
 import { normalizeApiError, type ApiError } from "../lib/apiError";
 import { detectLearnerBlock } from "../lib/detectLearnerBlock";
-import {
-  buildBlockedHelpMessage,
-  buildHelpAvailableMessage,
-  buildSpokenQuizQuestion,
-  isQuizHiddenForLevel,
-} from "../lib/quizSpeech";
+import { buildBlockedHelpMessage, buildHelpAvailableMessage, isQuizHiddenForLevel } from "../lib/quizSpeech";
 import { useAuthStore } from "../stores/authStore";
 import type { QuizAttemptResult, QuizQuestion } from "../types";
 
@@ -93,17 +88,11 @@ export function QuizModulePage() {
 
   useEffect(() => {
     if (questions.length > 0) {
-      // The A0 quiz's prompts are stored in French ("Comment dit-on
-      // "X" ?" - QuizFixtures) since it's testing basic French-to-English
-      // vocabulary for absolute beginners, and the on-screen text (revealed
-      // on request below) stays exactly that. But reading the French
-      // sentence aloud with an English voice - a local French voice turned
-      // out unreliable, cutting audio short mid-sentence with no way to
-      // detect that from the Web Speech API - produced hard-to-understand
-      // "franglish". Spoken aloud, the question is translated to its
-      // English wrapper instead ("How do you say X?"), keeping only the
-      // quoted French word itself - the vocabulary being tested - unchanged.
-      speakAssistantLine(buildSpokenQuizQuestion(questions[currentIndex].questionText));
+      // The quiz question is an all-English clue (QuizFixtures, e.g. "What
+      // color is blood?") worded so the answer is never spoken by the clue
+      // itself - spoken aloud as-is, same as the on-screen text revealed on
+      // request below.
+      speakAssistantLine(questions[currentIndex].questionText);
       setShowQuestionText(false);
       setHelpUnlocked(false);
       setHelpError(null);
@@ -210,7 +199,7 @@ export function QuizModulePage() {
     return (
       <main className="min-h-screen bg-slate-950 text-white p-8 flex items-center justify-center">
         <ErrorBanner
-          message={loadError?.message ?? "Impossible de charger les questions de ce module."}
+          message={loadError?.message ?? "Unable to load this module's questions."}
           onRetry={!loadError || loadError.retryable ? () => setRetryCount((count) => count + 1) : undefined}
         />
       </main>
@@ -223,14 +212,14 @@ export function QuizModulePage() {
         <Card className="w-full max-w-md text-center">
           <RewardBanner badges={result.newBadges} trophies={result.newTrophies} levelUp={result.levelUp} />
           <h1 className="text-3xl font-bold mb-2">
-            {result.passed ? "Module validé ✅" : "Module non validé"}
+            {result.passed ? "Module passed ✅" : "Module not passed"}
           </h1>
           <p className="text-slate-300 mb-4">
-            Score : {result.score}/{questions.length}
+            Score: {result.score}/{questions.length}
           </p>
           <p className="text-slate-300 mb-6">+{result.xpEarned} XP</p>
           <div className="flex gap-4 justify-center">
-            <Button to="/quiz">Retour aux modules</Button>
+            <Button to="/quiz">Back to modules</Button>
             <Button to="/dashboard" variant="secondary">Dashboard</Button>
           </div>
         </Card>
@@ -263,7 +252,7 @@ export function QuizModulePage() {
         {showQuestionText ? (
           <h1 className="text-2xl font-bold">{question.questionText}</h1>
         ) : (
-          <p className="text-slate-500 text-sm text-center py-4">🔊 Mode audio — écoute la question</p>
+          <p className="text-slate-500 text-sm text-center py-4">🔊 Audio mode — listen to the question</p>
         )}
 
         <button
@@ -271,12 +260,12 @@ export function QuizModulePage() {
           onClick={() => setShowQuestionText((current) => !current)}
           className="self-center text-xs text-slate-400 underline hover:text-slate-300"
         >
-          {showQuestionText ? "Masquer le texte" : "Je n'ai pas compris ? Afficher le texte"}
+          {showQuestionText ? "Hide text" : "Didn't catch that? Show text"}
         </button>
 
         {helpUnlocked && !helpVisibleByDefault && !helpedQuestionIds.includes(question.id) && (
           <Button onClick={() => revealAnswer(question)} variant="secondary" size="sm">
-            💡 Afficher la réponse
+            💡 Show the answer
           </Button>
         )}
         {helpError && (
@@ -291,7 +280,7 @@ export function QuizModulePage() {
             own question". */}
         <VoiceInput onResult={handleVoiceAnswer} disabled={submitting || avatarState === "speaking" || avatarState === "thinking"} />
 
-        {submitting && <p className="text-slate-400 text-sm text-center">Envoi...</p>}
+        {submitting && <p className="text-slate-400 text-sm text-center">Sending...</p>}
         {submitError && (
           <ErrorBanner
             message={submitError.message}

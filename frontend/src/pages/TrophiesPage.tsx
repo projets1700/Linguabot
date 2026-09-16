@@ -6,9 +6,9 @@ import type { Trophy } from "../types";
 
 const RARITY_LABEL: Record<Trophy["rarity"], string> = {
   bronze: "Bronze",
-  silver: "Argent",
-  gold: "Or",
-  platinum: "Platine",
+  silver: "Silver",
+  gold: "Gold",
+  platinum: "Platinum",
 };
 
 const RARITY_COLOR: Record<Trophy["rarity"], string> = {
@@ -37,13 +37,13 @@ export function TrophiesPage() {
     <div className="min-h-screen bg-slate-950">
       <LearnerNav />
       <main className="text-white p-8">
-      <h1 className="text-3xl font-bold mb-8">Mes trophées</h1>
+      <h1 className="text-3xl font-bold mb-8">My trophies</h1>
 
       {loading ? (
-        <p>Chargement...</p>
+        <p>Loading...</p>
       ) : loadError ? (
         <ErrorBanner
-          message="Impossible de charger tes trophées."
+          message="Unable to load your trophies."
           onRetry={() => setRetryCount((count) => count + 1)}
         />
       ) : (

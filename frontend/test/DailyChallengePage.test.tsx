@@ -239,7 +239,7 @@ describe("DailyChallengePage", () => {
     expect(screen.queryByText("rain")).not.toBeInTheDocument();
     // The manual button is a silence-triggered fallback, not shown from
     // the first instant - own dedicated test covers its 10s reveal.
-    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Take the challenge/ })).not.toBeInTheDocument();
 
     // LinguaBot is visible from the very first render, before the mission
     // is even started - not just once the conversation begins.
@@ -263,7 +263,7 @@ describe("DailyChallengePage", () => {
     // (the lip-sync pipeline) - not re-tested here (own test files), but the
     // status line and speech bubble reacting to it confirm the same
     // useConversationSession wiring used everywhere else is active here too.
-    expect(screen.getByText("LinguaBot parle...")).toBeInTheDocument();
+    expect(screen.getByText("LinguaBot is speaking...")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Today's mission");
 
     const mic = screen.getByTestId("voice-input-stub");
@@ -275,7 +275,7 @@ describe("DailyChallengePage", () => {
     mockApi({ challenge: baseChallenge({ completed: true, started: true }) });
     renderPage();
 
-    await waitFor(() => expect(screen.getByText("Défi relevé ! 🎉")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Challenge complete! 🎉")).toBeInTheDocument());
     expect(speak).not.toHaveBeenCalled();
   });
 
@@ -288,7 +288,7 @@ describe("DailyChallengePage", () => {
     // No status text nudges the learner to speak - the mic itself is the
     // only cue - and the fallback button hasn't appeared yet either.
     expect(screen.queryByText(/Dis/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Take the challenge/ })).not.toBeInTheDocument();
     expect(screen.getByTestId("voice-input-stub")).toHaveAttribute("data-disabled", "false");
 
     await act(async () => {
@@ -296,7 +296,7 @@ describe("DailyChallengePage", () => {
     });
 
     expect(apiPostSpy).toHaveBeenCalledWith("/daily-challenge/start");
-    await waitFor(() => expect(screen.getByText("En cours")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("In progress")).toBeInTheDocument());
     await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
   });
 
@@ -315,7 +315,7 @@ describe("DailyChallengePage", () => {
     expect(apiPostSpy).not.toHaveBeenCalled();
     // The button only appears after MISSION_FALLBACK_DELAY_MS of silence
     // (own dedicated test below with fake timers) - not immediately.
-    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Take the challenge/ })).not.toBeInTheDocument();
   });
 
   it("reformulates the ready question on an ambiguous reply, without launching the challenge", async () => {
@@ -331,7 +331,7 @@ describe("DailyChallengePage", () => {
     await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
     expect(latestUtteranceText()).toBe("I didn't quite catch that. Say yes when you're ready, or use the button below.");
     expect(apiPostSpy).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Take the challenge/ })).not.toBeInTheDocument();
   });
 
   it("only reveals the fallback button after 10s of silence since LinguaBot's question, and it still launches the challenge", async () => {
@@ -352,13 +352,13 @@ describe("DailyChallengePage", () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(9_000);
       });
-      expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Take the challenge/ })).not.toBeInTheDocument();
 
       // Past 10s of silence - the fallback now appears.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(1_000);
       });
-      const button = screen.getByRole("button", { name: /Relever le défi/ });
+      const button = screen.getByRole("button", { name: /Take the challenge/ });
       expect(button).toBeInTheDocument();
 
       await act(async () => {
@@ -376,14 +376,14 @@ describe("DailyChallengePage", () => {
     renderPage();
     await startChallengeViaVoice();
 
-    await waitFor(() => expect(screen.getByText("En cours")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("In progress")).toBeInTheDocument());
     // The full mission card, its keywords and the XP badge are gone - only
-    // the compact reminder (title + "En cours") remains.
+    // the compact reminder (title + "In progress") remains.
     expect(screen.queryByText("🎯 Ta mission")).not.toBeInTheDocument();
     expect(screen.queryByText("It's raining and your outdoor plans are cancelled.")).not.toBeInTheDocument();
     expect(screen.queryByText("rain")).not.toBeInTheDocument();
     expect(screen.queryByText(/\+120 XP/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Take the challenge/ })).not.toBeInTheDocument();
 
     // Same avatar, same framing - grown, not swapped or remounted.
     const avatar = screen.getByTestId("avatar-scene-stub");
@@ -400,34 +400,34 @@ describe("DailyChallengePage", () => {
     expect(avatar).toHaveAttribute("data-framing", "portrait");
     expect(avatar).toHaveAttribute("data-show-state-label", "false");
     expect(latestUtteranceText()).toBe("Hello! I'm Friend. Ready?");
-    expect(screen.getByText("LinguaBot parle...")).toBeInTheDocument();
+    expect(screen.getByText("LinguaBot is speaking...")).toBeInTheDocument();
 
     const mic = screen.getByTestId("voice-input-stub");
     expect(mic).toHaveAttribute("data-variant", "brand");
     expect(mic).toHaveAttribute("data-size", "compact");
   });
 
-  it("shows 'À toi de parler' once the opening line finishes, then 'Analyse de ta réponse...' while a reply is in flight", async () => {
+  it("shows 'Your turn to speak' once the opening line finishes, then 'Analyzing your answer...' while a reply is in flight", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
     await startChallengeViaVoice();
     await endLatestSpeech();
 
-    expect(screen.getByText("À toi de parler")).toBeInTheDocument();
+    expect(screen.getByText("Your turn to speak")).toBeInTheDocument();
     expect(screen.getByTestId("voice-input-stub")).toHaveAttribute("data-disabled", "false");
 
     // Not awaited: in real usage VoiceInput's onend calls onResult without
     // awaiting it either, so sendMessage() only runs synchronously up to its
-    // first `await` here - exactly the window "Analyse de ta réponse..."
+    // first `await` here - exactly the window "Analyzing your answer..."
     // needs to be observed in.
     act(() => {
       void voiceInputState.current?.onResult("Let's watch a movie together!");
     });
 
-    expect(screen.getByText("Analyse de ta réponse...")).toBeInTheDocument();
+    expect(screen.getByText("Analyzing your answer...")).toBeInTheDocument();
 
     await waitFor(() => expect(speak).toHaveBeenCalledTimes(3));
-    expect(screen.getByText("LinguaBot parle...")).toBeInTheDocument();
+    expect(screen.getByText("LinguaBot is speaking...")).toBeInTheDocument();
   });
 
   it("submits the learner's spoken answer and displays the AI's real reply", async () => {
@@ -457,14 +457,14 @@ describe("DailyChallengePage", () => {
     renderPage();
     await startChallengeViaVoice();
 
-    expect(screen.getByRole("button", { name: "Besoin d'aide ?" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Je suis bloqué/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Need help?" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /I'm stuck/ })).not.toBeInTheDocument();
 
     await act(async () => {
-      screen.getByRole("button", { name: "Besoin d'aide ?" }).click();
+      screen.getByRole("button", { name: "Need help?" }).click();
     });
 
-    expect(screen.getByRole("button", { name: /Je suis bloqué/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /I'm stuck/ })).toBeInTheDocument();
   });
 
   it("shows a retryable error banner when sending a reply fails, and does not fabricate an assistant reply", async () => {
@@ -486,22 +486,22 @@ describe("DailyChallengePage", () => {
     });
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
-    expect(screen.getByText("À toi de parler")).toBeInTheDocument();
+    expect(screen.getByText("Your turn to speak")).toBeInTheDocument();
   });
 
-  it("keeps 'Terminer le défi' disabled until the learner has actually answered", async () => {
+  it("keeps 'Finish the challenge' disabled until the learner has actually answered", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
     await startChallengeViaVoice();
 
-    expect(screen.getByRole("button", { name: "Terminer le défi" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Finish the challenge" })).toBeDisabled();
 
     await endLatestSpeech();
     await act(async () => {
       await voiceInputState.current?.onResult("Let's watch a movie together!");
     });
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Terminer le défi" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Finish the challenge" })).toBeEnabled());
   });
 
   it("shows the real XP earned on the result screen after finishing", async () => {
@@ -515,10 +515,10 @@ describe("DailyChallengePage", () => {
     await endLatestSpeech();
 
     await act(async () => {
-      screen.getByRole("button", { name: "Terminer le défi" }).click();
+      screen.getByRole("button", { name: "Finish the challenge" }).click();
     });
 
-    await waitFor(() => expect(screen.getByText("Défi relevé ! 🎉")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Challenge complete! 🎉")).toBeInTheDocument());
     expect(screen.getByText(/\+120 XP/)).toBeInTheDocument();
   });
 
@@ -526,7 +526,7 @@ describe("DailyChallengePage", () => {
     mockApi({ challenge: baseChallenge({ completed: true, started: true }) });
     renderPage();
 
-    await waitFor(() => expect(screen.getByText("Défi relevé ! 🎉")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Challenge complete! 🎉")).toBeInTheDocument());
     expect(screen.getByText(/\+120 XP/)).toBeInTheDocument();
   });
 });

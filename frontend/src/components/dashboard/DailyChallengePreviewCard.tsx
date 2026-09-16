@@ -17,7 +17,7 @@ type Props = {
 export function DailyChallengePreviewCard({ preview, fadedIn }: Props) {
   return (
     <Card variant="stat" className="border border-amber-500/25 flex flex-col justify-center">
-      <p className="text-amber-400 text-xs font-bold uppercase mb-2">🔥 Défi du jour</p>
+      <p className="text-amber-400 text-xs font-bold uppercase mb-2">🔥 Daily Challenge</p>
       {/* Until/unless `preview` arrives, the generic fallback text keeps the
           card from ever looking broken or empty - never a blocking spinner.
           The opacity transition only ever plays once, when real content
@@ -26,14 +26,14 @@ export function DailyChallengePreviewCard({ preview, fadedIn }: Props) {
         {preview ? (
           <>
             <p className="text-lg font-bold text-white mb-1">{preview.title}</p>
-            <p className="text-slate-400 text-sm mb-4">+{preview.xpReward} XP à gagner</p>
+            <p className="text-slate-400 text-sm mb-4">+{preview.xpReward} XP to earn</p>
           </>
         ) : (
-          <p className="text-slate-400 text-sm mb-4">Un nouveau défi t'attend chaque jour.</p>
+          <p className="text-slate-400 text-sm mb-4">A new challenge awaits you every day.</p>
         )}
       </div>
       <Button to="/defi-du-jour" variant="secondary" className="self-start">
-        {preview?.completed ? "Revoir le défi du jour →" : preview?.started ? "Continuer le défi →" : "Commencer →"}
+        {preview?.completed ? "Review today's challenge →" : preview?.started ? "Continue the challenge →" : "Start →"}
       </Button>
     </Card>
   );

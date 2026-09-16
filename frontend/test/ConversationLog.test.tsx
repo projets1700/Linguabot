@@ -13,13 +13,13 @@ describe("ConversationLog", () => {
 
     expect(screen.queryByText("Hello! How are you?")).not.toBeInTheDocument();
     expect(screen.queryByText("I am fine, thanks.")).not.toBeInTheDocument();
-    expect(screen.getByText(/Mode audio/)).toBeInTheDocument();
+    expect(screen.getByText(/Audio mode/)).toBeInTheDocument();
   });
 
   it("reveals the transcript when the learner says they didn't understand", () => {
     render(<ConversationLog messages={MESSAGES} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Je n'ai pas compris/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Didn't catch that/ }));
 
     expect(screen.getByText("Hello! How are you?")).toBeInTheDocument();
     expect(screen.getByText("I am fine, thanks.")).toBeInTheDocument();
@@ -29,17 +29,17 @@ describe("ConversationLog", () => {
     render(<ConversationLog messages={MESSAGES} initialShowText />);
 
     expect(screen.getByText("Hello! How are you?")).toBeInTheDocument();
-    expect(screen.queryByText(/Mode audio/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Audio mode/)).not.toBeInTheDocument();
   });
 
   it("hides it again on a second click", () => {
     render(<ConversationLog messages={MESSAGES} />);
 
-    const toggle = screen.getByRole("button", { name: /Je n'ai pas compris/ });
+    const toggle = screen.getByRole("button", { name: /Didn't catch that/ });
     fireEvent.click(toggle);
-    fireEvent.click(screen.getByRole("button", { name: "Masquer le texte" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hide text" }));
 
     expect(screen.queryByText("Hello! How are you?")).not.toBeInTheDocument();
-    expect(screen.getByText(/Mode audio/)).toBeInTheDocument();
+    expect(screen.getByText(/Audio mode/)).toBeInTheDocument();
   });
 });

@@ -62,7 +62,7 @@ describe("VoiceInput", () => {
 
     render(<VoiceInput onResult={vi.fn()} />);
 
-    expect(screen.getByText(/ne supporte pas la reconnaissance vocale/)).toBeInTheDocument();
+    expect(screen.getByText(/doesn't support speech recognition/)).toBeInTheDocument();
   });
 
   it("starts listening automatically on mount, with no press-to-talk step", () => {
@@ -70,7 +70,7 @@ describe("VoiceInput", () => {
 
     // The only button is the mute toggle - it doesn't need to be pressed to
     // start a turn, listening already began on its own.
-    expect(screen.getByRole("button", { name: "Désactiver le micro" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Turn off microphone" })).toBeInTheDocument();
     expect(lastInstance().start).toHaveBeenCalled();
   });
 
@@ -114,7 +114,7 @@ describe("VoiceInput", () => {
       lastInstance().onerror?.({ error: "not-allowed" } as SpeechRecognitionErrorEvent);
     });
 
-    expect(screen.getByText(/micro est bloqué/)).toBeInTheDocument();
+    expect(screen.getByText(/microphone is blocked/)).toBeInTheDocument();
   });
 
   it("does not listen while disabled, and resumes once re-enabled", () => {
@@ -133,10 +133,10 @@ describe("VoiceInput", () => {
     const instanceCountBeforeMute = instances.length;
     const runningInstance = lastInstance();
 
-    fireEvent.click(screen.getByRole("button", { name: "Désactiver le micro" }));
+    fireEvent.click(screen.getByRole("button", { name: "Turn off microphone" }));
 
-    expect(screen.getByText("Micro coupé")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Activer le micro" })).toBeInTheDocument();
+    expect(screen.getByText("Microphone off")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Turn on microphone" })).toBeInTheDocument();
     // Regression: muting used to only stop new restarts, not the
     // recognition already running - it kept the mic physically listening.
     expect(runningInstance.abort).toHaveBeenCalled();
@@ -180,10 +180,10 @@ describe("VoiceInput", () => {
   it("resumes listening when unmuted", () => {
     render(<VoiceInput onResult={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Désactiver le micro" }));
+    fireEvent.click(screen.getByRole("button", { name: "Turn off microphone" }));
     const instanceCountWhileMuted = instances.length;
 
-    fireEvent.click(screen.getByRole("button", { name: "Activer le micro" }));
+    fireEvent.click(screen.getByRole("button", { name: "Turn on microphone" }));
 
     expect(instances.length).toBe(instanceCountWhileMuted + 1);
     expect(lastInstance().start).toHaveBeenCalled();
@@ -204,12 +204,12 @@ describe("VoiceInput", () => {
     render(<VoiceInput onResult={vi.fn()} hideStatusText />);
 
     expect(screen.queryByText("...")).not.toBeInTheDocument();
-    expect(screen.queryByText("Je t'écoute...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Listening...")).not.toBeInTheDocument();
 
     act(() => {
       lastInstance().onerror?.({ error: "not-allowed" } as SpeechRecognitionErrorEvent);
     });
 
-    expect(screen.getByText(/micro est bloqué/)).toBeInTheDocument();
+    expect(screen.getByText(/microphone is blocked/)).toBeInTheDocument();
   });
 });

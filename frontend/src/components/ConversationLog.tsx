@@ -37,7 +37,7 @@ export function ConversationLog({ messages, bottomRef, initialShowText = false }
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-center text-slate-500 text-sm">
-            🔊 Mode audio — écoute la conversation
+            🔊 Audio mode — listen to the conversation
           </div>
         )}
       </div>
@@ -47,7 +47,7 @@ export function ConversationLog({ messages, bottomRef, initialShowText = false }
         onClick={() => setShowText((current) => !current)}
         className="self-center text-xs text-slate-400 underline hover:text-slate-300"
       >
-        {showText ? "Masquer le texte" : "Je n'ai pas compris ? Afficher le texte"}
+        {showText ? "Hide text" : "Didn't catch that? Show text"}
       </button>
     </div>
   );

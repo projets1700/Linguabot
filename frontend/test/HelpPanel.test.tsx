@@ -29,7 +29,7 @@ describe("HelpPanel", () => {
       <HelpPanel profile={profile()} translateEndpoint="/sessions/1/translate" hintEndpoint="/sessions/1/hint" textToTranslate={null} />,
     );
 
-    expect(screen.queryByRole("button", { name: /Traduire/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Translate/ })).not.toBeInTheDocument();
   });
 
   it("fetches and displays a translation on demand", async () => {
@@ -45,7 +45,7 @@ describe("HelpPanel", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Traduire/ }));
+    await user.click(screen.getByRole("button", { name: /Translate/ }));
 
     expect(api.post).toHaveBeenCalledWith("/sessions/1/translate", { text: "How are you?" });
     expect(await screen.findByText(/Comment ça va/)).toBeInTheDocument();
@@ -61,11 +61,11 @@ describe("HelpPanel", () => {
       <HelpPanel profile={profile()} translateEndpoint="/sessions/1/translate" hintEndpoint="/sessions/1/hint" textToTranslate={null} />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Je suis bloqué/ }));
+    await user.click(screen.getByRole("button", { name: /I'm stuck/ }));
     expect(api.post).toHaveBeenLastCalledWith("/sessions/1/hint", { tier: 1 });
     expect(await screen.findByText(/name, I am, my name/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Encore un peu d'aide/ }));
+    await user.click(screen.getByRole("button", { name: /A bit more help/ }));
     expect(api.post).toHaveBeenLastCalledWith("/sessions/1/hint", { tier: 2 });
     expect(await screen.findByText(/My name is/)).toBeInTheDocument();
     // Tier 1's hint is still shown - progressive help preserves earlier effort (V1 spec §11).
@@ -80,9 +80,9 @@ describe("HelpPanel", () => {
       <HelpPanel profile={profile()} translateEndpoint="/sessions/1/translate" hintEndpoint="/sessions/1/hint" textToTranslate={null} />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Je suis bloqué/ }));
+    await user.click(screen.getByRole("button", { name: /I'm stuck/ }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/indisponible/);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/unavailable/);
   });
 
   it("disables the hint button once the maximum tier has been reached", async () => {
@@ -96,11 +96,11 @@ describe("HelpPanel", () => {
       <HelpPanel profile={profile()} translateEndpoint="/sessions/1/translate" hintEndpoint="/sessions/1/hint" textToTranslate={null} />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Je suis bloqué/ }));
-    await user.click(await screen.findByRole("button", { name: /Encore un peu d'aide/ }));
-    await user.click(await screen.findByRole("button", { name: /Encore un peu d'aide/ }));
+    await user.click(screen.getByRole("button", { name: /I'm stuck/ }));
+    await user.click(await screen.findByRole("button", { name: /A bit more help/ }));
+    await user.click(await screen.findByRole("button", { name: /A bit more help/ }));
 
-    expect(await screen.findByRole("button", { name: /Aide maximale atteinte/ })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: /Maximum help reached/ })).toBeDisabled();
     expect(api.post).toHaveBeenCalledTimes(3);
   });
 
@@ -119,14 +119,14 @@ describe("HelpPanel", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Je suis bloqué/ }));
+    await user.click(screen.getByRole("button", { name: /I'm stuck/ }));
 
     // Requests the full-example tier directly - no keywords/starter step first.
     expect(api.post).toHaveBeenCalledWith("/sessions/1/hint", { tier: 3 });
     expect(await screen.findByText(/I usually eat bread and eggs/)).toBeInTheDocument();
     // The learner is meant to repeat it aloud, so the avatar says it too.
     expect(onHintReceived).toHaveBeenCalledWith("I usually eat bread and eggs.");
-    expect(await screen.findByRole("button", { name: /Aide maximale atteinte/ })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: /Maximum help reached/ })).toBeDisabled();
     expect(api.post).toHaveBeenCalledTimes(1);
   });
 
@@ -145,13 +145,13 @@ describe("HelpPanel", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Je suis bloqué/ }));
+    await user.click(screen.getByRole("button", { name: /I'm stuck/ }));
 
     expect(api.post).toHaveBeenCalledWith("/sessions/1/hint", { tier: 1 });
     expect(await screen.findByText(/bread, eggs, usually/)).toBeInTheDocument();
     // Keywords are read, not spoken for the learner to repeat.
     expect(onHintReceived).not.toHaveBeenCalled();
-    expect(await screen.findByRole("button", { name: /Aide maximale atteinte/ })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: /Maximum help reached/ })).toBeDisabled();
     expect(api.post).toHaveBeenCalledTimes(1);
   });
 });

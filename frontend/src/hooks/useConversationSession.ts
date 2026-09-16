@@ -81,8 +81,8 @@ export function useConversationSession() {
 
   // Interrupts whatever the avatar is (or is about to be) saying and
   // silences the bubble immediately - for a caller that lets the learner
-  // skip past a line entirely (e.g. the Dashboard intro's "Continuer sans
-  // parler"), rather than letting a stale utterance keep talking/showing
+  // skip past a line entirely (e.g. the Dashboard intro's "Continue without
+  // speaking"), rather than letting a stale utterance keep talking/showing
   // over whatever comes next.
   function stopSpeaking() {
     pendingSpeechRef.current = null;

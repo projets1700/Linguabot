@@ -110,7 +110,7 @@ describe("PlacementTestPage - network error handling (LOT 1)", () => {
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
     expect(navigateMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
   it("retrying after a network error re-calls /placement-test/start", async () => {
@@ -120,7 +120,7 @@ describe("PlacementTestPage - network error handling (LOT 1)", () => {
 
     apiPostSpy.mockClear();
     await act(async () => {
-      screen.getByRole("button", { name: "Réessayer" }).click();
+      screen.getByRole("button", { name: "Try again" }).click();
     });
 
     await waitFor(() => expect(apiPostSpy).toHaveBeenCalledWith("/placement-test/start"));

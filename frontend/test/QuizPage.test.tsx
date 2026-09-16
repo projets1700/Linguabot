@@ -27,7 +27,7 @@ function makeModule(overrides: Partial<QuizModule> = {}): QuizModule {
   return {
     id: 1,
     code: "M0-1",
-    title: "Salutations",
+    title: "Greetings",
     questionCount: 10,
     passed: false,
     attempted: false,
@@ -64,29 +64,29 @@ describe("QuizPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows a never-attempted module as 'À commencer', with no score shown", async () => {
+  it("shows a never-attempted module as 'To start', with no score shown", async () => {
     useAuthStore.setState({ user: baseUser("A0") });
     mockModules({ modules: [makeModule()] });
 
     renderQuizPage();
 
-    await waitFor(() => expect(screen.getByText("Salutations")).toBeInTheDocument());
-    expect(screen.getByText("À commencer")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Greetings")).toBeInTheDocument());
+    expect(screen.getByText("To start")).toBeInTheDocument();
     expect(screen.queryByText(/Score/)).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Commencer/ })).toHaveAttribute("href", "/quiz/1");
+    expect(screen.getByRole("link", { name: /Start/ })).toHaveAttribute("href", "/quiz/1");
   });
 
-  it("shows an attempted-but-failed module as 'À retenter' with its best score and remaining answers needed", async () => {
+  it("shows an attempted-but-failed module as 'To retry' with its best score and remaining answers needed", async () => {
     useAuthStore.setState({ user: baseUser("A0") });
     mockModules({ modules: [makeModule({ attempted: true, passed: false, bestScore: 4 })] });
 
     renderQuizPage();
 
-    await waitFor(() => expect(screen.getByText("À retenter")).toBeInTheDocument());
-    expect(screen.getByText("Score : 4/10")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("To retry")).toBeInTheDocument());
+    expect(screen.getByText("Score: 4/10")).toBeInTheDocument();
     // passThreshold (7) - bestScore (4) = 3 remaining correct answers.
-    expect(screen.getByText("Encore 3 bonnes réponses pour valider")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Réessayer/ })).toHaveAttribute("href", "/quiz/1");
+    expect(screen.getByText("3 more correct answers needed to pass")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Retry/ })).toHaveAttribute("href", "/quiz/1");
   });
 
   it("never shows a negative remaining-answers count even at the threshold boundary", async () => {
@@ -96,31 +96,31 @@ describe("QuizPage", () => {
 
     renderQuizPage();
 
-    await waitFor(() => expect(screen.getByText("À retenter")).toBeInTheDocument());
-    expect(screen.getByText("Encore 1 bonne réponse pour valider")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("To retry")).toBeInTheDocument());
+    expect(screen.getByText("1 more correct answer needed to pass")).toBeInTheDocument();
   });
 
-  it("shows a passed module as 'Validé' with its best score and a Rejouer CTA", async () => {
+  it("shows a passed module as 'Passed' with its best score and a Play again CTA", async () => {
     useAuthStore.setState({ user: baseUser("A0") });
     mockModules({ modules: [makeModule({ attempted: true, passed: true, bestScore: 9 })] });
 
     renderQuizPage();
 
-    await waitFor(() => expect(screen.getByText("Validé")).toBeInTheDocument());
-    expect(screen.getByText("Score : 9/10")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Rejouer/ })).toHaveAttribute("href", "/quiz/1");
+    await waitFor(() => expect(screen.getByText("Passed")).toBeInTheDocument());
+    expect(screen.getByText("Score: 9/10")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Play again/ })).toHaveAttribute("href", "/quiz/1");
   });
 
   it("computes progression against requiredForLevelUp, not the total module count", async () => {
     useAuthStore.setState({ user: baseUser("A0") });
     mockModules({
       modules: [
-        makeModule({ id: 1, code: "M0-1", title: "Salutations", passed: true, attempted: true, bestScore: 10 }),
-        makeModule({ id: 2, code: "M0-2", title: "Chiffres", passed: true, attempted: true, bestScore: 8 }),
-        makeModule({ id: 3, code: "M0-3", title: "Couleurs" }),
-        makeModule({ id: 4, code: "M0-4", title: "Famille" }),
-        makeModule({ id: 5, code: "M0-5", title: "Nourriture" }),
-        makeModule({ id: 6, code: "M0-6", title: "Objets" }),
+        makeModule({ id: 1, code: "M0-1", title: "Greetings", passed: true, attempted: true, bestScore: 10 }),
+        makeModule({ id: 2, code: "M0-2", title: "Numbers", passed: true, attempted: true, bestScore: 8 }),
+        makeModule({ id: 3, code: "M0-3", title: "Colors" }),
+        makeModule({ id: 4, code: "M0-4", title: "Family" }),
+        makeModule({ id: 5, code: "M0-5", title: "Food" }),
+        makeModule({ id: 6, code: "M0-6", title: "Objects" }),
       ],
       requiredForLevelUp: 4,
     });
@@ -128,7 +128,7 @@ describe("QuizPage", () => {
     renderQuizPage();
 
     // 2 passed / 4 required = 50%, not 2 passed / 6 total = 33%.
-    await waitFor(() => expect(screen.getByText("2 / 4 requis")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("2 / 4 required")).toBeInTheDocument());
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
   });
 
@@ -138,7 +138,7 @@ describe("QuizPage", () => {
 
     renderQuizPage();
 
-    await waitFor(() => expect(screen.getByText("0 / 4 requis")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("0 / 4 required")).toBeInTheDocument());
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
   });
 
@@ -147,16 +147,16 @@ describe("QuizPage", () => {
     mockModules({
       modules: [
         makeModule({ id: 1, code: "M0-1", passed: true, attempted: true, bestScore: 10 }),
-        makeModule({ id: 2, code: "M0-2", title: "Chiffres", passed: true, attempted: true, bestScore: 10 }),
-        makeModule({ id: 3, code: "M0-3", title: "Couleurs", passed: true, attempted: true, bestScore: 10 }),
-        makeModule({ id: 4, code: "M0-4", title: "Famille", passed: true, attempted: true, bestScore: 10 }),
+        makeModule({ id: 2, code: "M0-2", title: "Numbers", passed: true, attempted: true, bestScore: 10 }),
+        makeModule({ id: 3, code: "M0-3", title: "Colors", passed: true, attempted: true, bestScore: 10 }),
+        makeModule({ id: 4, code: "M0-4", title: "Family", passed: true, attempted: true, bestScore: 10 }),
       ],
       requiredForLevelUp: 4,
     });
 
     renderQuizPage();
 
-    await waitFor(() => expect(screen.getByText("4 / 4 requis")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("4 / 4 required")).toBeInTheDocument());
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
   });
 
@@ -166,9 +166,9 @@ describe("QuizPage", () => {
 
     renderQuizPage();
 
-    await waitFor(() => expect(screen.getByText("Modules validés")).toBeInTheDocument());
-    expect(screen.queryByText(/Progression vers/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Niveau A1 déjà débloqué/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Modules passed")).toBeInTheDocument());
+    expect(screen.queryByText(/Progress toward/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Level A1 already unlocked/)).toBeInTheDocument();
   });
 
   it("navigates to the module page when a module's CTA is followed", async () => {
@@ -177,7 +177,7 @@ describe("QuizPage", () => {
 
     renderQuizPage();
 
-    const link = await screen.findByRole("link", { name: /Commencer/ });
+    const link = await screen.findByRole("link", { name: /Start/ });
     await act(async () => {
       link.click();
     });
@@ -191,9 +191,9 @@ describe("QuizPage", () => {
 
     renderQuizPage();
 
-    expect(screen.getByRole("heading", { name: "Test de vocabulaire" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Vocabulary Test" })).toBeInTheDocument();
     await waitFor(() => expect(getSpy).toHaveBeenCalledWith("/quiz/modules"));
-    await waitFor(() => expect(screen.getByText("Salutations")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Greetings")).toBeInTheDocument());
   });
 
   it.each(["A2", "B1", "B2"])("redirects a %s learner to the Dashboard without fetching modules", async (levelCode) => {

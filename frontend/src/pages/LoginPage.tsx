@@ -34,7 +34,7 @@ export function LoginPage() {
         onSubmit={handleSubmit}
         className="bg-slate-900 p-8 rounded-xl w-full max-w-sm flex flex-col gap-4"
       >
-        <h1 className="text-3xl font-bold mb-2">Connexion</h1>
+        <h1 className="text-3xl font-bold mb-2">Log in</h1>
 
         {confirmationMessage && <p className="text-green-400 text-sm">{confirmationMessage}</p>}
 
@@ -50,7 +50,7 @@ export function LoginPage() {
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-slate-300">Mot de passe</span>
+          <span className="text-sm text-slate-300">Password</span>
           <PasswordInput
             required
             value={password}
@@ -65,13 +65,13 @@ export function LoginPage() {
           disabled={loading}
           className="bg-blue-600 rounded-lg px-4 py-2 mt-2 disabled:opacity-50"
         >
-          {loading ? "Connexion..." : "Se connecter"}
+          {loading ? "Logging in..." : "Log in"}
         </button>
 
         <p className="text-sm text-slate-400 text-center">
-          Pas encore de compte ?{" "}
+          Don't have an account yet?{" "}
           <Link to="/register" className="text-blue-400">
-            Inscrivez-vous
+            Sign up
           </Link>
         </p>
       </form>
