@@ -10,16 +10,53 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * 2 situations per pilot room (LinguaBot_V2_Conception.md §6's coffee-shop/
- * appartement examples), each unlocking the next once its first Mission is
- * completed (RoomCatalogService).
+ * 2 situations per Monde 1 room (14 total across the 7 rooms) - each room's
+ * first situation is the "situation de départ" from
+ * LinguaBot_V2_Conception.md §5's table, the second is an original variant
+ * in the same spirit (§6: a room should host more than one situation).
  */
 final class SituationFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
 {
     public const SITUATION_RAINY_DAY_REFERENCE = 'situation-w1-r1-s1';
     public const SITUATION_DINNER_REFERENCE = 'situation-w1-r1-s2';
-    public const SITUATION_ORDER_COFFEE_REFERENCE = 'situation-w1-r2-s1';
-    public const SITUATION_WRONG_ORDER_REFERENCE = 'situation-w1-r2-s2';
+    public const SITUATION_RECIPE_REFERENCE = 'situation-w1-r2-s1';
+    public const SITUATION_MISSING_INGREDIENT_REFERENCE = 'situation-w1-r2-s2';
+    public const SITUATION_PACK_SUITCASE_REFERENCE = 'situation-w1-r3-s1';
+    public const SITUATION_FIND_OUTFIT_REFERENCE = 'situation-w1-r3-s2';
+    public const SITUATION_GROCERY_SHOPPING_REFERENCE = 'situation-w1-r4-s1';
+    public const SITUATION_CHECKOUT_PROBLEM_REFERENCE = 'situation-w1-r4-s2';
+    public const SITUATION_BUY_BREAKFAST_REFERENCE = 'situation-w1-r5-s1';
+    public const SITUATION_SPECIAL_ORDER_REFERENCE = 'situation-w1-r5-s2';
+    public const SITUATION_BUY_CLOTHES_REFERENCE = 'situation-w1-r6-s1';
+    public const SITUATION_FITTING_ROOM_REFERENCE = 'situation-w1-r6-s2';
+    public const SITUATION_DESCRIBE_HAIRCUT_REFERENCE = 'situation-w1-r7-s1';
+    public const SITUATION_BOOK_APPOINTMENT_REFERENCE = 'situation-w1-r7-s2';
+
+    /**
+     * [reference, roomReference, code, title, description].
+     */
+    private const SITUATIONS = [
+        [self::SITUATION_RAINY_DAY_REFERENCE, RoomFixtures::ROOM_LIVING_ROOM_REFERENCE, 'W1-R1-S1', 'Rainy Day Plans', "Il pleut dehors et tes plans sont annulés - trouve une activité d'intérieur."],
+        [self::SITUATION_DINNER_REFERENCE, RoomFixtures::ROOM_LIVING_ROOM_REFERENCE, 'W1-R1-S2', 'Préparer le dîner', 'Avec ton/ta colocataire, décidez quoi cuisiner ce soir.'],
+
+        [self::SITUATION_RECIPE_REFERENCE, RoomFixtures::ROOM_KITCHEN_REFERENCE, 'W1-R2-S1', 'Suivre une recette', "Cuisine avec un proche en suivant une recette pas à pas."],
+        [self::SITUATION_MISSING_INGREDIENT_REFERENCE, RoomFixtures::ROOM_KITCHEN_REFERENCE, 'W1-R2-S2', 'Un ingrédient manquant', "Il manque un ingrédient pour la recette - trouvez une solution."],
+
+        [self::SITUATION_PACK_SUITCASE_REFERENCE, RoomFixtures::ROOM_BEDROOM_REFERENCE, 'W1-R3-S1', 'Préparer une valise', "Prépare ta valise pour un voyage avec l'aide d'un proche."],
+        [self::SITUATION_FIND_OUTFIT_REFERENCE, RoomFixtures::ROOM_BEDROOM_REFERENCE, 'W1-R3-S2', 'Trouver une tenue', "Demande conseil pour choisir une tenue pour une occasion."],
+
+        [self::SITUATION_GROCERY_SHOPPING_REFERENCE, RoomFixtures::ROOM_SUPERMARKET_REFERENCE, 'W1-R4-S1', 'Faire les courses', 'Trouve les articles de ta liste de courses au supermarché.'],
+        [self::SITUATION_CHECKOUT_PROBLEM_REFERENCE, RoomFixtures::ROOM_SUPERMARKET_REFERENCE, 'W1-R4-S2', 'Problème à la caisse', 'Un problème de prix survient à la caisse - explique-le au caissier.'],
+
+        [self::SITUATION_BUY_BREAKFAST_REFERENCE, RoomFixtures::ROOM_BAKERY_REFERENCE, 'W1-R5-S1', 'Acheter le petit-déjeuner', 'Commande du pain et des viennoiseries à la boulangerie.'],
+        [self::SITUATION_SPECIAL_ORDER_REFERENCE, RoomFixtures::ROOM_BAKERY_REFERENCE, 'W1-R5-S2', 'Commande spéciale', 'Passe une commande spéciale pour une occasion.'],
+
+        [self::SITUATION_BUY_CLOTHES_REFERENCE, RoomFixtures::ROOM_CLOTHING_SHOP_REFERENCE, 'W1-R6-S1', 'Choisir et acheter des vêtements', "Demande de l'aide pour choisir et acheter des vêtements."],
+        [self::SITUATION_FITTING_ROOM_REFERENCE, RoomFixtures::ROOM_CLOTHING_SHOP_REFERENCE, 'W1-R6-S2', 'Essayage et retour', "Un vêtement ne convient pas - gère l'essayage ou le retour."],
+
+        [self::SITUATION_DESCRIBE_HAIRCUT_REFERENCE, RoomFixtures::ROOM_HAIR_SALON_REFERENCE, 'W1-R7-S1', 'Expliquer la coupe souhaitée', 'Explique au coiffeur la coupe que tu souhaites.'],
+        [self::SITUATION_BOOK_APPOINTMENT_REFERENCE, RoomFixtures::ROOM_HAIR_SALON_REFERENCE, 'W1-R7-S2', 'Prendre rendez-vous', 'Prends ou modifie un rendez-vous chez le coiffeur.'],
+    ];
 
     public static function getGroups(): array
     {
@@ -28,46 +65,25 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
 
     public function load(ObjectManager $manager): void
     {
-        /** @var Room $livingRoom */
-        $livingRoom = $this->getReference(RoomFixtures::ROOM_LIVING_ROOM_REFERENCE, Room::class);
-        /** @var Room $coffeeShop */
-        $coffeeShop = $this->getReference(RoomFixtures::ROOM_COFFEE_SHOP_REFERENCE, Room::class);
+        /** @var array<string, int> $orderNumByRoom */
+        $orderNumByRoom = [];
 
-        $rainyDay = (new Situation())
-            ->setRoom($livingRoom)
-            ->setCode('W1-R1-S1')
-            ->setTitle('Rainy Day Plans')
-            ->setDescription("Il pleut dehors et tes plans sont annulés - trouve une activité d'intérieur.")
-            ->setOrderNum(0);
-        $manager->persist($rainyDay);
-        $this->addReference(self::SITUATION_RAINY_DAY_REFERENCE, $rainyDay);
+        foreach (self::SITUATIONS as [$reference, $roomReference, $code, $title, $description]) {
+            /** @var Room $room */
+            $room = $this->getReference($roomReference, Room::class);
+            $orderNum = $orderNumByRoom[$roomReference] ?? 0;
 
-        $dinner = (new Situation())
-            ->setRoom($livingRoom)
-            ->setCode('W1-R1-S2')
-            ->setTitle('Préparer le dîner')
-            ->setDescription('Avec ton/ta colocataire, décidez quoi cuisiner ce soir.')
-            ->setOrderNum(1);
-        $manager->persist($dinner);
-        $this->addReference(self::SITUATION_DINNER_REFERENCE, $dinner);
+            $situation = (new Situation())
+                ->setRoom($room)
+                ->setCode($code)
+                ->setTitle($title)
+                ->setDescription($description)
+                ->setOrderNum($orderNum);
+            $manager->persist($situation);
+            $this->addReference($reference, $situation);
 
-        $orderCoffee = (new Situation())
-            ->setRoom($coffeeShop)
-            ->setCode('W1-R2-S1')
-            ->setTitle('Commander un café')
-            ->setDescription('Commande une boisson au comptoir.')
-            ->setOrderNum(0);
-        $manager->persist($orderCoffee);
-        $this->addReference(self::SITUATION_ORDER_COFFEE_REFERENCE, $orderCoffee);
-
-        $wrongOrder = (new Situation())
-            ->setRoom($coffeeShop)
-            ->setCode('W1-R2-S2')
-            ->setTitle('Mauvaise commande')
-            ->setDescription("Le barista s'est trompé - explique le problème et obtiens la bonne boisson.")
-            ->setOrderNum(1);
-        $manager->persist($wrongOrder);
-        $this->addReference(self::SITUATION_WRONG_ORDER_REFERENCE, $wrongOrder);
+            $orderNumByRoom[$roomReference] = $orderNum + 1;
+        }
 
         $manager->flush();
     }

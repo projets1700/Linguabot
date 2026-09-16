@@ -18,7 +18,7 @@ final class WorldControllerTest extends ApiTestCase
         self::assertCount(1, $worlds);
         self::assertSame('W1', $worlds[0]['code']);
         self::assertTrue($worlds[0]['unlocked']);
-        self::assertSame(2, $worlds[0]['roomsCount']);
+        self::assertSame(7, $worlds[0]['roomsCount']);
     }
 
     public function testWorldsIndexRequiresAuthentication(): void
@@ -39,7 +39,7 @@ final class WorldControllerTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         $world = $this->decodeResponse($client);
         self::assertSame('W1', $world['code']);
-        self::assertCount(2, $world['rooms']);
+        self::assertCount(7, $world['rooms']);
 
         $livingRoom = $world['rooms'][0];
         self::assertSame('W1-R1', $livingRoom['code']);
