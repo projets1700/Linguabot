@@ -59,8 +59,8 @@ describe("LearnerStatsSection", () => {
   it("shows the category breakdown from the response", async () => {
     render(<LearnerStatsSection />);
 
-    expect(await screen.findByText("Quotidien")).toBeInTheDocument();
-    expect(screen.getByText("Thématique")).toBeInTheDocument();
+    expect(await screen.findByText("Everyday")).toBeInTheDocument();
+    expect(screen.getByText("Thematic")).toBeInTheDocument();
   });
 
   it("refetches with the new period when a period button is clicked", async () => {
@@ -69,7 +69,7 @@ describe("LearnerStatsSection", () => {
 
     apiGetSpy.mockResolvedValue({ data: statsFixture({ days: 7, sessionsCount: 9 }) });
     await act(async () => {
-      screen.getByRole("button", { name: "7 jours" }).click();
+      screen.getByRole("button", { name: "7 days" }).click();
     });
 
     await waitFor(() => expect(apiGetSpy).toHaveBeenCalledWith("/me/stats", { params: { days: 7 } }));
@@ -84,7 +84,7 @@ describe("LearnerStatsSection", () => {
 
     apiGetSpy.mockResolvedValue({ data: statsFixture() });
     await act(async () => {
-      screen.getByRole("button", { name: "Réessayer" }).click();
+      screen.getByRole("button", { name: "Try again" }).click();
     });
 
     expect(await screen.findByText("420")).toBeInTheDocument();

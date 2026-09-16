@@ -1,7 +1,7 @@
-// The "Chargement..." text a screen reader should announce as it updates -
+// The "Loading..." text a screen reader should announce as it updates -
 // exported on its own for admin pages, which render inside AdminLayout's
 // existing chrome and so never need the full-page <main> wrapper below.
-export function LoadingText({ message = "Chargement..." }: { message?: string }) {
+export function LoadingText({ message = "Loading..." }: { message?: string }) {
   return <p aria-live="polite">{message}</p>;
 }
 

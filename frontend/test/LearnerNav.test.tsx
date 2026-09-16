@@ -30,26 +30,26 @@ function renderNav() {
   );
 }
 
-describe("LearnerNav - Test de vocabulaire link visibility past A1", () => {
-  it.each(["A0", "A1"])("still shows the Test de vocabulaire link for a %s learner", (levelCode) => {
+describe("LearnerNav - Vocabulary Test link visibility past A1", () => {
+  it.each(["A0", "A1"])("still shows the Vocabulary Test link for a %s learner", (levelCode) => {
     useAuthStore.setState({ user: baseUser(levelCode) });
     renderNav();
-    expect(screen.getByRole("link", { name: "Test de vocabulaire" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Vocabulary Test" })).toBeInTheDocument();
   });
 
-  it.each(["A2", "B1", "B2"])("hides the Test de vocabulaire link for a %s learner", (levelCode) => {
+  it.each(["A2", "B1", "B2"])("hides the Vocabulary Test link for a %s learner", (levelCode) => {
     useAuthStore.setState({ user: baseUser(levelCode) });
     renderNav();
-    expect(screen.queryByRole("link", { name: "Test de vocabulaire" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Vocabulary Test" })).not.toBeInTheDocument();
   });
 
-  it("still shows every other nav entry when the Test de vocabulaire link is hidden", () => {
+  it("still shows every other nav entry when the Vocabulary Test link is hidden", () => {
     useAuthStore.setState({ user: baseUser("B2") });
     renderNav();
-    expect(screen.getByRole("link", { name: "Accueil" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Scénarios" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Défis" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Progression" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Profil" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Scenarios" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Challenges" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Progress" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Profile" })).toBeInTheDocument();
   });
 });

@@ -34,14 +34,14 @@ export function RewardBanner({
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        aria-label="Fermer"
+        aria-label="Close"
         className="absolute top-0 right-0 text-white/60 hover:text-white text-lg leading-none px-1"
       >
         ×
       </button>
       {levelUp && (
         <div className="bg-green-600 rounded-lg py-3 px-4 font-bold animate-pulse motion-reduce:animate-none">
-          🎉 Niveau {levelUp.code} débloqué : {levelUp.name} !
+          🎉 Level {levelUp.code} unlocked: {levelUp.name}!
         </div>
       )}
       {trophies.map((trophy) => (
@@ -49,7 +49,7 @@ export function RewardBanner({
           key={trophy.code}
           className={`${RARITY_STYLE[trophy.rarity]} text-slate-950 rounded-lg py-3 px-4 font-bold animate-pulse motion-reduce:animate-none`}
         >
-          🏆 Trophée débloqué : {trophy.name} !
+          🏆 Trophy unlocked: {trophy.name}!
         </div>
       ))}
       {badges.map((badge) => (
@@ -57,7 +57,7 @@ export function RewardBanner({
           key={badge.code}
           className="bg-blue-600 rounded-lg py-2 px-4 font-semibold"
         >
-          {badge.icon} Badge débloqué : {badge.name} !
+          {badge.icon} Badge unlocked: {badge.name}!
         </div>
       ))}
     </div>

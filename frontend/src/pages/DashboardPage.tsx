@@ -115,7 +115,7 @@ class AvatarSceneBoundary extends Component<{ children: ReactNode }, { failed: b
     if (this.state.failed) {
       return (
         <div className="w-full h-full min-h-[220px] flex items-center justify-center text-sm text-slate-400 bg-slate-900 rounded-xl">
-          Avatar indisponible pour le moment.
+          Avatar unavailable right now.
         </div>
       );
     }
@@ -340,7 +340,7 @@ export function DashboardPage() {
     if (fetchMeError) {
       return (
         <main className="min-h-screen bg-slate-950 text-white p-8 flex items-center justify-center">
-          <ErrorBanner message="Impossible de charger ton profil." onRetry={fetchMe} />
+          <ErrorBanner message="Unable to load your profile." onRetry={fetchMe} />
         </main>
       );
     }
@@ -383,10 +383,10 @@ export function DashboardPage() {
               </Link>
             )}
             <Link to="/voix" className="text-sm text-slate-400 hover:text-white">
-              🔊 Voix de l'IA
+              🔊 AI Voice
             </Link>
             <button onClick={handleLogout} className="text-sm text-slate-400 hover:text-white">
-              Déconnexion
+              Logout
             </button>
           </div>
         </div>
@@ -506,13 +506,13 @@ export function DashboardPage() {
                   <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-900/40">
                     <div>
                       <p className="font-bold text-white text-sm leading-tight">LinguaBot</p>
-                      <p className="text-xs text-slate-400 leading-tight">Ton professeur IA</p>
+                      <p className="text-xs text-slate-400 leading-tight">Your AI teacher</p>
                       <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 mt-1">
                         <span className="relative flex h-2 w-2">
                           <span className="absolute inline-flex h-full w-full animate-ping motion-reduce:animate-none rounded-full bg-emerald-400 opacity-60" />
                           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
                         </span>
-                        {micListening ? "Je t'écoute…" : "Disponible pour parler"}
+                        {micListening ? "Listening…" : "Available to talk"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -521,8 +521,8 @@ export function DashboardPage() {
                           type="button"
                           onClick={() => setTranslationRevealed((current) => !current)}
                           aria-expanded={translationRevealed}
-                          aria-label="Traduction en français"
-                          title="Traduction en français"
+                          aria-label="French translation"
+                          title="French translation"
                           className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-sm"
                         >
                           🇫🇷
@@ -568,8 +568,8 @@ export function DashboardPage() {
                         type="button"
                         onClick={() => setTranslationRevealed((current) => !current)}
                         aria-expanded={translationRevealed}
-                        aria-label="Traduction en français"
-                        title="Traduction en français"
+                        aria-label="French translation"
+                        title="French translation"
                         className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-900/80 hover:bg-slate-800 text-sm shadow-md"
                       >
                         🇫🇷
@@ -597,7 +597,7 @@ export function DashboardPage() {
                     onClick={beginDashboardTransition}
                     className="text-xs text-slate-300 hover:text-white underline underline-offset-2 whitespace-nowrap"
                   >
-                    Continuer sans parler →
+                    Continue without speaking →
                   </button>
                 </div>
               )}
@@ -639,8 +639,8 @@ export function DashboardPage() {
                   the change scoped to this card alone. */}
               <div className="bg-slate-800 rounded-xl px-6 py-6 flex flex-col gap-3">
                 <div>
-                  <h1 className="text-2xl font-bold mb-0.5">Bonjour {user.prenom} 👋</h1>
-                  <p className="text-slate-400 text-sm">Prêt à continuer ton anglais ?</p>
+                  <h1 className="text-2xl font-bold mb-0.5">Hello {user.prenom} 👋</h1>
+                  <p className="text-slate-400 text-sm">Ready to continue your English?</p>
                 </div>
 
                 <div>
@@ -653,7 +653,7 @@ export function DashboardPage() {
                     <p className="text-sm text-slate-300">
                       <span className="font-semibold text-white">{user.level.code}</span> · {user.level.name}
                     </p>
-                    {nextLevelCode && <p className="text-xs text-slate-400 shrink-0">Prochain : {nextLevelCode}</p>}
+                    {nextLevelCode && <p className="text-xs text-slate-400 shrink-0">Next: {nextLevelCode}</p>}
                   </div>
                   <div className="bg-slate-700 rounded-full h-2 overflow-hidden">
                     <div
@@ -665,7 +665,7 @@ export function DashboardPage() {
                 </div>
 
                 <Button to={isNewLearner && hasVocabTestAccess ? "/quiz" : "/catalog"} size="lg" className="self-start">
-                  {isNewLearner && hasVocabTestAccess ? "Commencer le test de vocabulaire →" : "▶ Reprendre"}
+                  {isNewLearner && hasVocabTestAccess ? "Start the vocabulary test →" : "▶ Resume"}
                 </Button>
               </div>
             </RevealSection>

@@ -179,11 +179,11 @@ export function SessionPage() {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
         <Card className="w-full max-w-lg text-center">
-          <h1 className="text-3xl font-bold mb-4">Session terminée</h1>
+          <h1 className="text-3xl font-bold mb-4">Session complete</h1>
           <RewardBanner badges={result.newBadges} trophies={result.newTrophies} levelUp={result.levelUp} />
           <SessionSummaryCard summary={result.summary} />
           <div className="flex gap-4 justify-center">
-            <Button to="/catalog">Rejouer un scénario</Button>
+            <Button to="/catalog">Play another scenario</Button>
             <Button to="/dashboard" variant="secondary">Dashboard</Button>
           </div>
         </Card>
@@ -204,14 +204,14 @@ export function SessionPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">{session.scenario.title}</h1>
-          <p className="text-slate-400 text-sm">Avec {session.scenario.characterName}</p>
+          <p className="text-slate-400 text-sm">With {session.scenario.characterName}</p>
         </div>
         <Button
           onClick={handleFinish}
           disabled={finishing || messages.filter((m) => m.role === "user").length === 0}
           variant="success"
         >
-          {finishing ? "..." : "Terminer la session"}
+          {finishing ? "..." : "End session"}
         </Button>
       </div>
 
@@ -251,7 +251,7 @@ export function SessionPage() {
       ) : (
         <div className="mb-4">
           <Button onClick={() => setHelpUnlocked(true)} variant="secondary" size="sm">
-            Besoin d'aide ?
+            Need help?
           </Button>
         </div>
       )}

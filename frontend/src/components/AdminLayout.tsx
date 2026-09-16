@@ -1,10 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 
 const NAV = [
-  { to: "/admin", label: "Statistiques" },
-  { to: "/admin/utilisateurs", label: "Utilisateurs" },
-  { to: "/admin/scenarios", label: "Scénarios" },
-  { to: "/admin/defis", label: "Défis du jour" },
+  { to: "/admin", label: "Statistics" },
+  { to: "/admin/utilisateurs", label: "Users" },
+  { to: "/admin/scenarios", label: "Scenarios" },
+  { to: "/admin/defis", label: "Daily Challenges" },
   { to: "/admin/gamification", label: "Gamification" },
   { to: "/admin/logs", label: "Logs" },
 ];
@@ -31,7 +31,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </Link>
         ))}
         <Link to="/dashboard" className="mt-auto px-3 py-2 rounded-lg text-sm text-slate-500 hover:bg-slate-800">
-          ← Retour à l'app
+          ← Back to app
         </Link>
       </nav>
       <div className="flex-1 p-8 overflow-x-auto">{children}</div>

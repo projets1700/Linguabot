@@ -145,7 +145,7 @@ describe("RequireAuth", () => {
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
     expect(screen.queryByText("Protected content")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     await waitFor(() => expect(screen.getByText("Protected content")).toBeInTheDocument());
   });

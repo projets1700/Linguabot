@@ -21,22 +21,22 @@ export function AdminDashboardPage() {
 
   return (
     <AdminLayout>
-      <h1 className="text-3xl font-bold mb-8">Statistiques globales</h1>
+      <h1 className="text-3xl font-bold mb-8">Global statistics</h1>
 
       <div className="grid md:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Utilisateurs" value={stats.usersCount} />
-        <StatCard label="Scénarios" value={stats.scenariosCount} />
+        <StatCard label="Users" value={stats.usersCount} />
+        <StatCard label="Scenarios" value={stats.scenariosCount} />
         <StatCard label="Sessions" value={stats.sessionsCount} />
-        <StatCard label="Taux de complétion" value={`${stats.completionRate}%`} />
-        <StatCard label="Score moyen" value={stats.avgScoreGlobal ?? "—"} />
-        <StatCard label="Participation défi (aujourd'hui)" value={`${stats.challengeParticipationRate}%`} />
-        <StatCard label="XP distribués aujourd'hui" value={stats.xpDistributedToday} />
-        <StatCard label="Sessions complétées" value={stats.completedSessionsCount} />
+        <StatCard label="Completion rate" value={`${stats.completionRate}%`} />
+        <StatCard label="Average score" value={stats.avgScoreGlobal ?? "—"} />
+        <StatCard label="Challenge participation (today)" value={`${stats.challengeParticipationRate}%`} />
+        <StatCard label="XP distributed today" value={stats.xpDistributedToday} />
+        <StatCard label="Completed sessions" value={stats.completedSessionsCount} />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-slate-900 p-6 rounded-xl">
-          <h2 className="text-lg font-bold mb-4">Répartition par niveau</h2>
+          <h2 className="text-lg font-bold mb-4">Breakdown by level</h2>
           <div className="flex flex-col gap-2">
             {stats.levelDistribution.map((row) => (
               <div key={row.level} className="flex items-center gap-3">
@@ -56,7 +56,7 @@ export function AdminDashboardPage() {
         </div>
 
         <div className="bg-slate-900 p-6 rounded-xl">
-          <h2 className="text-lg font-bold mb-4">Scénarios les plus joués</h2>
+          <h2 className="text-lg font-bold mb-4">Most played scenarios</h2>
           <table className="w-full text-sm">
             <tbody>
               {stats.topScenarios.slice(0, 8).map((row) => (

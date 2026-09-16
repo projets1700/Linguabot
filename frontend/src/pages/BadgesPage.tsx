@@ -25,16 +25,16 @@ export function BadgesPage() {
     <div className="min-h-screen bg-slate-950">
       <LearnerNav />
       <main className="text-white p-8">
-      <h1 className="text-3xl font-bold mb-2">Mes badges</h1>
+      <h1 className="text-3xl font-bold mb-2">My badges</h1>
       <p className="text-slate-400 mb-8">
-        {earnedCount}/{badges.length} débloqués
+        {earnedCount}/{badges.length} unlocked
       </p>
 
       {loading ? (
-        <p>Chargement...</p>
+        <p>Loading...</p>
       ) : loadError ? (
         <ErrorBanner
-          message="Impossible de charger tes badges."
+          message="Unable to load your badges."
           onRetry={() => setRetryCount((count) => count + 1)}
         />
       ) : (
@@ -51,7 +51,7 @@ export function BadgesPage() {
                 <p className="text-sm text-blue-400 mt-2">+{badge.xpBonus} XP</p>
               )}
               {!badge.earned && (
-                <p className="text-xs text-slate-500 mt-2 uppercase">Verrouillé</p>
+                <p className="text-xs text-slate-500 mt-2 uppercase">Locked</p>
               )}
             </article>
           ))}

@@ -31,9 +31,9 @@ export type AvatarState = "idle" | "thinking" | "speaking";
 const MIXAMO_BONE_PREFIX = /^mixamorig/;
 
 const STATE_LABEL: Record<AvatarState, string> = {
-  idle: "En attente",
-  thinking: "Réflexion...",
-  speaking: "Parle",
+  idle: "Idle",
+  thinking: "Thinking...",
+  speaking: "Speaking",
 };
 
 // Exponential-decay rate for easing each morph target toward its viseme's
@@ -487,7 +487,7 @@ export function AvatarScene({
             transparentBackground ? "bg-slate-950/30 backdrop-blur-sm" : "bg-slate-900"
           }`}
         >
-          Chargement de l'avatar...
+          Loading avatar...
         </div>
       )}
       {showStateLabel && (

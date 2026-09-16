@@ -52,23 +52,23 @@ export function AdminGamificationPage() {
 
       {actionError && (
         <div className="mb-4">
-          <ErrorBanner message="Échec de l'action. Réessaie." />
+          <ErrorBanner message="Action failed. Try again." />
         </div>
       )}
 
       <h2 className="text-lg font-bold mb-4">Badges ({badges.length})</h2>
       {badges.length === 0 ? (
-        <EmptyState message="Aucun badge." />
+        <EmptyState message="No badges." />
       ) : (
       <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden mb-10">
         <thead className="bg-slate-800 text-slate-400 text-left">
           <tr>
             <th className="p-3">Code</th>
-            <th className="p-3">Nom</th>
+            <th className="p-3">Name</th>
             <th className="p-3">Condition</th>
-            <th className="p-3">Seuil</th>
+            <th className="p-3">Threshold</th>
             <th className="p-3">XP bonus</th>
-            <th className="p-3">Statut</th>
+            <th className="p-3">Status</th>
             <th className="p-3">Actions</th>
           </tr>
         </thead>
@@ -82,16 +82,16 @@ export function AdminGamificationPage() {
               <td className="p-3">{badge.xpBonus}</td>
               <td className="p-3">
                 <span className={badge.isActive ? "text-green-400" : "text-red-400"}>
-                  {badge.isActive ? "Actif" : "Désactivé"}
+                  {badge.isActive ? "Active" : "Disabled"}
                 </span>
               </td>
               <td className="p-3">
                 <button
                   onClick={() => toggleBadge(badge)}
-                  aria-label={`${badge.isActive ? "Désactiver" : "Activer"} le badge ${badge.name}`}
+                  aria-label={`${badge.isActive ? "Disable" : "Enable"} badge ${badge.name}`}
                   className="text-xs bg-slate-800 px-2 py-1 rounded"
                 >
-                  {badge.isActive ? "Désactiver" : "Activer"}
+                  {badge.isActive ? "Disable" : "Enable"}
                 </button>
               </td>
             </tr>
@@ -100,19 +100,19 @@ export function AdminGamificationPage() {
       </table>
       )}
 
-      <h2 className="text-lg font-bold mb-4">Trophées ({trophies.length})</h2>
+      <h2 className="text-lg font-bold mb-4">Trophies ({trophies.length})</h2>
       {trophies.length === 0 ? (
-        <EmptyState message="Aucun trophée." />
+        <EmptyState message="No trophies." />
       ) : (
       <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden">
         <thead className="bg-slate-800 text-slate-400 text-left">
           <tr>
             <th className="p-3">Code</th>
-            <th className="p-3">Nom</th>
+            <th className="p-3">Name</th>
             <th className="p-3">Condition</th>
-            <th className="p-3">Seuil</th>
-            <th className="p-3">XP récompense</th>
-            <th className="p-3">Rareté</th>
+            <th className="p-3">Threshold</th>
+            <th className="p-3">XP reward</th>
+            <th className="p-3">Rarity</th>
           </tr>
         </thead>
         <tbody>

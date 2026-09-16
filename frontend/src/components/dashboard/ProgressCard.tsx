@@ -17,13 +17,12 @@ type Props = {
 export function ProgressCard({ sessionsCount }: Props) {
   return (
     <Card variant="stat" className="border border-blue-500/15 flex flex-col justify-center">
-      <p className="text-blue-400 text-xs font-bold uppercase mb-2">📊 Ta progression</p>
+      <p className="text-blue-400 text-xs font-bold uppercase mb-2">📊 Your progress</p>
       <p className="text-lg font-bold mb-0.5">
-        {sessionsCount} session{sessionsCount > 1 ? "s" : ""} complétée
-        {sessionsCount > 1 ? "s" : ""}
+        {sessionsCount} session{sessionsCount > 1 ? "s" : ""} completed
       </p>
-      <p className="text-slate-400 text-sm mb-4">Retrouve tes badges et trophées débloqués.</p>
-      <Link to="/trophees" className="text-blue-400 text-sm">Voir ma progression →</Link>
+      <p className="text-slate-400 text-sm mb-4">Check out your unlocked badges and trophies.</p>
+      <Link to="/trophees" className="text-blue-400 text-sm">See my progress →</Link>
     </Card>
   );
 }

@@ -43,15 +43,15 @@ export function AdminChallengesPage() {
 
   return (
     <AdminLayout>
-      <h1 className="text-3xl font-bold mb-8">Défis du jour</h1>
+      <h1 className="text-3xl font-bold mb-8">Daily Challenges</h1>
 
       {actionError && (
         <div className="mb-4">
-          <ErrorBanner message="Échec de la régénération. Réessaie." />
+          <ErrorBanner message="Regeneration failed. Try again." />
         </div>
       )}
 
-      <h2 className="text-lg font-bold mb-4">Aujourd'hui ({today})</h2>
+      <h2 className="text-lg font-bold mb-4">Today ({today})</h2>
       <div className="grid md:grid-cols-3 gap-4 mb-10">
         {LEVELS.map((level) => {
           const challenge = todayChallenges.find((c) => c.level === level);
@@ -62,10 +62,10 @@ export function AdminChallengesPage() {
                 <button
                   onClick={() => regenerate(level)}
                   disabled={regenerating === level}
-                  aria-label={`Régénérer le défi du jour niveau ${level}`}
+                  aria-label={`Regenerate the level ${level} daily challenge`}
                   className="text-xs bg-slate-800 px-2 py-1 rounded disabled:opacity-50"
                 >
-                  {regenerating === level ? "..." : "Régénérer"}
+                  {regenerating === level ? "..." : "Regenerate"}
                 </button>
               </div>
               {challenge ? (
@@ -73,30 +73,30 @@ export function AdminChallengesPage() {
                   <p className="font-bold">{challenge.title}</p>
                   <p className="text-slate-400 text-sm mt-1">{challenge.objective}</p>
                   <p className="text-xs text-slate-500 mt-2">
-                    Mots-clés : {challenge.keywords.join(", ")}
+                    Keywords: {challenge.keywords.join(", ")}
                   </p>
                 </>
               ) : (
-                <p className="text-slate-500 text-sm">Pas encore généré</p>
+                <p className="text-slate-500 text-sm">Not generated yet</p>
               )}
             </div>
           );
         })}
       </div>
 
-      <h2 className="text-lg font-bold mb-4">Historique</h2>
+      <h2 className="text-lg font-bold mb-4">History</h2>
       {loading ? (
         <LoadingText />
       ) : history.length === 0 ? (
-        <EmptyState message="Aucun historique." />
+        <EmptyState message="No history." />
       ) : (
         <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden">
           <thead className="bg-slate-800 text-slate-400 text-left">
             <tr>
               <th className="p-3">Date</th>
-              <th className="p-3">Niveau</th>
-              <th className="p-3">Titre</th>
-              <th className="p-3">Personnage</th>
+              <th className="p-3">Level</th>
+              <th className="p-3">Title</th>
+              <th className="p-3">Character</th>
             </tr>
           </thead>
           <tbody>

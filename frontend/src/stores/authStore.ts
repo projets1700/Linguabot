@@ -43,7 +43,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem("token", response.data.token);
       set({ token: response.data.token, loading: false });
     } catch {
-      set({ loading: false, error: "Email ou mot de passe incorrect." });
+      set({ loading: false, error: "Incorrect email or password." });
       throw new Error("login_failed");
     }
   },
@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       await api.post("/auth/register", payload);
       set({ loading: false });
     } catch {
-      set({ loading: false, error: "Impossible de créer le compte." });
+      set({ loading: false, error: "Unable to create the account." });
       throw new Error("register_failed");
     }
   },
@@ -72,8 +72,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       const status = (err as { response?: { status?: number } }).response?.status;
       const message =
         status === 410
-          ? "Ce lien a expiré. Merci de vous réinscrire."
-          : "Ce lien de vérification est invalide.";
+          ? "This link has expired. Please sign up again."
+          : "This verification link is invalid.";
       set({ loading: false, error: message });
       throw new Error("verify_email_failed");
     }

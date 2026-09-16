@@ -30,29 +30,29 @@ export function AdminScenariosPage() {
 
   return (
     <AdminLayout>
-      <h1 className="text-3xl font-bold mb-8">Scénarios ({scenarios.length})</h1>
+      <h1 className="text-3xl font-bold mb-8">Scenarios ({scenarios.length})</h1>
 
       {actionError && (
         <div className="mb-4">
-          <ErrorBanner message="Échec de l'action. Réessaie." />
+          <ErrorBanner message="Action failed. Try again." />
         </div>
       )}
 
       {loading ? (
         <LoadingText />
       ) : scenarios.length === 0 ? (
-        <EmptyState message="Aucun scénario." />
+        <EmptyState message="No scenarios." />
       ) : (
         <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden">
           <thead className="bg-slate-800 text-slate-400 text-left">
             <tr>
               <th className="p-3">Code</th>
-              <th className="p-3">Titre</th>
-              <th className="p-3">Niveau</th>
-              <th className="p-3">Catégorie</th>
+              <th className="p-3">Title</th>
+              <th className="p-3">Level</th>
+              <th className="p-3">Category</th>
               <th className="p-3">XP</th>
-              <th className="p-3">Parties jouées</th>
-              <th className="p-3">Statut</th>
+              <th className="p-3">Times played</th>
+              <th className="p-3">Status</th>
               <th className="p-3">Actions</th>
             </tr>
           </thead>
@@ -67,16 +67,16 @@ export function AdminScenariosPage() {
                 <td className="p-3">{scenario.playCount}</td>
                 <td className="p-3">
                   <span className={scenario.isActive ? "text-green-400" : "text-red-400"}>
-                    {scenario.isActive ? "Actif" : "Désactivé"}
+                    {scenario.isActive ? "Active" : "Disabled"}
                   </span>
                 </td>
                 <td className="p-3">
                   <button
                     onClick={() => toggleActive(scenario)}
-                    aria-label={`${scenario.isActive ? "Désactiver" : "Activer"} le scénario ${scenario.title}`}
+                    aria-label={`${scenario.isActive ? "Disable" : "Enable"} scenario ${scenario.title}`}
                     className="text-xs bg-slate-800 px-2 py-1 rounded"
                   >
-                    {scenario.isActive ? "Désactiver" : "Activer"}
+                    {scenario.isActive ? "Disable" : "Enable"}
                   </button>
                 </td>
               </tr>

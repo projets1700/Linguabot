@@ -41,7 +41,7 @@ describe("authStore", () => {
   });
 
   it("does not store a token on register: the account only exists after email verification", async () => {
-    vi.mocked(api.post).mockResolvedValueOnce({ data: { message: "Vérifie ta boîte mail" } });
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { message: "Check your inbox" } });
 
     await useAuthStore.getState().register({
       prenom: "Adam",
@@ -94,7 +94,7 @@ describe("authStore", () => {
     await expect(useAuthStore.getState().verifyEmail("stale-token")).rejects.toThrow();
 
     expect(useAuthStore.getState().token).toBeNull();
-    expect(useAuthStore.getState().error).toMatch(/expiré/);
+    expect(useAuthStore.getState().error).toMatch(/expired/);
   });
 
   it("surfaces a generic invalid-link error when verifyEmail fails for another reason", async () => {
@@ -102,7 +102,7 @@ describe("authStore", () => {
 
     await expect(useAuthStore.getState().verifyEmail("bad-token")).rejects.toThrow();
 
-    expect(useAuthStore.getState().error).toMatch(/invalide/);
+    expect(useAuthStore.getState().error).toMatch(/invalid/);
   });
 
   it("fetchMe populates the user from /me", async () => {
@@ -118,7 +118,7 @@ describe("authStore", () => {
   it("fetchMe sets fetchMeError instead of throwing when the request fails", async () => {
     // Regression: fetchMe() had no error handling at all - a network/API
     // failure left `user` unresolved forever with nothing to signal it,
-    // and RequireAuth's "Chargement..." screen never went away.
+    // and RequireAuth's "Loading..." screen never went away.
     vi.mocked(api.get).mockRejectedValueOnce(new Error("network error"));
 
     await expect(useAuthStore.getState().fetchMe()).resolves.toBeUndefined();

@@ -3,7 +3,7 @@
 export function ErrorBanner({
   message,
   onRetry,
-  retryLabel = "Réessayer",
+  retryLabel = "Try again",
 }: {
   message: string;
   onRetry?: () => void;

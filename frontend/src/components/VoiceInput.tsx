@@ -118,7 +118,7 @@ export function VoiceInput({
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
           cancelled = true;
           setListening(false);
-          setError("Le micro est bloqué. Autorise l'accès au microphone dans ton navigateur.");
+          setError("The microphone is blocked. Allow microphone access in your browser.");
         }
         // Anything else (no-speech, aborted, network...) is transient:
         // onend still fires right after and the loop below restarts it.
@@ -172,7 +172,7 @@ export function VoiceInput({
   if (!supported) {
     return (
       <p className="text-sm text-amber-400 text-center py-2">
-        Ton navigateur ne supporte pas la reconnaissance vocale. Essaie avec Google Chrome ou Microsoft Edge.
+        Your browser doesn't support speech recognition. Try Google Chrome or Microsoft Edge.
       </p>
     );
   }
@@ -184,7 +184,7 @@ export function VoiceInput({
       <button
         type="button"
         onClick={() => setMicEnabled((current) => !current)}
-        aria-label={micEnabled ? "Désactiver le micro" : "Activer le micro"}
+        aria-label={micEnabled ? "Turn off microphone" : "Turn on microphone"}
         aria-pressed={micEnabled}
         className={`${compact ? "w-11 h-11 text-lg" : "w-16 h-16 text-2xl"} rounded-full flex items-center justify-center transition-colors ${
           !micEnabled
@@ -203,7 +203,7 @@ export function VoiceInput({
         {micEnabled ? "🎤" : "🔇"}
       </button>
       {(() => {
-        const statusText = !micEnabled ? "Micro coupé" : (error ?? (listening ? interimText || "Je t'écoute..." : "..."));
+        const statusText = !micEnabled ? "Microphone off" : (error ?? (listening ? interimText || "Listening..." : "..."));
         // hideStatusText only suppresses the generic idle/listening chatter
         // (the caller is showing that state itself, right next to this
         // control - see the Dashboard's own status line) - a real problem

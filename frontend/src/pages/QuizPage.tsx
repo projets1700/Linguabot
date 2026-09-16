@@ -60,24 +60,24 @@ export function QuizPage() {
     <div className="min-h-screen bg-slate-950">
       <LearnerNav />
       <main className="text-white p-8 max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-1">Test de vocabulaire</h1>
+        <h1 className="text-3xl font-bold mb-1">Vocabulary Test</h1>
         <p className="text-slate-400 mb-5">
-          Renforce ton vocabulaire{canUnlock ? ` et progresse vers le niveau ${targetLevelCode}` : ""}.
+          Build up your vocabulary{canUnlock ? ` and progress toward level ${targetLevelCode}` : ""}.
         </p>
 
         {!loading && !loadError && (
           <div className="bg-slate-800 rounded-xl p-5 mb-8">
             <div className="flex items-center justify-between mb-1.5 gap-2">
               <p className="text-sm font-semibold text-white">
-                {canUnlock ? `Progression vers ${targetLevelCode}` : "Modules validés"}
+                {canUnlock ? `Progress toward ${targetLevelCode}` : "Modules passed"}
               </p>
               <p className="text-sm text-slate-400 shrink-0">
-                {canUnlock ? `${passedCount} / ${requiredForLevelUp} requis` : `${passedCount} / ${modules.length}`}
+                {canUnlock ? `${passedCount} / ${requiredForLevelUp} required` : `${passedCount} / ${modules.length}`}
               </p>
             </div>
             <div
               role="progressbar"
-              aria-label={canUnlock ? `Progression vers le niveau ${targetLevelCode}` : "Modules de vocabulaire validés"}
+              aria-label={canUnlock ? `Progress toward level ${targetLevelCode}` : "Vocabulary modules passed"}
               aria-valuenow={progressPercent}
               aria-valuemin={0}
               aria-valuemax={100}
@@ -90,19 +90,19 @@ export function QuizPage() {
             </div>
             <p className="text-xs text-slate-500 mt-2">
               {canUnlock
-                ? `Valide ${requiredForLevelUp} modules sur ${modules.length} avec au moins ${passThreshold}/10.`
-                : `Niveau ${targetLevelCode} déjà débloqué — entraîne-toi librement sur ces modules.`}
+                ? `Pass ${requiredForLevelUp} out of ${modules.length} modules with at least ${passThreshold}/10.`
+                : `Level ${targetLevelCode} already unlocked — practice freely on these modules.`}
             </p>
           </div>
         )}
 
-        <h2 className="text-lg font-bold mb-4">Ton parcours</h2>
+        <h2 className="text-lg font-bold mb-4">Your path</h2>
 
         {loading ? (
-          <p>Chargement...</p>
+          <p>Loading...</p>
         ) : loadError ? (
           <ErrorBanner
-            message="Impossible de charger les modules du test de vocabulaire."
+            message="Unable to load the vocabulary test modules."
             onRetry={() => setRetryCount((count) => count + 1)}
           />
         ) : (

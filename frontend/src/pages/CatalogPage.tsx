@@ -9,8 +9,8 @@ import type { Scenario, SessionDetail } from "../types";
 
 const LEVELS = ["A1", "A2", "B1", "B2"] as const;
 const CATEGORIES = [
-  { value: "quotidien", label: "Quotidien" },
-  { value: "thematique", label: "Thématique" },
+  { value: "quotidien", label: "Everyday" },
+  { value: "thematique", label: "Thematic" },
 ] as const;
 
 export function CatalogPage() {
@@ -53,7 +53,7 @@ export function CatalogPage() {
     <div className="min-h-screen bg-slate-950">
       <LearnerNav />
       <main className="text-white p-8">
-      <h1 className="text-3xl font-bold mb-6">Catalogue</h1>
+      <h1 className="text-3xl font-bold mb-6">Catalog</h1>
 
       <div className="flex gap-4 mb-8">
         <select
@@ -61,7 +61,7 @@ export function CatalogPage() {
           onChange={(event) => setLevel(event.target.value)}
           className="bg-slate-800 rounded-lg px-4 py-2"
         >
-          <option value="">Tous les niveaux</option>
+          <option value="">All levels</option>
           {LEVELS.map((code) => (
             <option key={code} value={code}>
               {code}
@@ -74,7 +74,7 @@ export function CatalogPage() {
           onChange={(event) => setCategory(event.target.value)}
           className="bg-slate-800 rounded-lg px-4 py-2"
         >
-          <option value="">Toutes les catégories</option>
+          <option value="">All categories</option>
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
               {c.label}
@@ -84,7 +84,7 @@ export function CatalogPage() {
       </div>
 
       {loading ? (
-        <p>Chargement...</p>
+        <p>Loading...</p>
       ) : loadError ? (
         <ErrorBanner
           message={loadError.message}
@@ -100,22 +100,22 @@ export function CatalogPage() {
               <span className="text-xs uppercase text-blue-400">{scenario.level} · {scenario.category}</span>
               <h2 className="text-xl font-bold mt-1">{scenario.title}</h2>
               <p className="text-slate-300 mt-2">{scenario.context}</p>
-              <p className="mt-4 text-sm text-slate-400">Avec {scenario.characterName}</p>
+              <p className="mt-4 text-sm text-slate-400">With {scenario.characterName}</p>
               <p className="text-sm text-slate-400">
                 ~{scenario.durationEstimate} min · {scenario.baseXp} XP
               </p>
               {scenario.locked ? (
                 <p className="inline-block mt-4 bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm">
-                  🔒 Niveau {scenario.level} requis
+                  🔒 Level {scenario.level} required
                 </p>
               ) : (
                 <button
                   onClick={() => handleStart(scenario.id)}
                   disabled={startingId === scenario.id}
-                  aria-label={`Démarrer le scénario ${scenario.title}`}
+                  aria-label={`Start the scenario ${scenario.title}`}
                   className="inline-block mt-4 bg-blue-600 px-4 py-2 rounded-lg disabled:opacity-50"
                 >
-                  {startingId === scenario.id ? "Démarrage..." : "Démarrer"}
+                  {startingId === scenario.id ? "Starting..." : "Start"}
                 </button>
               )}
             </article>

@@ -22,10 +22,10 @@ import type {
 type MicCycleState = "speaking" | "thinking" | "listening" | "ready";
 
 const MIC_CYCLE_CONTENT: Record<MicCycleState, { icon: string; title: string; subtitle?: string }> = {
-  speaking: { icon: "🔊", title: "LinguaBot parle…" },
-  thinking: { icon: "✦", title: "LinguaBot réfléchit…" },
-  ready: { icon: "🎙", title: "À toi de parler" },
-  listening: { icon: "🎙", title: "À toi de parler", subtitle: "● Je t'écoute…" },
+  speaking: { icon: "🔊", title: "LinguaBot is speaking…" },
+  thinking: { icon: "✦", title: "LinguaBot is thinking…" },
+  ready: { icon: "🎙", title: "Your turn to speak" },
+  listening: { icon: "🎙", title: "Your turn to speak", subtitle: "● Listening…" },
 };
 
 const CLASSROOM_BACKGROUND_SRC = "/images/dashboard/classroom-background.webp";
@@ -198,12 +198,12 @@ export function PlacementTestPage() {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
         <Card className="w-full max-w-md text-center">
-          <h1 className="text-3xl font-bold mb-4">Test terminé !</h1>
-          <p className="text-slate-300 mb-2">Ton niveau estimé :</p>
+          <h1 className="text-3xl font-bold mb-4">Test complete!</h1>
+          <p className="text-slate-300 mb-2">Your estimated level:</p>
           <p className="text-4xl font-bold text-blue-400 mb-6">{result.level.code}</p>
           <p className="text-slate-400 mb-6">{result.level.name}</p>
           <Button onClick={() => navigate("/dashboard")} size="lg">
-            Accéder à mon tableau de bord
+            Go to my dashboard
           </Button>
         </Card>
       </main>
@@ -238,7 +238,7 @@ export function PlacementTestPage() {
           <p className="font-bold text-white/90">LinguaBot</p>
           <div className="text-right">
             <p className="text-xs uppercase tracking-wide text-white/70">
-              Test oral · {Math.min(answeredCount + 1, totalQuestions)} sur {totalQuestions}
+              Oral test · {Math.min(answeredCount + 1, totalQuestions)} of {totalQuestions}
             </p>
             <div className="flex gap-1 mt-1.5 justify-end" aria-hidden="true">
               {Array.from({ length: totalQuestions }, (_, index) => (
@@ -283,7 +283,7 @@ export function PlacementTestPage() {
                 <button
                   type="button"
                   onClick={replayCurrentLine}
-                  aria-label="Réécouter"
+                  aria-label="Replay"
                   className="text-blue-300 hover:text-blue-200"
                 >
                   🔊
@@ -302,7 +302,7 @@ export function PlacementTestPage() {
               {showTranscript && lastAssistantMessage ? (
                 <p className="text-white text-sm leading-snug">{lastAssistantMessage}</p>
               ) : (
-                <p className="text-slate-300 text-sm italic">Écoute attentivement la question…</p>
+                <p className="text-slate-300 text-sm italic">Listen carefully to the question…</p>
               )}
             </div>
             <p className="flex items-center justify-center gap-1.5 text-xs font-medium text-white uppercase tracking-wide mt-2">
@@ -316,7 +316,7 @@ export function PlacementTestPage() {
               onClick={() => setShowTranscript((current) => !current)}
               className="block mx-auto mt-1 text-xs text-slate-300 underline hover:text-white"
             >
-              {showTranscript ? "Masquer le texte" : "Afficher le texte"}
+              {showTranscript ? "Hide text" : "Show text"}
             </button>
           </div>
 
@@ -328,7 +328,7 @@ export function PlacementTestPage() {
           )}
 
           <p className="text-xs text-white/40 text-center">
-            Ce test est obligatoire une seule fois, juste après ton inscription.
+            This test is required once, right after you sign up.
           </p>
         </div>
       </main>

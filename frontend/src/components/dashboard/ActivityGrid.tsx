@@ -8,7 +8,7 @@ type Props = {
 export function ActivityGrid({ hasVocabTestAccess }: Props) {
   return (
     <>
-      <h2 className="text-lg font-bold mb-2.5">Choisir une activité</h2>
+      <h2 className="text-lg font-bold mb-2.5">Choose an activity</h2>
       <div className={`grid gap-4 mb-5 ${hasVocabTestAccess ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
         <Link
           to="/catalog"
@@ -17,9 +17,9 @@ export function ActivityGrid({ hasVocabTestAccess }: Props) {
           <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-blue-500/15 text-2xl mb-2">
             💬
           </span>
-          <p className="font-bold mb-0.5">Scénarios</p>
-          <p className="text-slate-400 text-sm mb-2">Converse avec LinguaBot dans des situations réelles.</p>
-          <p className="text-blue-400 text-sm">Explorer →</p>
+          <p className="font-bold mb-0.5">Scenarios</p>
+          <p className="text-slate-400 text-sm mb-2">Chat with LinguaBot in real-life situations.</p>
+          <p className="text-blue-400 text-sm">Explore →</p>
         </Link>
         {hasVocabTestAccess && (
           <Link
@@ -29,9 +29,9 @@ export function ActivityGrid({ hasVocabTestAccess }: Props) {
             <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-blue-500/15 text-2xl mb-2">
               🎙️
             </span>
-            <p className="font-bold mb-0.5">Test de vocabulaire</p>
-            <p className="text-slate-400 text-sm mb-2">Entraîne ton vocabulaire à l'oral.</p>
-            <p className="text-blue-400 text-sm">Commencer →</p>
+            <p className="font-bold mb-0.5">Vocabulary Test</p>
+            <p className="text-slate-400 text-sm mb-2">Practice your vocabulary out loud.</p>
+            <p className="text-blue-400 text-sm">Start →</p>
           </Link>
         )}
         <Link
@@ -41,9 +41,9 @@ export function ActivityGrid({ hasVocabTestAccess }: Props) {
           <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-blue-500/15 text-2xl mb-2">
             🏅
           </span>
-          <p className="font-bold mb-0.5">Badges & trophées</p>
-          <p className="text-slate-400 text-sm mb-2">Découvre tes récompenses débloquées.</p>
-          <p className="text-blue-400 text-sm">Voir mes récompenses →</p>
+          <p className="font-bold mb-0.5">Badges & Trophies</p>
+          <p className="text-slate-400 text-sm mb-2">Discover the rewards you've unlocked.</p>
+          <p className="text-blue-400 text-sm">See my rewards →</p>
         </Link>
       </div>
     </>

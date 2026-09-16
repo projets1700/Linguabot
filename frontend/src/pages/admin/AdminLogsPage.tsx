@@ -18,12 +18,12 @@ export function AdminLogsPage() {
 
   return (
     <AdminLayout>
-      <h1 className="text-3xl font-bold mb-8">Logs d'administration ({logs.length})</h1>
+      <h1 className="text-3xl font-bold mb-8">Admin logs ({logs.length})</h1>
 
       {loading ? (
         <LoadingText />
       ) : logs.length === 0 ? (
-        <EmptyState message="Aucune action enregistrée pour le moment." />
+        <EmptyState message="No actions recorded yet." />
       ) : (
         <table className="w-full text-sm bg-slate-900 rounded-xl overflow-hidden">
           <thead className="bg-slate-800 text-slate-400 text-left">
@@ -31,13 +31,13 @@ export function AdminLogsPage() {
               <th className="p-3">Date</th>
               <th className="p-3">Admin</th>
               <th className="p-3">Action</th>
-              <th className="p-3">Cible</th>
+              <th className="p-3">Target</th>
             </tr>
           </thead>
           <tbody>
             {logs.map((log) => (
               <tr key={log.id} className="border-t border-slate-800">
-                <td className="p-3 text-slate-400">{new Date(log.createdAt).toLocaleString("fr-FR")}</td>
+                <td className="p-3 text-slate-400">{new Date(log.createdAt).toLocaleString("en-US")}</td>
                 <td className="p-3">{log.admin}</td>
                 <td className="p-3 font-mono text-xs">{log.action}</td>
                 <td className="p-3 text-slate-400">

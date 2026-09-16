@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from "react";
 export type SpeechRecognitionOnceError = "unsupported" | "not-allowed" | "no-speech";
 
 const ERROR_MESSAGE: Record<SpeechRecognitionOnceError, string> = {
-  unsupported: "Ton navigateur ne supporte pas la reconnaissance vocale. Essaie avec Google Chrome ou Microsoft Edge.",
-  "not-allowed": "Le micro est bloqué. Autorise l'accès au microphone dans ton navigateur.",
-  "no-speech": "Je n'ai rien entendu. Réessaie en parlant plus près du micro.",
+  unsupported: "Your browser doesn't support speech recognition. Try Google Chrome or Microsoft Edge.",
+  "not-allowed": "The microphone is blocked. Allow microphone access in your browser.",
+  "no-speech": "I didn't hear anything. Try again, speaking closer to the microphone.",
 };
 
 function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | undefined {

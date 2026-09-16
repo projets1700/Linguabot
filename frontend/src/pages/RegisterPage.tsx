@@ -5,8 +5,8 @@ import { useAuthStore } from "../stores/authStore";
 import type { AvatarType } from "../types";
 
 const AVATAR_OPTIONS: { type: AvatarType; label: string; emoji: string }[] = [
-  { type: "male", label: "Homme", emoji: "👨" },
-  { type: "female", label: "Femme", emoji: "👩" },
+  { type: "male", label: "Male", emoji: "👨" },
+  { type: "female", label: "Female", emoji: "👩" },
 ];
 
 export function RegisterPage() {
@@ -37,15 +37,15 @@ export function RegisterPage() {
     return (
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
         <div className="bg-slate-900 p-8 rounded-xl w-full max-w-sm flex flex-col gap-4 text-center">
-          <h1 className="text-3xl font-bold mb-2">Vérifie ta boîte mail</h1>
+          <h1 className="text-3xl font-bold mb-2">Check your inbox</h1>
           <p className="text-slate-300">
-            Un email de confirmation a été envoyé à <strong>{submittedEmail}</strong>. Clique sur
-            le lien qu'il contient pour activer ton compte (valable 1 heure).
+            A confirmation email has been sent to <strong>{submittedEmail}</strong>. Click
+            the link inside it to activate your account (valid for 1 hour).
           </p>
           <p className="text-sm text-slate-400">
-            Déjà activé ?{" "}
+            Already activated?{" "}
             <Link to="/login" className="text-blue-400">
-              Connectez-vous
+              Log in
             </Link>
           </p>
         </div>
@@ -59,11 +59,11 @@ export function RegisterPage() {
         onSubmit={handleSubmit}
         className="bg-slate-900 p-8 rounded-xl w-full max-w-sm flex flex-col gap-4"
       >
-        <h1 className="text-3xl font-bold mb-2">Inscription</h1>
+        <h1 className="text-3xl font-bold mb-2">Sign up</h1>
 
         <div className="flex gap-4">
           <label className="flex flex-col gap-1 flex-1">
-            <span className="text-sm text-slate-300">Prénom</span>
+            <span className="text-sm text-slate-300">First name</span>
             <input
               required
               value={prenom}
@@ -73,7 +73,7 @@ export function RegisterPage() {
           </label>
 
           <label className="flex flex-col gap-1 flex-1">
-            <span className="text-sm text-slate-300">Nom</span>
+            <span className="text-sm text-slate-300">Last name</span>
             <input
               required
               value={nom}
@@ -95,7 +95,7 @@ export function RegisterPage() {
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-slate-300">Mot de passe</span>
+          <span className="text-sm text-slate-300">Password</span>
           <PasswordInput
             required
             minLength={8}
@@ -105,8 +105,8 @@ export function RegisterPage() {
         </label>
 
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-slate-300">Choisis ton avatar</span>
-          <div role="radiogroup" aria-label="Choix de l'avatar" className="flex gap-4">
+          <span className="text-sm text-slate-300">Choose your avatar</span>
+          <div role="radiogroup" aria-label="Avatar choice" className="flex gap-4">
             {AVATAR_OPTIONS.map((option) => {
               const isSelected = avatarType === option.type;
               return (
@@ -142,13 +142,13 @@ export function RegisterPage() {
           disabled={loading || !avatarType}
           className="bg-blue-600 rounded-lg px-4 py-2 mt-2 disabled:opacity-50"
         >
-          {loading ? "Création..." : "Créer mon compte"}
+          {loading ? "Creating..." : "Create my account"}
         </button>
 
         <p className="text-sm text-slate-400 text-center">
-          Déjà un compte ?{" "}
+          Already have an account?{" "}
           <Link to="/login" className="text-blue-400">
-            Connectez-vous
+            Log in
           </Link>
         </p>
       </form>

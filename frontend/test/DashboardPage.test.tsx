@@ -126,7 +126,7 @@ function renderDashboard() {
 // Drives the component all the way from a fresh mount (starts on "intro" -
 // beforeEach below clears sessionStorage before every test, so the intro
 // hasn't been seen yet this "session") through to "dashboard" phase, the
-// same way a learner clicking "Continuer sans parler" would - for tests
+// same way a learner clicking "Continue without speaking" would - for tests
 // that only care about the dashboard-phase behavior (destination voice
 // commands, card clicks).
 async function enterDashboardPhase(overrides: Partial<Me> = {}): Promise<ReturnType<typeof renderDashboard>> {
@@ -136,9 +136,9 @@ async function enterDashboardPhase(overrides: Partial<Me> = {}): Promise<ReturnT
   await endLatestSpeech();
 
   await act(async () => {
-    screen.getByRole("button", { name: /Continuer sans parler/ }).click();
+    screen.getByRole("button", { name: /Continue without speaking/ }).click();
   });
-  await waitFor(() => expect(screen.getByRole("heading", { name: /Choisir une activité/ })).toBeInTheDocument(), {
+  await waitFor(() => expect(screen.getByRole("heading", { name: /Choose an activity/ })).toBeInTheDocument(), {
     timeout: 2000,
   });
   await waitFor(() => expect(speak.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 2000 });
@@ -195,9 +195,9 @@ describe("DashboardPage", () => {
     renderDashboard();
     await flushMicrotasks();
 
-    expect(screen.queryByText(/Choisir une activité/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Défi du jour/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Continuer sans parler/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Choose an activity/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Daily Challenge/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continue without speaking/ })).toBeInTheDocument();
   });
 
   it("greets the learner by their real first name, not a hardcoded one", async () => {
@@ -243,7 +243,7 @@ describe("DashboardPage", () => {
     // see the accessibility note in DashboardPage.tsx), so the heading
     // itself appears right when `phase` flips; the "what next" question is
     // only spoken once the CSS transition's own timer has actually elapsed.
-    await waitFor(() => expect(screen.getByRole("heading", { name: /Choisir une activité/ })).toBeInTheDocument(), {
+    await waitFor(() => expect(screen.getByRole("heading", { name: /Choose an activity/ })).toBeInTheDocument(), {
       timeout: 2000,
     });
     await waitFor(() => expect(speak.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 2000 });
@@ -263,9 +263,9 @@ describe("DashboardPage", () => {
     await endLatestSpeech();
 
     await act(async () => {
-      screen.getByRole("button", { name: /Continuer sans parler/ }).click();
+      screen.getByRole("button", { name: /Continue without speaking/ }).click();
     });
-    await waitFor(() => expect(screen.getByRole("heading", { name: /Choisir une activité/ })).toBeInTheDocument(), {
+    await waitFor(() => expect(screen.getByRole("heading", { name: /Choose an activity/ })).toBeInTheDocument(), {
       timeout: 2000,
     });
 
@@ -289,7 +289,7 @@ describe("DashboardPage", () => {
     await flushMicrotasks();
 
     expect(latestUtterance().text).toBe("I didn't quite catch that. You can say yes, or continue with the button.");
-    expect(screen.queryByText(/Choisir une activité/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Choose an activity/)).not.toBeInTheDocument();
   });
 
   it("lets the learner skip straight to the dashboard without speaking at all", async () => {
@@ -298,10 +298,10 @@ describe("DashboardPage", () => {
     await flushMicrotasks();
 
     await act(async () => {
-      screen.getByRole("button", { name: /Continuer sans parler/ }).click();
+      screen.getByRole("button", { name: /Continue without speaking/ }).click();
     });
 
-    await waitFor(() => expect(screen.getByRole("heading", { name: /Choisir une activité/ })).toBeInTheDocument(), {
+    await waitFor(() => expect(screen.getByRole("heading", { name: /Choose an activity/ })).toBeInTheDocument(), {
       timeout: 2000,
     });
     // Drains the "what next" question's own real 700ms transition timeout
@@ -326,8 +326,8 @@ describe("DashboardPage", () => {
     renderDashboard();
     await flushMicrotasks();
 
-    expect(screen.getByRole("heading", { name: /Choisir une activité/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Continuer sans parler/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Choose an activity/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Continue without speaking/ })).not.toBeInTheDocument();
     // No greeting, no "what next" question - a silent return to the cards.
     expect(speak.mock.calls.length).toBe(speakCallsBeforeSecondMount);
   });
@@ -346,8 +346,8 @@ describe("DashboardPage", () => {
     renderDashboard();
     await flushMicrotasks();
 
-    expect(screen.getByRole("button", { name: /Continuer sans parler/ })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: /Choisir une activité/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continue without speaking/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Choose an activity/ })).not.toBeInTheDocument();
     expect(speak.mock.calls.length).toBeGreaterThan(speakCallsBeforeSecondMount);
   });
 
@@ -411,49 +411,49 @@ describe("DashboardPage", () => {
   });
 
   it("keeps every dashboard card clickable on its own, with no vocal confirmation required", async () => {
-    // Test de vocabulaire only shows for A0/A1 learners (see the dedicated
+    // Vocabulary Test only shows for A0/A1 learners (see the dedicated
     // describe block below) - A0 here so this test still covers all 3 cards.
     await enterDashboardPhase({ level: { code: "A0", name: "Débutant absolu", xpThreshold: 0 } });
 
-    expect(screen.getByRole("link", { name: /Test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
-    expect(screen.getByRole("link", { name: /Explorer/ })).toHaveAttribute("href", "/catalog");
-    expect(screen.getByRole("link", { name: /Badges & trophées/ })).toHaveAttribute("href", "/trophees");
+    expect(screen.getByRole("link", { name: /Vocabulary Test/ })).toHaveAttribute("href", "/quiz");
+    expect(screen.getByRole("link", { name: /Explore/ })).toHaveAttribute("href", "/catalog");
+    expect(screen.getByRole("link", { name: /Badges & Trophies/ })).toHaveAttribute("href", "/trophees");
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  describe("Test de vocabulaire visibility", () => {
-    it("shows the Test de vocabulaire card and CTA for an A0 learner", async () => {
+  describe("Vocabulary Test visibility", () => {
+    it("shows the Vocabulary Test card and CTA for an A0 learner", async () => {
       await enterDashboardPhase({
         level: { code: "A0", name: "Débutant absolu", xpThreshold: 0 },
         totalXp: 0,
         sessionsCount: 0,
       });
 
-      expect(screen.getByRole("link", { name: /Test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
-      expect(screen.getByRole("link", { name: /Commencer le test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
+      expect(screen.getByRole("link", { name: /Vocabulary Test/ })).toHaveAttribute("href", "/quiz");
+      expect(screen.getByRole("link", { name: /Start the vocabulary test/ })).toHaveAttribute("href", "/quiz");
     });
 
-    it("still shows the Test de vocabulaire card for an A1 learner", async () => {
+    it("still shows the Vocabulary Test card for an A1 learner", async () => {
       await enterDashboardPhase({
         level: { code: "A1", name: "Grands débuts", xpThreshold: 300 },
         totalXp: 0,
         sessionsCount: 0,
       });
 
-      expect(screen.getByRole("link", { name: /Test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
-      expect(screen.getByRole("link", { name: /Commencer le test de vocabulaire/ })).toHaveAttribute("href", "/quiz");
+      expect(screen.getByRole("link", { name: /Vocabulary Test/ })).toHaveAttribute("href", "/quiz");
+      expect(screen.getByRole("link", { name: /Start the vocabulary test/ })).toHaveAttribute("href", "/quiz");
     });
 
-    it("hides the Test de vocabulaire card and CTA for a learner past A1", async () => {
+    it("hides the Vocabulary Test card and CTA for a learner past A1", async () => {
       await enterDashboardPhase({
         level: { code: "A2", name: "Élémentaire", xpThreshold: 1000 },
         totalXp: 0,
         sessionsCount: 0,
       });
 
-      expect(screen.queryByRole("link", { name: /Test de vocabulaire/ })).not.toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: /Commencer le test de vocabulaire/ })).not.toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "▶ Reprendre" })).toHaveAttribute("href", "/catalog");
+      expect(screen.queryByRole("link", { name: /Vocabulary Test/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: /Start the vocabulary test/ })).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "▶ Resume" })).toHaveAttribute("href", "/catalog");
     });
   });
 
@@ -463,7 +463,7 @@ describe("DashboardPage", () => {
     // standalone block elsewhere on the page. Always present once a line has
     // been spoken (RF-03); only whether it *starts* expanded depends on the
     // learner's own CecrlProfile.translationMode.
-    const translationButton = () => screen.getByRole("button", { name: "Traduction en français" });
+    const translationButton = () => screen.getByRole("button", { name: "French translation" });
 
     it("auto-reveals the French translation for a learner whose profile marks it visible (A0-A2)", async () => {
       useAuthStore.setState({
@@ -513,7 +513,7 @@ describe("DashboardPage", () => {
     useAuthStore.setState({ user: null, fetchMeError: true });
     renderDashboard();
 
-    expect(screen.getByText("Impossible de charger ton profil.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
+    expect(screen.getByText("Unable to load your profile.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 });
