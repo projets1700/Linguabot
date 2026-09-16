@@ -24,6 +24,7 @@ services:
     App\Service\RegistrationMailer:
         arguments:
             $frontendUrl: '%env(FRONTEND_URL)%'
+            $fromAddress: '%env(MAILER_FROM_ADDRESS)%'
 
     App\Service\AiChatService:
         arguments:

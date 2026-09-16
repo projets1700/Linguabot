@@ -11,6 +11,7 @@ final class RegistrationMailer
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly string $frontendUrl,
+        private readonly string $fromAddress,
     ) {
     }
 
@@ -20,7 +21,7 @@ final class RegistrationMailer
         $prenom = htmlspecialchars($pending->getPrenom(), ENT_QUOTES);
 
         $email = (new Email())
-            ->from('no-reply@linguabot.fr')
+            ->from($this->fromAddress)
             ->to($pending->getEmail())
             ->subject('Confirme ton inscription à LinguaBot')
             ->html(\sprintf(
