@@ -307,6 +307,87 @@ export type LearnerStats = {
   history: { day: string; sessionsCount: number; xpEarned: number }[];
 };
 
+/**
+ * V2 pilot (LinguaBot_V2_Conception.md) - World -> Room -> Situation ->
+ * Mission hierarchy, GET /api/worlds and GET /api/worlds/{code}
+ * (backend/src/Service/RoomCatalogService.php).
+ */
+export type WorldSummary = {
+  code: string;
+  title: string;
+  description: string | null;
+  orderNum: number;
+  unlocked: boolean;
+  roomsCount: number;
+  situationsCompleted: number;
+  situationsTotal: number;
+};
+
+export type WorldMission = {
+  id: number;
+  code: string;
+  title: string;
+  objective: string;
+  level: string;
+  baseXp: number;
+  unlocked: boolean;
+};
+
+export type WorldSituation = {
+  code: string;
+  title: string;
+  description: string | null;
+  unlocked: boolean;
+  completed: boolean;
+  missions: WorldMission[];
+};
+
+export type WorldRoom = {
+  code: string;
+  title: string;
+  backgroundImageSrc: string | null;
+  unlocked: boolean;
+  situations: WorldSituation[];
+};
+
+export type WorldDetail = {
+  code: string;
+  title: string;
+  description: string | null;
+  unlocked: boolean;
+  rooms: WorldRoom[];
+};
+
+export type MissionSessionMessage = SessionMessage;
+
+export type MissionSessionDetail = {
+  id: number;
+  status: "in_progress" | "completed" | "abandoned";
+  mission: {
+    id: number;
+    title: string;
+    objective: string;
+    characterName: string;
+    situationTitle: string;
+    roomTitle: string;
+    roomCode: string;
+    worldCode: string;
+    backgroundImageSrc: string | null;
+  };
+  cecrlProfile: CecrlProfile;
+  messages: MissionSessionMessage[];
+  summary: SessionSummary | null;
+};
+
+export type MissionFinishResult = {
+  xpEarned: number;
+  userTotalXp: number;
+  levelUp: LevelUpResult | null;
+  newBadges: EarnedBadge[];
+  newTrophies: EarnedTrophy[];
+  summary: SessionSummary;
+};
+
 export type Trophy = {
   code: string;
   name: string;

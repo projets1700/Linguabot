@@ -31,6 +31,9 @@ final class GamificationFixtures extends Fixture
         ['BADGE_THEMATIC_EXPERT', 'Expert thématique', "Compléter tous les scénarios thématiques d'un niveau", '🎯', 'any_level_thematique_complete', 5, 150],
         ['BADGE_LEVEL_UP', 'Passage de niveau', 'Atteindre chaque nouveau niveau CECRL', '🚀', 'level_up', 1, 200],
         ['BADGE_CHALLENGE_CHAMPION', 'Champion du défi', 'Compléter 7 défis du jour consécutifs', '🥇', 'daily_challenge_streak', 7, 250],
+        // V2 pilot (LinguaBot_V2_Conception.md) - proves the Mission reward
+        // wiring end to end, not a full new reward catalog yet.
+        ['BADGE_ADVENTURE_START', 'Première mission', "Compléter ta première mission de l'Aventure", '🗺️', 'missions_completed', 1, 50],
     ];
 
     /**
@@ -43,6 +46,9 @@ final class GamificationFixtures extends Fixture
         ['TROPHY_MASTER_B2', 'Trophée Maître B2', 'Compléter tous les scénarios B2 (10/10)', 'level_b2_complete', 10, 1000, TrophyRarity::PLATINUM],
         ['TROPHY_PERFECTIONIST', 'Perfectionniste', 'Obtenir plus de 90 % sur 10 scénarios différents', 'high_score_scenarios', 10, 500, TrophyRarity::PLATINUM],
         ['TROPHY_DEDICATED', 'Assidu', 'Effectuer 30 sessions au total', 'total_sessions', 30, 0, TrophyRarity::GOLD],
+        // V2 pilot: conditionValue is the target World's orderNum (0 = "Vie
+        // quotidienne", the only world seeded so far - MissionSessionRepository::hasCompletedAnyMissionInWorldWithOrderNum()).
+        ['TROPHY_WORLD_EXPLORER', 'Explorateur du Monde 1', 'Compléter une mission dans le Monde 1 - Vie quotidienne', 'world_explored', 0, 200, TrophyRarity::BRONZE],
     ];
 
     public function load(ObjectManager $manager): void

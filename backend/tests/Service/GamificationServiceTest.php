@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Repository\BadgeRepository;
 use App\Repository\ChallengeSessionRepository;
 use App\Repository\LevelRepository;
+use App\Repository\MissionSessionRepository;
 use App\Repository\QuizAttemptRepository;
 use App\Repository\ScenarioRepository;
 use App\Repository\SessionRepository;
@@ -42,6 +43,7 @@ final class GamificationServiceTest extends TestCase
             $this->createStub(QuizAttemptRepository::class),
             $this->createStub(ChallengeSessionRepository::class),
             $this->levelRepository,
+            $this->createStub(MissionSessionRepository::class),
             $this->createStub(EntityManagerInterface::class),
         );
     }
@@ -123,6 +125,7 @@ final class GamificationServiceTest extends TestCase
             $this->createStub(QuizAttemptRepository::class),
             $this->createStub(ChallengeSessionRepository::class),
             $levelRepository,
+            $this->createStub(MissionSessionRepository::class),
             $this->createStub(EntityManagerInterface::class),
         );
 

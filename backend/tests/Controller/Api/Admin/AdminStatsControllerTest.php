@@ -36,11 +36,13 @@ final class AdminStatsControllerTest extends ApiTestCase
 
         $this->jsonRequest($client, 'GET', '/api/admin/badges', $token);
         self::assertResponseIsSuccessful();
-        self::assertCount(12, $this->decodeResponse($client));
+        // 12 CDCF badges + 1 V2 pilot badge (BADGE_ADVENTURE_START).
+        self::assertCount(13, $this->decodeResponse($client));
 
         $this->jsonRequest($client, 'GET', '/api/admin/trophies', $token);
         self::assertResponseIsSuccessful();
-        self::assertCount(6, $this->decodeResponse($client));
+        // 6 CDCF trophies + 1 V2 pilot trophy (TROPHY_WORLD_EXPLORER).
+        self::assertCount(7, $this->decodeResponse($client));
     }
 
     private function promoteToAdmin(string $email): void

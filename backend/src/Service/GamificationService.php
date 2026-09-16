@@ -11,6 +11,7 @@ use App\Entity\Level;
 use App\Repository\BadgeRepository;
 use App\Repository\ChallengeSessionRepository;
 use App\Repository\LevelRepository;
+use App\Repository\MissionSessionRepository;
 use App\Repository\QuizAttemptRepository;
 use App\Repository\ScenarioRepository;
 use App\Repository\SessionRepository;
@@ -37,6 +38,7 @@ final class GamificationService
         private readonly QuizAttemptRepository $quizAttemptRepository,
         private readonly ChallengeSessionRepository $challengeSessionRepository,
         private readonly LevelRepository $levelRepository,
+        private readonly MissionSessionRepository $missionSessionRepository,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -172,6 +174,13 @@ final class GamificationService
             'any_level_thematique_complete' => $this->anyLevelCategoryComplete($user, 'thematique'),
             'level_up' => 'A0' !== $user->getLevel()->getCode(),
             'daily_challenge_streak' => $this->challengeSessionRepository->currentConsecutiveStreak($user) >= $badge->getConditionValue(),
+            // V2 pilot (LinguaBot_V2_Conception.md): conditionValue is a
+            // plain mission count for 'missions_completed', and the target
+            // World's orderNum for 'world_explored' (0 for the pilot "Vie
+            // quotidienne" world) - same "just an int" shape as every other
+            // conditionType here, no new FK needed on Badge/Trophy.
+            'missions_completed' => $this->missionSessionRepository->countCompletedMissions($user) >= $badge->getConditionValue(),
+            'world_explored' => $this->missionSessionRepository->hasCompletedAnyMissionInWorldWithOrderNum($user, $badge->getConditionValue()),
             default => false,
         };
     }
@@ -202,6 +211,14 @@ final class GamificationService
             'level_b2_complete' => [$this->sessionRepository->countDistinctCompletedScenariosForLevel($user, 'B2'), $this->scenarioRepository->countByLevel('B2')],
             'high_score_scenarios' => [$this->sessionRepository->countDistinctScenariosWithScoreAbove($user, 90), $trophy->getConditionValue()],
             'total_sessions' => [$user->getSessionsCount(), $trophy->getConditionValue()],
+            'missions_completed' => [$this->missionSessionRepository->countCompletedMissions($user), $trophy->getConditionValue()],
+            // world_explored is boolean (has the learner completed anything
+            // in this World yet?), expressed as a 0/1 progress pair so it
+            // fits the same [current, total] shape as every other trophy.
+            'world_explored' => [
+                $this->missionSessionRepository->hasCompletedAnyMissionInWorldWithOrderNum($user, $trophy->getConditionValue()) ? 1 : 0,
+                1,
+            ],
             default => [0, max(1, $trophy->getConditionValue())],
         };
     }

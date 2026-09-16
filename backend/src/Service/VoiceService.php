@@ -93,9 +93,19 @@ final class VoiceService
      */
     public function openingMessage(Scenario $scenario): string
     {
+        return $this->openingMessageForCharacter($scenario->getCharacterName());
+    }
+
+    /**
+     * Same opening line as openingMessage(), for any other content type with
+     * a character name but no Scenario entity (e.g. Mission) - kept as one
+     * shared implementation rather than duplicating the sprintf template.
+     */
+    public function openingMessageForCharacter(string $characterName): string
+    {
         return \sprintf(
             "Hello! I'm %s. Go ahead, say something to get started!",
-            $scenario->getCharacterName(),
+            $characterName,
         );
     }
 
