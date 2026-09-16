@@ -41,6 +41,13 @@ const MISSION_REFORMULATED_READY_QUESTION =
   "I didn't quite catch that. Say yes when you're ready, or use the button below.";
 const MISSION_DECLINED_MESSAGE = "No problem. Tap the button below whenever you're ready.";
 
+// The manual "Relever le défi" button stays hidden while LinguaBot is
+// waiting for a spoken reply, appearing only once this much silence has
+// passed since it finished asking - voice stays the primary path, the
+// button is a fallback for a learner without a working mic, not a
+// competing default action shown from the first instant.
+const MISSION_FALLBACK_DELAY_MS = 10_000;
+
 export function DailyChallengePage() {
   const user = useAuthStore((state) => state.user);
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
@@ -92,6 +99,23 @@ export function DailyChallengePage() {
     speakAssistantLine(buildMissionBriefing(challenge), "en-US");
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [challenge]);
+
+  // Reveals the manual "Relever le défi" button only after
+  // MISSION_FALLBACK_DELAY_MS of silence since LinguaBot last finished
+  // asking - re-armed (hidden again, then re-counted) every time it speaks
+  // again (the briefing itself, a reformulated question, or the decline
+  // message), so the button only ever appears once the *current* question
+  // has gone unanswered by voice for that long.
+  const [showFallbackButton, setShowFallbackButton] = useState(false);
+  useEffect(() => {
+    if (chatStarted) return;
+    if (avatarState === "speaking") {
+      setShowFallbackButton(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowFallbackButton(true), MISSION_FALLBACK_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [avatarState, chatStarted]);
 
   async function handleStart() {
     if (!challenge) return;
@@ -229,11 +253,10 @@ export function DailyChallengePage() {
         ? "LinguaBot parle..."
         : "À toi de parler";
 
-  // Same idea, for the pre-launch "are you ready?" exchange - no "sending"/
-  // "thinking" state exists here (classifyOnboardingReadiness runs locally,
-  // no network round-trip), so this only ever toggles between LinguaBot
-  // talking and listening for the reply.
-  const missionReadyStatusLabel = avatarState === "speaking" ? "LinguaBot parle..." : "Dis \"yes\" quand tu es prêt";
+  // Same idea, for the pre-launch "are you ready?" exchange - only shown
+  // while LinguaBot is actually talking; nothing is displayed while it's
+  // just listening, so the mic itself is the only cue (no "say yes" nudge).
+  const missionReadyStatusLabel = avatarState === "speaking" ? "LinguaBot parle..." : null;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-6 sm:p-8">
@@ -290,7 +313,9 @@ export function DailyChallengePage() {
                 manual "Relever le défi" button below stays the fallback
                 for a learner without a working mic, or who just prefers it. */}
             <div className="flex flex-col items-center gap-2 mt-3 mb-5">
-              <p className="text-sm font-semibold text-white">{missionReadyStatusLabel}</p>
+              {missionReadyStatusLabel && (
+                <p className="text-sm font-semibold text-white">{missionReadyStatusLabel}</p>
+              )}
               <VoiceInput
                 onResult={handleMissionReadyReply}
                 disabled={avatarState === "speaking" || avatarState === "thinking"}
@@ -309,9 +334,14 @@ export function DailyChallengePage() {
               <p className="text-slate-400 text-sm mt-1">Une mini-mission pour pratiquer ton anglais.</p>
             </div>
 
-            <div className="flex justify-center">
-              <Button onClick={handleStart} size="lg">▶ Relever le défi</Button>
-            </div>
+            {/* Manual fallback, not the default action - see
+                showFallbackButton above (MISSION_FALLBACK_DELAY_MS of
+                silence since LinguaBot's last question). */}
+            {showFallbackButton && (
+              <div className="flex justify-center">
+                <Button onClick={handleStart} size="lg">▶ Relever le défi</Button>
+              </div>
+            )}
           </>
         ) : (
           <>

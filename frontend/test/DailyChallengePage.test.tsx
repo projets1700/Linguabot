@@ -193,19 +193,20 @@ function renderPage() {
 
 /**
  * Gets past the mandatory pre-launch briefing ("Today's mission... Are you
- * ready?") and clicks the manual button to launch the challenge - the
- * button path, as opposed to the voice "yes" path covered by its own tests
- * below. Leaves the opening line's speech still in flight (avatarState
- * "speaking"), matching where the old (pre-briefing) tests used to start
- * their own assertions right after clicking.
+ * ready?") and launches the challenge by voice ("yes") - the button is a
+ * silence-triggered fallback now (see MISSION_FALLBACK_DELAY_MS), not
+ * clickable on demand, so tests that only need to reach État 2 go through
+ * voice rather than juggling fake timers just to get there. The button
+ * path itself has its own dedicated test below. Leaves the opening line's
+ * speech still in flight (avatarState "speaking"), matching where the old
+ * tests used to start their own assertions right after clicking.
  */
-async function startViaButtonAfterBriefing(): Promise<void> {
-  await waitFor(() => expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument());
+async function startChallengeViaVoice(): Promise<void> {
   await waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
   await endLatestSpeech();
 
   await act(async () => {
-    screen.getByRole("button", { name: /Relever le défi/ }).click();
+    await voiceInputState.current?.onResult("yes");
   });
 
   await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
@@ -232,11 +233,13 @@ describe("DailyChallengePage", () => {
 
     await waitFor(() => expect(screen.getByText("Rainy Day Plans")).toBeInTheDocument());
     expect(screen.getByText(/\+120 XP/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument();
     // The "Ta mission" card (context/objective/keywords) was removed - it
     // duplicated what LinguaBot now says out loud in the briefing.
     expect(screen.queryByText("🎯 Ta mission")).not.toBeInTheDocument();
     expect(screen.queryByText("rain")).not.toBeInTheDocument();
+    // The manual button is a silence-triggered fallback, not shown from
+    // the first instant - own dedicated test covers its 10s reveal.
+    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
 
     // LinguaBot is visible from the very first render, before the mission
     // is even started - not just once the conversation begins.
@@ -282,7 +285,10 @@ describe("DailyChallengePage", () => {
     await waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
     await endLatestSpeech();
 
-    expect(screen.getByText('Dis "yes" quand tu es prêt')).toBeInTheDocument();
+    // No status text nudges the learner to speak - the mic itself is the
+    // only cue - and the fallback button hasn't appeared yet either.
+    expect(screen.queryByText(/Dis/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
     expect(screen.getByTestId("voice-input-stub")).toHaveAttribute("data-disabled", "false");
 
     await act(async () => {
@@ -307,7 +313,9 @@ describe("DailyChallengePage", () => {
     await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
     expect(latestUtteranceText()).toBe("No problem. Tap the button below whenever you're ready.");
     expect(apiPostSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument();
+    // The button only appears after MISSION_FALLBACK_DELAY_MS of silence
+    // (own dedicated test below with fake timers) - not immediately.
+    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
   });
 
   it("reformulates the ready question on an ambiguous reply, without launching the challenge", async () => {
@@ -323,13 +331,50 @@ describe("DailyChallengePage", () => {
     await waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
     expect(latestUtteranceText()).toBe("I didn't quite catch that. Say yes when you're ready, or use the button below.");
     expect(apiPostSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
+  });
+
+  it("only reveals the fallback button after 10s of silence since LinguaBot's question, and it still launches the challenge", async () => {
+    mockApi({ challenge: baseChallenge() });
+    vi.useFakeTimers();
+    try {
+      renderPage();
+      // Flushes the GET /daily-challenge microtask and the briefing effect
+      // without relying on waitFor's own timer-based polling, which fake
+      // timers would otherwise starve.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(speak).toHaveBeenCalledTimes(1);
+      await endLatestSpeech();
+
+      // Not yet - under the 10s grace period since the question finished.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(9_000);
+      });
+      expect(screen.queryByRole("button", { name: /Relever le défi/ })).not.toBeInTheDocument();
+
+      // Past 10s of silence - the fallback now appears.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1_000);
+      });
+      const button = screen.getByRole("button", { name: /Relever le défi/ });
+      expect(button).toBeInTheDocument();
+
+      await act(async () => {
+        button.click();
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(apiPostSpy).toHaveBeenCalledWith("/daily-challenge/start");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("collapses the detailed presentation into a compact reminder once the challenge starts, and keeps the same avatar framing", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await startViaButtonAfterBriefing();
+    await startChallengeViaVoice();
 
     await waitFor(() => expect(screen.getByText("En cours")).toBeInTheDocument());
     // The full mission card, its keywords and the XP badge are gone - only
@@ -346,10 +391,10 @@ describe("DailyChallengePage", () => {
     expect(avatar).toHaveAttribute("data-transparent-background", "true");
   });
 
-  it("starts the challenge via the button, frames the avatar as 'portrait' without the debug state label, and speaks the real opening line", async () => {
+  it("launches via voice, frames the avatar as 'portrait' without the debug state label, and speaks the real opening line", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await startViaButtonAfterBriefing();
+    await startChallengeViaVoice();
 
     const avatar = screen.getByTestId("avatar-scene-stub");
     expect(avatar).toHaveAttribute("data-framing", "portrait");
@@ -365,7 +410,7 @@ describe("DailyChallengePage", () => {
   it("shows 'À toi de parler' once the opening line finishes, then 'Analyse de ta réponse...' while a reply is in flight", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await startViaButtonAfterBriefing();
+    await startChallengeViaVoice();
     await endLatestSpeech();
 
     expect(screen.getByText("À toi de parler")).toBeInTheDocument();
@@ -388,7 +433,7 @@ describe("DailyChallengePage", () => {
   it("submits the learner's spoken answer and displays the AI's real reply", async () => {
     mockApi({ challenge: baseChallenge(), assistantMessage: "Great idea! What would you suggest?" });
     renderPage();
-    await startViaButtonAfterBriefing();
+    await startChallengeViaVoice();
     await endLatestSpeech();
 
     await act(async () => {
@@ -410,7 +455,7 @@ describe("DailyChallengePage", () => {
   it("shows the help panel directly for a profile with helpVisibleByDefault, and a toggle button otherwise", async () => {
     mockApi({ challenge: baseChallenge({}, { helpVisibleByDefault: false, hintMode: "keywords" }) });
     renderPage();
-    await startViaButtonAfterBriefing();
+    await startChallengeViaVoice();
 
     expect(screen.getByRole("button", { name: "Besoin d'aide ?" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Je suis bloqué/ })).not.toBeInTheDocument();
@@ -433,7 +478,7 @@ describe("DailyChallengePage", () => {
       return Promise.reject(new Error(`unexpected POST ${url}`));
     });
     renderPage();
-    await startViaButtonAfterBriefing();
+    await startChallengeViaVoice();
     await endLatestSpeech();
 
     await act(async () => {
@@ -447,7 +492,7 @@ describe("DailyChallengePage", () => {
   it("keeps 'Terminer le défi' disabled until the learner has actually answered", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await startViaButtonAfterBriefing();
+    await startChallengeViaVoice();
 
     expect(screen.getByRole("button", { name: "Terminer le défi" })).toBeDisabled();
 
@@ -462,7 +507,7 @@ describe("DailyChallengePage", () => {
   it("shows the real XP earned on the result screen after finishing", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
-    await startViaButtonAfterBriefing();
+    await startChallengeViaVoice();
     await endLatestSpeech();
     await act(async () => {
       await voiceInputState.current?.onResult("Let's watch a movie together!");
