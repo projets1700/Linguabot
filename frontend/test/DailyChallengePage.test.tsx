@@ -226,16 +226,17 @@ describe("DailyChallengePage", () => {
     apiPostSpy?.mockRestore();
   });
 
-  it("loads and shows the real title, mission and XP reward before starting, with the avatar already visible", async () => {
+  it("loads and shows the real title and XP reward before starting, with the avatar already visible", async () => {
     mockApi({ challenge: baseChallenge() });
     renderPage();
 
     await waitFor(() => expect(screen.getByText("Rainy Day Plans")).toBeInTheDocument());
     expect(screen.getByText(/\+120 XP/)).toBeInTheDocument();
-    expect(screen.getByText("It's raining and your outdoor plans are cancelled.")).toBeInTheDocument();
-    expect(screen.getByText("Suggest an alternative indoor activity to a friend.")).toBeInTheDocument();
-    expect(screen.getByText("rain")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Relever le défi/ })).toBeInTheDocument();
+    // The "Ta mission" card (context/objective/keywords) was removed - it
+    // duplicated what LinguaBot now says out loud in the briefing.
+    expect(screen.queryByText("🎯 Ta mission")).not.toBeInTheDocument();
+    expect(screen.queryByText("rain")).not.toBeInTheDocument();
 
     // LinguaBot is visible from the very first render, before the mission
     // is even started - not just once the conversation begins.

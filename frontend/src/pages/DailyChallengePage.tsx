@@ -299,27 +299,14 @@ export function DailyChallengePage() {
               />
             </div>
 
-            {/* Zone C - mission title, visually important, and zone D - the
-                mission card itself, deliberately narrower than the page
-                column (§3.D: 600-700px, not edge-to-edge). */}
-            <div className="text-center mt-4 mb-6">
+            {/* Zone C - mission title, visually important. The "Ta mission"
+                card (context/objective/keywords) that used to sit here was
+                removed: LinguaBot now says the same context+objective out
+                loud in the briefing above, so the card was a pure text
+                duplicate of what was just heard, not new information. */}
+            <div className="text-center mt-4 mb-8">
               <h1 className="text-3xl font-bold">{challenge.title}</h1>
               <p className="text-slate-400 text-sm mt-1">Une mini-mission pour pratiquer ton anglais.</p>
-            </div>
-
-            <div className="max-w-[640px] mx-auto bg-gradient-to-b from-slate-800/80 to-slate-800/40 border border-slate-700/50 rounded-2xl p-5 shadow-lg shadow-black/20 mb-6">
-              <p className="text-blue-400 text-xs font-bold uppercase tracking-wide mb-3">🎯 Ta mission</p>
-              <p className="text-slate-400 text-sm leading-relaxed mb-2">{challenge.context}</p>
-              <p className="text-white text-base font-semibold leading-relaxed">{challenge.objective}</p>
-              {challenge.keywords.length > 0 && (
-                <div className="flex gap-2 flex-wrap mt-4">
-                  {challenge.keywords.map((keyword) => (
-                    <span key={keyword} className="bg-slate-900/60 text-slate-500 text-[11px] px-2.5 py-1 rounded-full">
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="flex justify-center">
