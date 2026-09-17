@@ -10,9 +10,10 @@ use Doctrine\Persistence\ObjectManager;
 
 /**
  * All rooms of Monde 1 "Vie quotidienne" (7), Monde 2 "Sorties & loisirs"
- * (9), Monde 3 "Voyage & transport" (10) and Monde 4 "Vacances & aventure"
- * (5), each in the exact order LinguaBot_V2_Conception.md §5's own tables
- * list them. "Coffee shop" was
+ * (9), Monde 3 "Voyage & transport" (10), Monde 4 "Vacances & aventure" (5),
+ * Monde 5 "Travail & études" (7) and Monde 6 "Services & ville" (7), each in
+ * the exact order LinguaBot_V2_Conception.md §5's own tables list them.
+ * "Coffee shop" was
  * dropped from an earlier pilot version of this fixture under Monde 1 by
  * mistake - it correctly belongs to Monde 2, where it now lives.
  * backgroundImageSrc is left null on purpose - no room artwork exists yet,
@@ -62,6 +63,24 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface
     public const ROOM_CRUISE_SHIP_REFERENCE = 'room-w4-r4';
     public const ROOM_MUSEUM_REFERENCE = 'room-w4-r5';
 
+    // Monde 5 - Travail & études
+    public const ROOM_LECTURE_HALL_REFERENCE = 'room-w5-r1';
+    public const ROOM_LABORATORY_REFERENCE = 'room-w5-r2';
+    public const ROOM_INTERVIEW_ROOM_REFERENCE = 'room-w5-r3';
+    public const ROOM_OPEN_SPACE_REFERENCE = 'room-w5-r4';
+    public const ROOM_MEETING_ROOM_REFERENCE = 'room-w5-r5';
+    public const ROOM_HELP_DESK_REFERENCE = 'room-w5-r6';
+    public const ROOM_LIBRARY_REFERENCE = 'room-w5-r7';
+
+    // Monde 6 - Services & ville
+    public const ROOM_BANK_REFERENCE = 'room-w6-r1';
+    public const ROOM_POST_OFFICE_REFERENCE = 'room-w6-r2';
+    public const ROOM_ELECTRONICS_STORE_REFERENCE = 'room-w6-r3';
+    public const ROOM_GARAGE_REFERENCE = 'room-w6-r4';
+    public const ROOM_REAL_ESTATE_AGENCY_REFERENCE = 'room-w6-r5';
+    public const ROOM_APARTMENT_VIEWING_REFERENCE = 'room-w6-r6';
+    public const ROOM_POLICE_STATION_REFERENCE = 'room-w6-r7';
+
     /**
      * [worldReference, reference, code, title].
      */
@@ -100,6 +119,22 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface
         [WorldFixtures::WORLD_4_REFERENCE, self::ROOM_CAMPSITE_REFERENCE, 'W4-R3', 'Cabane / camping'],
         [WorldFixtures::WORLD_4_REFERENCE, self::ROOM_CRUISE_SHIP_REFERENCE, 'W4-R4', 'Bateau / croisière'],
         [WorldFixtures::WORLD_4_REFERENCE, self::ROOM_MUSEUM_REFERENCE, 'W4-R5', 'Musée'],
+
+        [WorldFixtures::WORLD_5_REFERENCE, self::ROOM_LECTURE_HALL_REFERENCE, 'W5-R1', 'Université / amphithéâtre'],
+        [WorldFixtures::WORLD_5_REFERENCE, self::ROOM_LABORATORY_REFERENCE, 'W5-R2', 'Laboratoire'],
+        [WorldFixtures::WORLD_5_REFERENCE, self::ROOM_INTERVIEW_ROOM_REFERENCE, 'W5-R3', "Salle d'entretien"],
+        [WorldFixtures::WORLD_5_REFERENCE, self::ROOM_OPEN_SPACE_REFERENCE, 'W5-R4', 'Open space'],
+        [WorldFixtures::WORLD_5_REFERENCE, self::ROOM_MEETING_ROOM_REFERENCE, 'W5-R5', 'Salle de réunion'],
+        [WorldFixtures::WORLD_5_REFERENCE, self::ROOM_HELP_DESK_REFERENCE, 'W5-R6', "Centre d'assistance"],
+        [WorldFixtures::WORLD_5_REFERENCE, self::ROOM_LIBRARY_REFERENCE, 'W5-R7', 'Bibliothèque'],
+
+        [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_BANK_REFERENCE, 'W6-R1', 'Banque'],
+        [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_POST_OFFICE_REFERENCE, 'W6-R2', 'Bureau de poste'],
+        [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_ELECTRONICS_STORE_REFERENCE, 'W6-R3', "Boutique d'électronique"],
+        [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_GARAGE_REFERENCE, 'W6-R4', 'Garage automobile'],
+        [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_REAL_ESTATE_AGENCY_REFERENCE, 'W6-R5', 'Agence immobilière'],
+        [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_APARTMENT_VIEWING_REFERENCE, 'W6-R6', 'Appartement à visiter'],
+        [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_POLICE_STATION_REFERENCE, 'W6-R7', 'Commissariat'],
     ];
 
     public function load(ObjectManager $manager): void

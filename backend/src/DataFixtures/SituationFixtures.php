@@ -10,8 +10,9 @@ use Doctrine\Persistence\ObjectManager;
 
 /**
  * 2 situations per room across Monde 1 (14, over 7 rooms), Monde 2 (18,
- * over 9 rooms), Monde 3 (20, over 10 rooms) and Monde 4 (10, over 5 rooms)
- * - each room's first situation is the "situation de départ" from
+ * over 9 rooms), Monde 3 (20, over 10 rooms), Monde 4 (10, over 5 rooms),
+ * Monde 5 (14, over 7 rooms) and Monde 6 (14, over 7 rooms) - each room's
+ * first situation is the "situation de départ" from
  * LinguaBot_V2_Conception.md §5's tables, the second is an original variant
  * in the same spirit (§6: a room should host more than one situation).
  *
@@ -87,6 +88,38 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
     public const SITUATION_JOIN_SHIP_ACTIVITY_REFERENCE = 'situation-w4-r4-s2';
     public const SITUATION_BUY_MUSEUM_TICKET_REFERENCE = 'situation-w4-r5-s1';
     public const SITUATION_ASK_GUIDED_TOUR_REFERENCE = 'situation-w4-r5-s2';
+
+    // Monde 5 - Travail & études
+    public const SITUATION_FIRST_DAY_SCHOOL_REFERENCE = 'situation-w5-r1-s1';
+    public const SITUATION_FIND_CLASSROOM_REFERENCE = 'situation-w5-r1-s2';
+    public const SITUATION_GROUP_LAB_TASK_REFERENCE = 'situation-w5-r2-s1';
+    public const SITUATION_ASK_LAB_HELP_REFERENCE = 'situation-w5-r2-s2';
+    public const SITUATION_JOB_INTERVIEW_REFERENCE = 'situation-w5-r3-s1';
+    public const SITUATION_NEGOTIATE_TERMS_REFERENCE = 'situation-w5-r3-s2';
+    public const SITUATION_FIRST_DAY_WORK_REFERENCE = 'situation-w5-r4-s1';
+    public const SITUATION_ASK_COLLEAGUE_HELP_REFERENCE = 'situation-w5-r4-s2';
+    public const SITUATION_PRESENT_IDEA_REFERENCE = 'situation-w5-r5-s1';
+    public const SITUATION_ANSWER_OBJECTIONS_REFERENCE = 'situation-w5-r5-s2';
+    public const SITUATION_CUSTOMER_ISSUE_REFERENCE = 'situation-w5-r6-s1';
+    public const SITUATION_FOLLOW_UP_TICKET_REFERENCE = 'situation-w5-r6-s2';
+    public const SITUATION_LIBRARY_INFO_REFERENCE = 'situation-w5-r7-s1';
+    public const SITUATION_BORROW_BOOK_REFERENCE = 'situation-w5-r7-s2';
+
+    // Monde 6 - Services & ville
+    public const SITUATION_BANK_INFO_REFERENCE = 'situation-w6-r1-s1';
+    public const SITUATION_BANK_ISSUE_REFERENCE = 'situation-w6-r1-s2';
+    public const SITUATION_SEND_PACKAGE_REFERENCE = 'situation-w6-r2-s1';
+    public const SITUATION_TRACK_SHIPMENT_REFERENCE = 'situation-w6-r2-s2';
+    public const SITUATION_COMPARE_DEVICES_REFERENCE = 'situation-w6-r3-s1';
+    public const SITUATION_REPAIR_DEVICE_REFERENCE = 'situation-w6-r3-s2';
+    public const SITUATION_EXPLAIN_CAR_ISSUE_REFERENCE = 'situation-w6-r4-s1';
+    public const SITUATION_ASK_REPAIR_QUOTE_REFERENCE = 'situation-w6-r4-s2';
+    public const SITUATION_LOOK_FOR_APARTMENT_REFERENCE = 'situation-w6-r5-s1';
+    public const SITUATION_ASK_LEASE_TERMS_REFERENCE = 'situation-w6-r5-s2';
+    public const SITUATION_ASK_VIEWING_QUESTIONS_REFERENCE = 'situation-w6-r6-s1';
+    public const SITUATION_NEGOTIATE_RENT_REFERENCE = 'situation-w6-r6-s2';
+    public const SITUATION_REPORT_LOST_ITEM_REFERENCE = 'situation-w6-r7-s1';
+    public const SITUATION_FILE_REPORT_REFERENCE = 'situation-w6-r7-s2';
 
     /**
      * [reference, roomReference, code, title, description].
@@ -184,6 +217,48 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
 
         [self::SITUATION_BUY_MUSEUM_TICKET_REFERENCE, RoomFixtures::ROOM_MUSEUM_REFERENCE, 'W4-R5-S1', 'Acheter son entrée', "Achète ton billet et demande des informations sur une œuvre."],
         [self::SITUATION_ASK_GUIDED_TOUR_REFERENCE, RoomFixtures::ROOM_MUSEUM_REFERENCE, 'W4-R5-S2', 'Demander une visite guidée', "Renseigne-toi sur les visites guidées du musée."],
+
+        [self::SITUATION_FIRST_DAY_SCHOOL_REFERENCE, RoomFixtures::ROOM_LECTURE_HALL_REFERENCE, 'W5-R1-S1', 'Premier jour et rencontres', "C'est ton premier jour à l'université - fais connaissance avec d'autres étudiants."],
+        [self::SITUATION_FIND_CLASSROOM_REFERENCE, RoomFixtures::ROOM_LECTURE_HALL_REFERENCE, 'W5-R1-S2', 'Trouver sa salle de cours', 'Tu es perdu dans le bâtiment - demande ton chemin.'],
+
+        [self::SITUATION_GROUP_LAB_TASK_REFERENCE, RoomFixtures::ROOM_LABORATORY_REFERENCE, 'W5-R2-S1', 'Réaliser une tâche en groupe', 'Travaille avec un camarade sur une expérience de laboratoire.'],
+        [self::SITUATION_ASK_LAB_HELP_REFERENCE, RoomFixtures::ROOM_LABORATORY_REFERENCE, 'W5-R2-S2', "Demander de l'aide sur un protocole", "Tu ne comprends pas une étape du protocole - demande de l'aide."],
+
+        [self::SITUATION_JOB_INTERVIEW_REFERENCE, RoomFixtures::ROOM_INTERVIEW_ROOM_REFERENCE, 'W5-R3-S1', "Passer un entretien d'embauche", "Réponds aux questions d'un recruteur."],
+        [self::SITUATION_NEGOTIATE_TERMS_REFERENCE, RoomFixtures::ROOM_INTERVIEW_ROOM_REFERENCE, 'W5-R3-S2', 'Négocier les conditions', "Discute du salaire et des conditions de travail avec le recruteur."],
+
+        [self::SITUATION_FIRST_DAY_WORK_REFERENCE, RoomFixtures::ROOM_OPEN_SPACE_REFERENCE, 'W5-R4-S1', 'Premier jour de travail', "C'est ton premier jour - présente-toi à tes nouveaux collègues."],
+        [self::SITUATION_ASK_COLLEAGUE_HELP_REFERENCE, RoomFixtures::ROOM_OPEN_SPACE_REFERENCE, 'W5-R4-S2', "Demander de l'aide à un collègue", "Tu bloques sur une tâche - demande de l'aide à un collègue."],
+
+        [self::SITUATION_PRESENT_IDEA_REFERENCE, RoomFixtures::ROOM_MEETING_ROOM_REFERENCE, 'W5-R5-S1', 'Présenter une idée', 'Présente une idée à ton équipe en réunion.'],
+        [self::SITUATION_ANSWER_OBJECTIONS_REFERENCE, RoomFixtures::ROOM_MEETING_ROOM_REFERENCE, 'W5-R5-S2', 'Répondre à des objections', "Défends ton idée face aux questions et objections de l'équipe."],
+
+        [self::SITUATION_CUSTOMER_ISSUE_REFERENCE, RoomFixtures::ROOM_HELP_DESK_REFERENCE, 'W5-R6-S1', 'Résoudre un problème client', "Contacte le service client pour un problème."],
+        [self::SITUATION_FOLLOW_UP_TICKET_REFERENCE, RoomFixtures::ROOM_HELP_DESK_REFERENCE, 'W5-R6-S2', 'Suivre une réclamation', "Relance le service client au sujet d'une demande non résolue."],
+
+        [self::SITUATION_LIBRARY_INFO_REFERENCE, RoomFixtures::ROOM_LIBRARY_REFERENCE, 'W5-R7-S1', 'Chercher une information', 'Demande de l\'aide pour trouver un livre ou une ressource.'],
+        [self::SITUATION_BORROW_BOOK_REFERENCE, RoomFixtures::ROOM_LIBRARY_REFERENCE, 'W5-R7-S2', 'Emprunter un livre', 'Emprunte un livre et renseigne-toi sur la durée du prêt.'],
+
+        [self::SITUATION_BANK_INFO_REFERENCE, RoomFixtures::ROOM_BANK_REFERENCE, 'W6-R1-S1', 'Demander des informations', "Renseigne-toi sur l'ouverture d'un compte bancaire."],
+        [self::SITUATION_BANK_ISSUE_REFERENCE, RoomFixtures::ROOM_BANK_REFERENCE, 'W6-R1-S2', 'Signaler un problème', 'Signale un problème avec ta carte ou ton compte.'],
+
+        [self::SITUATION_SEND_PACKAGE_REFERENCE, RoomFixtures::ROOM_POST_OFFICE_REFERENCE, 'W6-R2-S1', 'Envoyer un colis', 'Envoie un colis au bureau de poste.'],
+        [self::SITUATION_TRACK_SHIPMENT_REFERENCE, RoomFixtures::ROOM_POST_OFFICE_REFERENCE, 'W6-R2-S2', 'Suivre un envoi', "Renseigne-toi sur l'état d'un envoi."],
+
+        [self::SITUATION_COMPARE_DEVICES_REFERENCE, RoomFixtures::ROOM_ELECTRONICS_STORE_REFERENCE, 'W6-R3-S1', 'Comparer des appareils', 'Compare deux appareils avec un vendeur.'],
+        [self::SITUATION_REPAIR_DEVICE_REFERENCE, RoomFixtures::ROOM_ELECTRONICS_STORE_REFERENCE, 'W6-R3-S2', 'Faire réparer un appareil', 'Demande la réparation d\'un appareil défectueux.'],
+
+        [self::SITUATION_EXPLAIN_CAR_ISSUE_REFERENCE, RoomFixtures::ROOM_GARAGE_REFERENCE, 'W6-R4-S1', 'Expliquer une panne', 'Explique le problème de ta voiture au garagiste.'],
+        [self::SITUATION_ASK_REPAIR_QUOTE_REFERENCE, RoomFixtures::ROOM_GARAGE_REFERENCE, 'W6-R4-S2', 'Demander un devis', 'Demande un devis de réparation et le délai.'],
+
+        [self::SITUATION_LOOK_FOR_APARTMENT_REFERENCE, RoomFixtures::ROOM_REAL_ESTATE_AGENCY_REFERENCE, 'W6-R5-S1', 'Chercher un logement', 'Décris le logement que tu recherches à un agent immobilier.'],
+        [self::SITUATION_ASK_LEASE_TERMS_REFERENCE, RoomFixtures::ROOM_REAL_ESTATE_AGENCY_REFERENCE, 'W6-R5-S2', 'Poser des questions sur un contrat', 'Pose des questions sur les conditions du bail.'],
+
+        [self::SITUATION_ASK_VIEWING_QUESTIONS_REFERENCE, RoomFixtures::ROOM_APARTMENT_VIEWING_REFERENCE, 'W6-R6-S1', 'Poser des questions', 'Visite un appartement et pose des questions à l\'agent.'],
+        [self::SITUATION_NEGOTIATE_RENT_REFERENCE, RoomFixtures::ROOM_APARTMENT_VIEWING_REFERENCE, 'W6-R6-S2', 'Négocier le loyer', "Essaie de négocier le loyer ou les conditions de la location."],
+
+        [self::SITUATION_REPORT_LOST_ITEM_REFERENCE, RoomFixtures::ROOM_POLICE_STATION_REFERENCE, 'W6-R7-S1', 'Signaler un objet perdu', 'Signale un objet perdu au commissariat.'],
+        [self::SITUATION_FILE_REPORT_REFERENCE, RoomFixtures::ROOM_POLICE_STATION_REFERENCE, 'W6-R7-S2', 'Faire une déclaration', "Fais une déclaration détaillée pour un vol ou un incident."],
     ];
 
     public function load(ObjectManager $manager): void

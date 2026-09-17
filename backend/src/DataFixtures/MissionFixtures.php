@@ -12,12 +12,12 @@ use Doctrine\Persistence\ObjectManager;
 /**
  * One A1 and one A2 Mission per situation across Monde 1 (28, over 14
  * situations), Monde 2 (36, over 18 situations), Monde 3 (40, over 20
- * situations) and Monde 4 (20, over 10 situations) - the mechanism that
- * lets the same Situation stay relevant as
- * the learner's level rises (LinguaBot_V2_Conception.md §8's restaurant
- * example: A1 orders simply, A2 asks questions/modifies the order). baseXp
- * mirrors the v1.1 catalog's own BASE_XP_BY_LEVEL (A1=60, A2=100) for
- * consistency across the two systems.
+ * situations), Monde 4 (20, over 10 situations), Monde 5 (28, over 14
+ * situations) and Monde 6 (28, over 14 situations) - the mechanism that
+ * lets the same Situation stay relevant as the learner's level rises
+ * (LinguaBot_V2_Conception.md §8's restaurant example: A1 orders simply, A2
+ * asks questions/modifies the order). baseXp mirrors the v1.1 catalog's own
+ * BASE_XP_BY_LEVEL (A1=60, A2=100) for consistency across the two systems.
  *
  * Update-in-place by code rather than blind insert - see WorldFixtures.
  */
@@ -344,6 +344,148 @@ final class MissionFixtures extends Fixture implements DependentFixtureInterface
             SituationFixtures::SITUATION_ASK_GUIDED_TOUR_REFERENCE, 'W4-R5-S2', 'Museum Staff',
             ['Se renseigner sur une visite', 'Ask about guided tour times at the museum.'],
             ['Réserver une visite guidée', 'Ask about different guided tours and book the one that fits your schedule.'],
+        ],
+
+        [
+            SituationFixtures::SITUATION_FIRST_DAY_SCHOOL_REFERENCE, 'W5-R1-S1', 'Classmate',
+            ['Se présenter', 'Introduce yourself to a classmate on your first day.'],
+            ['Discuter de son parcours', 'Introduce yourself and talk about your studies and interests with a classmate.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FIND_CLASSROOM_REFERENCE, 'W5-R1-S2', 'Student',
+            ['Demander son chemin', 'Ask another student for directions to your classroom.'],
+            ["Se renseigner sur l'emploi du temps", 'Ask another student for directions and information about the class schedule.'],
+        ],
+        [
+            SituationFixtures::SITUATION_GROUP_LAB_TASK_REFERENCE, 'W5-R2-S1', 'Lab Partner',
+            ['Répartir les tâches', 'Agree with a lab partner on how to split a simple task.'],
+            ['Discuter des résultats', 'Discuss the results of an experiment with a lab partner and agree on next steps.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_LAB_HELP_REFERENCE, 'W5-R2-S2', 'Lab Partner',
+            ["Demander de l'aide simple", 'Ask a lab partner for help understanding a step.'],
+            ['Clarifier un protocole', 'Ask a lab partner to explain a procedure in detail and confirm you understood correctly.'],
+        ],
+        [
+            SituationFixtures::SITUATION_JOB_INTERVIEW_REFERENCE, 'W5-R3-S1', 'Recruiter',
+            ['Se présenter', "Answer a recruiter's basic questions about yourself."],
+            ['Détailler son expérience', "Answer a recruiter's detailed questions about your experience and motivation."],
+        ],
+        [
+            SituationFixtures::SITUATION_NEGOTIATE_TERMS_REFERENCE, 'W5-R3-S2', 'Recruiter',
+            ['Poser une question simple', 'Ask the recruiter a simple question about the job.'],
+            ['Négocier les conditions', 'Discuss salary and working conditions with the recruiter.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FIRST_DAY_WORK_REFERENCE, 'W5-R4-S1', 'Colleague',
+            ['Se présenter', 'Introduce yourself to a new colleague on your first day.'],
+            ["Se renseigner sur l'équipe", 'Introduce yourself and ask a colleague about the team and how things work.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_COLLEAGUE_HELP_REFERENCE, 'W5-R4-S2', 'Colleague',
+            ["Demander de l'aide simple", 'Ask a colleague for help with a simple task.'],
+            ['Expliquer un blocage', "Explain what you're stuck on in detail and ask a colleague for advice."],
+        ],
+        [
+            SituationFixtures::SITUATION_PRESENT_IDEA_REFERENCE, 'W5-R5-S1', 'Team Member',
+            ['Présenter une idée simple', 'Present a simple idea to your team.'],
+            ['Détailler sa proposition', "Present an idea to your team and explain its benefits in detail."],
+        ],
+        [
+            SituationFixtures::SITUATION_ANSWER_OBJECTIONS_REFERENCE, 'W5-R5-S2', 'Team Member',
+            ['Répondre à une question', 'Answer a simple question about your idea.'],
+            ['Défendre son idée', 'Respond to objections about your idea and defend your reasoning.'],
+        ],
+        [
+            SituationFixtures::SITUATION_CUSTOMER_ISSUE_REFERENCE, 'W5-R6-S1', 'Support Agent',
+            ['Expliquer un problème simple', 'Explain a simple problem to customer support.'],
+            ['Détailler un problème', 'Explain a problem in detail to customer support and ask for a solution.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FOLLOW_UP_TICKET_REFERENCE, 'W5-R6-S2', 'Support Agent',
+            ['Relancer poliment', "Politely follow up on a support request that hasn't been resolved."],
+            ['Exiger une solution', 'Follow up on an unresolved issue, explain your frustration politely, and ask for a concrete solution.'],
+        ],
+        [
+            SituationFixtures::SITUATION_LIBRARY_INFO_REFERENCE, 'W5-R7-S1', 'Librarian',
+            ['Demander un livre', 'Ask a librarian to help you find a book.'],
+            ['Rechercher une ressource précise', 'Ask a librarian for help finding a specific resource for a research topic.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BORROW_BOOK_REFERENCE, 'W5-R7-S2', 'Librarian',
+            ['Emprunter un livre', 'Borrow a book and ask about the loan period.'],
+            ['Se renseigner sur les modalités', 'Ask a librarian about renewal and late return policies before borrowing a book.'],
+        ],
+
+        [
+            SituationFixtures::SITUATION_BANK_INFO_REFERENCE, 'W6-R1-S1', 'Bank Advisor',
+            ['Se renseigner sur un compte', 'Ask a bank advisor about opening a bank account.'],
+            ['Comparer des offres', 'Ask a bank advisor about different account options and compare their fees.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BANK_ISSUE_REFERENCE, 'W6-R1-S2', 'Bank Advisor',
+            ['Signaler un problème simple', 'Tell a bank advisor about a problem with your card.'],
+            ['Résoudre un problème', 'Explain a problem with your account in detail and ask the advisor to resolve it.'],
+        ],
+        [
+            SituationFixtures::SITUATION_SEND_PACKAGE_REFERENCE, 'W6-R2-S1', 'Post Office Clerk',
+            ['Envoyer un colis simple', 'Send a package at the post office.'],
+            ["Comparer des options d'envoi", 'Ask about different shipping options and choose the best one for your package.'],
+        ],
+        [
+            SituationFixtures::SITUATION_TRACK_SHIPMENT_REFERENCE, 'W6-R2-S2', 'Post Office Clerk',
+            ['Se renseigner sur un envoi', 'Ask about the status of a shipment.'],
+            ['Signaler un retard', 'Explain that a shipment is late and ask the clerk to look into it.'],
+        ],
+        [
+            SituationFixtures::SITUATION_COMPARE_DEVICES_REFERENCE, 'W6-R3-S1', 'Shop Assistant',
+            ['Comparer deux appareils simples', 'Ask a shop assistant to compare two devices.'],
+            ['Demander conseil selon ses besoins', 'Describe your needs and ask a shop assistant to recommend the best device.'],
+        ],
+        [
+            SituationFixtures::SITUATION_REPAIR_DEVICE_REFERENCE, 'W6-R3-S2', 'Shop Assistant',
+            ['Signaler une panne', 'Tell a shop assistant your device is broken.'],
+            ['Demander un devis de réparation', 'Explain the problem with your device in detail and ask for a repair quote and timeline.'],
+        ],
+        [
+            SituationFixtures::SITUATION_EXPLAIN_CAR_ISSUE_REFERENCE, 'W6-R4-S1', 'Mechanic',
+            ['Expliquer un problème simple', 'Explain a simple problem with your car to the mechanic.'],
+            ['Décrire les symptômes en détail', "Describe your car's symptoms in detail to help the mechanic diagnose the problem."],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_REPAIR_QUOTE_REFERENCE, 'W6-R4-S2', 'Mechanic',
+            ['Demander un devis simple', 'Ask the mechanic for a simple repair quote.'],
+            ['Négocier le délai et le prix', 'Ask about the repair cost and timeline, and negotiate if possible.'],
+        ],
+        [
+            SituationFixtures::SITUATION_LOOK_FOR_APARTMENT_REFERENCE, 'W6-R5-S1', 'Real Estate Agent',
+            ['Décrire ce qu\'on recherche', "Tell a real estate agent what kind of apartment you're looking for."],
+            ['Préciser ses critères', 'Describe your budget and criteria in detail to a real estate agent.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_LEASE_TERMS_REFERENCE, 'W6-R5-S2', 'Real Estate Agent',
+            ['Poser une question simple', 'Ask the agent a simple question about a lease.'],
+            ['Clarifier les conditions', 'Ask the agent detailed questions about lease terms and conditions.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_VIEWING_QUESTIONS_REFERENCE, 'W6-R6-S1', 'Real Estate Agent',
+            ['Poser des questions simples', 'Ask simple questions during an apartment viewing.'],
+            ["Évaluer l'appartement", "Ask detailed questions about the apartment's condition and neighborhood during a viewing."],
+        ],
+        [
+            SituationFixtures::SITUATION_NEGOTIATE_RENT_REFERENCE, 'W6-R6-S2', 'Real Estate Agent',
+            ['Demander une réduction', 'Ask the agent if the rent is negotiable.'],
+            ['Négocier les conditions', 'Negotiate the rent and move-in conditions with the agent.'],
+        ],
+        [
+            SituationFixtures::SITUATION_REPORT_LOST_ITEM_REFERENCE, 'W6-R7-S1', 'Police Officer',
+            ['Signaler un objet perdu', 'Report a lost item to a police officer.'],
+            ["Décrire l'objet en détail", 'Describe a lost item in detail and fill out a report with the officer.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FILE_REPORT_REFERENCE, 'W6-R7-S2', 'Police Officer',
+            ['Faire une déclaration simple', 'File a simple report about an incident.'],
+            ['Raconter les faits en détail', 'Describe the incident in detail to a police officer while filing a report.'],
         ],
     ];
 

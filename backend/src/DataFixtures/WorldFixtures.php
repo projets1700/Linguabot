@@ -8,10 +8,11 @@ use Doctrine\Persistence\ObjectManager;
 
 /**
  * V2 (LinguaBot_V2_Conception.md §5): Monde 1 "Vie quotidienne", Monde 2
- * "Sorties & loisirs", Monde 3 "Voyage & transport" and Monde 4 "Vacances &
- * aventure" are seeded - the remaining 4 worlds from the conception doc are
- * rendered as static "coming soon" cards by the frontend rather than
- * empty/inactive DB rows with no content.
+ * "Sorties & loisirs", Monde 3 "Voyage & transport", Monde 4 "Vacances &
+ * aventure", Monde 5 "Travail & études" and Monde 6 "Services & ville" are
+ * seeded - the remaining 2 worlds from the conception doc are rendered as
+ * static "coming soon" cards by the frontend rather than empty/inactive DB
+ * rows with no content.
  *
  * Update-in-place by code rather than blind insert: meant to be rerun with
  * `doctrine:fixtures:load --append` on a live database (never a full
@@ -24,6 +25,8 @@ final class WorldFixtures extends Fixture
     public const WORLD_2_REFERENCE = 'world-w2';
     public const WORLD_3_REFERENCE = 'world-w3';
     public const WORLD_4_REFERENCE = 'world-w4';
+    public const WORLD_5_REFERENCE = 'world-w5';
+    public const WORLD_6_REFERENCE = 'world-w6';
 
     /**
      * [reference, code, title, description, orderNum].
@@ -33,6 +36,8 @@ final class WorldFixtures extends Fixture
         [self::WORLD_2_REFERENCE, 'W2', 'Sorties & loisirs', 'Les endroits où sortir et se divertir : cafés, restaurants, cinéma, sport, culture.', 1],
         [self::WORLD_3_REFERENCE, 'W3', 'Voyage & transport', "Se déplacer et voyager : aéroport, gares, taxi, location de voiture, office de tourisme.", 2],
         [self::WORLD_4_REFERENCE, 'W4', 'Vacances & aventure', "Les moments de vacances : hôtel, plage, camping, croisière, musée.", 3],
+        [self::WORLD_5_REFERENCE, 'W5', 'Travail & études', "Le monde professionnel et académique : université, entretien, bureau, réunion.", 4],
+        [self::WORLD_6_REFERENCE, 'W6', 'Services & ville', "Les démarches du quotidien en ville : banque, poste, garage, agence immobilière.", 5],
     ];
 
     public function load(ObjectManager $manager): void
