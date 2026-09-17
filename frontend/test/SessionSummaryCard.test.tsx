@@ -9,7 +9,7 @@ function baseSummary(overrides: Partial<SessionSummary> = {}): SessionSummary {
     exchangeCount: 3,
     xpEarned: 45,
     status: "completed",
-    scenarioTitle: "Commander au restaurant",
+    missionTitle: "Commander au restaurant",
     strengths: [],
     reviewPoints: [],
     usefulExpressions: [],

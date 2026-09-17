@@ -47,8 +47,8 @@ describe("LearnerNav - Vocabulary Test link visibility past A1", () => {
     useAuthStore.setState({ user: baseUser("B2") });
     renderNav();
     expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Scenarios" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Challenges" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Adventure" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Progress" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Profile" })).toBeInTheDocument();
   });

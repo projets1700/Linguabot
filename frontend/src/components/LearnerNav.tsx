@@ -14,7 +14,6 @@ import { useAuthStore } from "../stores/authStore";
 // active on either page so a learner on /badges still sees where they are.
 const NAV: { to: string; label: string; matches?: string[] }[] = [
   { to: "/dashboard", label: "Home" },
-  { to: "/catalog", label: "Scenarios" },
   { to: "/quiz", label: "Vocabulary Test" },
   { to: "/defi-du-jour", label: "Challenges" },
   // V2 pilot (LinguaBot_V2_Conception.md) - World/Room/Mission navigation

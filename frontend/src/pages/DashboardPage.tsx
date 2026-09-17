@@ -65,9 +65,9 @@ const READY_NOT_UNDERSTOOD_TEXT_FR = "Je n'ai pas bien compris. Tu peux dire oui
 const WHAT_NEXT_QUESTION = "What shall we start with today?";
 const WHAT_NEXT_QUESTION_FR = "Par quoi commençons-nous aujourd'hui ?";
 const DESTINATION_NOT_UNDERSTOOD_TEXT =
-  "I didn't understand your choice. You can say, for example: Scenarios, Quiz, Daily challenge, or Progress.";
+  "I didn't understand your choice. You can say, for example: Adventure, Quiz, Daily challenge, or Progress.";
 const DESTINATION_NOT_UNDERSTOOD_TEXT_FR =
-  "Je n'ai pas compris ton choix. Tu peux dire par exemple : Scénarios, Quiz, Défi du jour ou Progression.";
+  "Je n'ai pas compris ton choix. Tu peux dire par exemple : Aventure, Quiz, Défi du jour ou Progression.";
 // Long enough to read as a deliberate move (not a flicker), short enough to
 // stay out of the way - matches the ~0.5-0.8s range used for the app's
 // other CSS-only transitions.
@@ -664,7 +664,7 @@ export function DashboardPage() {
                   <p className="text-xs text-slate-500 mt-1">{user.totalXp} XP</p>
                 </div>
 
-                <Button to={isNewLearner && hasVocabTestAccess ? "/quiz" : "/catalog"} size="lg" className="self-start">
+                <Button to={isNewLearner && hasVocabTestAccess ? "/quiz" : "/aventure"} size="lg" className="self-start">
                   {isNewLearner && hasVocabTestAccess ? "Start the vocabulary test →" : "▶ Resume"}
                 </Button>
               </div>

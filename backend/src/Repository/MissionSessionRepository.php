@@ -45,6 +45,30 @@ class MissionSessionRepository extends ServiceEntityRepository
         return array_map(static fn (array $row): int => (int) $row['situationId'], $rows);
     }
 
+    /**
+     * Highest number of completed missions the user has ever logged on a
+     * single calendar day - same query shape as the v1.1 catalog's own
+     * SessionRepository::maxCompletedSessionsInOneDay() had, now sourced
+     * from mission_sessions since Session/Scenario were retired.
+     */
+    public function maxCompletedMissionsInOneDay(User $user): int
+    {
+        $max = $this->getEntityManager()->getConnection()->fetchOne(
+            <<<'SQL'
+                SELECT COALESCE(MAX(day_count), 0)
+                FROM (
+                    SELECT COUNT(*) AS day_count
+                    FROM mission_sessions
+                    WHERE user_id = :userId AND status = 'completed'
+                    GROUP BY DATE(started_at)
+                ) counts_by_day
+                SQL,
+            ['userId' => $user->getId()],
+        );
+
+        return (int) $max;
+    }
+
     public function countCompletedMissions(User $user): int
     {
         return (int) $this->createQueryBuilder('ms')

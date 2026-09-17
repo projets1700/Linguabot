@@ -389,7 +389,7 @@ describe("DashboardPage", () => {
     await flushMicrotasks();
 
     expect(latestUtterance().text).toBe(
-      "I didn't understand your choice. You can say, for example: Scenarios, Quiz, Daily challenge, or Progress.",
+      "I didn't understand your choice. You can say, for example: Adventure, Quiz, Daily challenge, or Progress.",
     );
 
     await endLatestSpeech();
@@ -416,7 +416,7 @@ describe("DashboardPage", () => {
     await enterDashboardPhase({ level: { code: "A0", name: "Débutant absolu", xpThreshold: 0 } });
 
     expect(screen.getByRole("link", { name: /Vocabulary Test/ })).toHaveAttribute("href", "/quiz");
-    expect(screen.getByRole("link", { name: /Explore/ })).toHaveAttribute("href", "/catalog");
+    expect(screen.getByRole("link", { name: /Explore/ })).toHaveAttribute("href", "/aventure");
     expect(screen.getByRole("link", { name: /Badges & Trophies/ })).toHaveAttribute("href", "/trophees");
     expect(navigateMock).not.toHaveBeenCalled();
   });
@@ -453,7 +453,7 @@ describe("DashboardPage", () => {
 
       expect(screen.queryByRole("link", { name: /Vocabulary Test/ })).not.toBeInTheDocument();
       expect(screen.queryByRole("link", { name: /Start the vocabulary test/ })).not.toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "▶ Resume" })).toHaveAttribute("href", "/catalog");
+      expect(screen.getByRole("link", { name: "▶ Resume" })).toHaveAttribute("href", "/aventure");
     });
   });
 

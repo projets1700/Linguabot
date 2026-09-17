@@ -21,19 +21,6 @@ export type Me = {
   cecrlProfile: CecrlProfile;
 };
 
-export type Scenario = {
-  id: number;
-  code: string;
-  title: string;
-  context: string;
-  level: string;
-  category: "quotidien" | "thematique";
-  characterName: string;
-  durationEstimate: number;
-  baseXp: number;
-  locked: boolean;
-};
-
 export type LevelUpResult = {
   code: string;
   name: string;
@@ -106,23 +93,6 @@ export type CecrlProfile = {
   helpVisibleByDefault: boolean;
 };
 
-export type SessionDetail = {
-  id: number;
-  status: "in_progress" | "completed" | "abandoned";
-  scenario: {
-    id: number;
-    title: string;
-    characterName: string;
-  };
-  cecrlProfile: CecrlProfile;
-  messages: SessionMessage[];
-  // Present once the session is finished and a bilan was persisted - lets a
-  // learner who refreshes or revisits a completed session still see it.
-  // Null for a session still in progress, or one finished before this field
-  // existed.
-  summary: SessionSummary | null;
-};
-
 export type PlacementTestDetail = {
   id: number;
   status: "in_progress" | "completed" | "abandoned";
@@ -155,22 +125,11 @@ export type SessionSummary = {
   exchangeCount: number;
   xpEarned: number;
   status: "completed";
-  scenarioTitle: string;
+  missionTitle: string;
   strengths: string[];
   reviewPoints: string[];
   usefulExpressions: string[];
   nextStep: string;
-};
-
-export type SessionFinishResult = {
-  score: number;
-  xpEarned: number;
-  userTotalXp: number;
-  userSessionsCount: number;
-  levelUp: LevelUpResult | null;
-  newBadges: EarnedBadge[];
-  newTrophies: EarnedTrophy[];
-  summary: SessionSummary;
 };
 
 export type EarnedBadge = {
@@ -229,18 +188,6 @@ export type AdminUser = {
   createdAt: string;
 };
 
-export type AdminScenario = {
-  id: number;
-  code: string;
-  title: string;
-  level: string;
-  category: "quotidien" | "thematique";
-  characterName: string;
-  baseXp: number;
-  playCount: number;
-  isActive: boolean;
-};
-
 export type AdminDailyChallenge = {
   id: number;
   level: string;
@@ -284,13 +231,10 @@ export type AdminLog = {
 
 export type AdminStats = {
   usersCount: number;
-  scenariosCount: number;
   sessionsCount: number;
   completedSessionsCount: number;
   completionRate: number;
-  avgScoreGlobal: number | null;
   levelDistribution: { level: string; count: number }[];
-  topScenarios: { code: string; title: string; playCount: number }[];
   sessionsByDay: { day: string; count: number }[];
   challengeParticipationRate: number;
   xpDistributedToday: number;
@@ -303,7 +247,7 @@ export type LearnerStats = {
   quizzesCompleted: number;
   challengesCompleted: number;
   xpEarned: number;
-  categoryBreakdown: { category: "quotidien" | "thematique"; count: number }[];
+  worldBreakdown: { world: string; count: number }[];
   history: { day: string; sessionsCount: number; xpEarned: number }[];
 };
 

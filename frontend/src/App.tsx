@@ -6,8 +6,6 @@ import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { PlacementTestPage } from "./pages/PlacementTestPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { CatalogPage } from "./pages/CatalogPage";
-import { SessionPage } from "./pages/SessionPage";
 import { QuizPage } from "./pages/QuizPage";
 import { QuizModulePage } from "./pages/QuizModulePage";
 import { BadgesPage } from "./pages/BadgesPage";
@@ -22,7 +20,6 @@ import { AccountPage } from "./pages/AccountPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
-import { AdminScenariosPage } from "./pages/admin/AdminScenariosPage";
 import { AdminChallengesPage } from "./pages/admin/AdminChallengesPage";
 import { AdminGamificationPage } from "./pages/admin/AdminGamificationPage";
 import { AdminLogsPage } from "./pages/admin/AdminLogsPage";
@@ -48,10 +45,8 @@ export default function App() {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/placement-test" element={<PlacementTestPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/quiz/:moduleId" element={<QuizModulePage />} />
-          <Route path="/sessions/:id" element={<SessionPage />} />
           <Route path="/badges" element={<BadgesPage />} />
           <Route path="/trophees" element={<TrophiesPage />} />
           <Route path="/defi-du-jour" element={<DailyChallengePage />} />
@@ -65,7 +60,6 @@ export default function App() {
           <Route element={<RequireAdmin><Outlet /></RequireAdmin>}>
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/utilisateurs" element={<AdminUsersPage />} />
-            <Route path="/admin/scenarios" element={<AdminScenariosPage />} />
             <Route path="/admin/defis" element={<AdminChallengesPage />} />
             <Route path="/admin/gamification" element={<AdminGamificationPage />} />
             <Route path="/admin/logs" element={<AdminLogsPage />} />

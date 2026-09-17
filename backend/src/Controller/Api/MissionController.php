@@ -24,11 +24,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 /**
- * A Mission's conversation flow - deliberately mirrors SessionController's
- * shape action-for-action (same guards, same turn/history handling, same
- * shared services) rather than introducing a parallel "MissionService"
- * layer, since Scenario/Session don't have one either and this keeps the
- * V2 pilot consistent with how the rest of the API is built.
+ * A Mission's conversation flow - deliberately mirrors the v1.1 catalog's
+ * old SessionController shape action-for-action (same guards, same
+ * turn/history handling, same shared services) rather than introducing a
+ * parallel "MissionService" layer, keeping the V2 pilot consistent with how
+ * the rest of the API is built.
  */
 final class MissionController
 {
@@ -258,6 +258,11 @@ final class MissionController
             ->setSummaryData($bilan);
 
         $user->setTotalXp($user->getTotalXp() + $xpEarned);
+        // Generalizes the v1.1 catalog's own counter (previously only
+        // incremented by the retired SessionController) - it backs the
+        // 'sessions_count'/'sessions_same_day'/'total_sessions' badge and
+        // trophy conditions, whose CDCF wording was never scenario-specific.
+        $user->setSessionsCount($user->getSessionsCount() + 1);
 
         $em->flush();
 
@@ -276,7 +281,7 @@ final class MissionController
                 'exchangeCount' => $userTurns,
                 'xpEarned' => $xpEarned,
                 'status' => $missionSession->getStatus()->value,
-                'scenarioTitle' => $missionSession->getMission()->getTitle(),
+                'missionTitle' => $missionSession->getMission()->getTitle(),
                 'strengths' => $bilan['strengths'],
                 'reviewPoints' => $bilan['reviewPoints'],
                 'usefulExpressions' => $bilan['usefulExpressions'],
@@ -321,7 +326,7 @@ final class MissionController
                 'exchangeCount' => $userTurns,
                 'xpEarned' => $missionSession->getXpEarned(),
                 'status' => $missionSession->getStatus()->value,
-                'scenarioTitle' => $mission->getTitle(),
+                'missionTitle' => $mission->getTitle(),
                 'strengths' => $summaryData['strengths'],
                 'reviewPoints' => $summaryData['reviewPoints'],
                 'usefulExpressions' => $summaryData['usefulExpressions'],

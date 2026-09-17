@@ -25,10 +25,8 @@ export function AdminDashboardPage() {
 
       <div className="grid md:grid-cols-4 gap-4 mb-8">
         <StatCard label="Users" value={stats.usersCount} />
-        <StatCard label="Scenarios" value={stats.scenariosCount} />
         <StatCard label="Sessions" value={stats.sessionsCount} />
         <StatCard label="Completion rate" value={`${stats.completionRate}%`} />
-        <StatCard label="Average score" value={stats.avgScoreGlobal ?? "—"} />
         <StatCard label="Challenge participation (today)" value={`${stats.challengeParticipationRate}%`} />
         <StatCard label="XP distributed today" value={stats.xpDistributedToday} />
         <StatCard label="Completed sessions" value={stats.completedSessionsCount} />
@@ -56,14 +54,13 @@ export function AdminDashboardPage() {
         </div>
 
         <div className="bg-slate-900 p-6 rounded-xl">
-          <h2 className="text-lg font-bold mb-4">Most played scenarios</h2>
+          <h2 className="text-lg font-bold mb-4">Sessions over the last 14 days</h2>
           <table className="w-full text-sm">
             <tbody>
-              {stats.topScenarios.slice(0, 8).map((row) => (
-                <tr key={row.code} className="border-b border-slate-800">
-                  <td className="py-2 text-slate-400">{row.code}</td>
-                  <td className="py-2">{row.title}</td>
-                  <td className="py-2 text-right font-bold">{row.playCount}</td>
+              {stats.sessionsByDay.map((row) => (
+                <tr key={row.day} className="border-b border-slate-800">
+                  <td className="py-2 text-slate-400">{row.day}</td>
+                  <td className="py-2 text-right font-bold">{row.count}</td>
                 </tr>
               ))}
             </tbody>

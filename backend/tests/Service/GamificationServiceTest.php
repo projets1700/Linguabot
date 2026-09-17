@@ -9,8 +9,6 @@ use App\Repository\ChallengeSessionRepository;
 use App\Repository\LevelRepository;
 use App\Repository\MissionSessionRepository;
 use App\Repository\QuizAttemptRepository;
-use App\Repository\ScenarioRepository;
-use App\Repository\SessionRepository;
 use App\Repository\TrophyRepository;
 use App\Repository\UserBadgeRepository;
 use App\Repository\UserTrophyRepository;
@@ -38,8 +36,6 @@ final class GamificationServiceTest extends TestCase
             $this->createStub(UserBadgeRepository::class),
             $this->createStub(TrophyRepository::class),
             $this->createStub(UserTrophyRepository::class),
-            $this->createStub(SessionRepository::class),
-            $this->createStub(ScenarioRepository::class),
             $this->createStub(QuizAttemptRepository::class),
             $this->createStub(ChallengeSessionRepository::class),
             $this->levelRepository,
@@ -120,8 +116,6 @@ final class GamificationServiceTest extends TestCase
             $this->createStub(UserBadgeRepository::class),
             $this->createStub(TrophyRepository::class),
             $this->createStub(UserTrophyRepository::class),
-            $this->createStub(SessionRepository::class),
-            $this->createStub(ScenarioRepository::class),
             $this->createStub(QuizAttemptRepository::class),
             $this->createStub(ChallengeSessionRepository::class),
             $levelRepository,

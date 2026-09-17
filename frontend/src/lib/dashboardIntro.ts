@@ -80,7 +80,7 @@ export function detectDashboardReadyIntent(transcript: string): boolean {
 }
 
 export type DashboardDestinationKey =
-  | "scenarios"
+  | "adventure"
   | "quiz"
   | "dailyChallenge"
   | "progress"
@@ -112,11 +112,11 @@ const NEGATION_TOKENS = new Set(["pas", "jamais", "dont", "not", "non"]);
 // gives distinct example lines for "Progression" vs "Trophées").
 const DESTINATIONS: { key: DashboardDestinationKey; route: string; confirmSpeech: string; confirmSpeechFr: string; aliases: string[] }[] = [
   {
-    key: "scenarios",
-    route: "/catalog",
-    confirmSpeech: "Great, let's go check out the scenarios.",
-    confirmSpeechFr: "Très bien, allons voir les scénarios.",
-    aliases: ["scenario", "scenarios", "les scenarios", "conversation", "conversations"],
+    key: "adventure",
+    route: "/aventure",
+    confirmSpeech: "Great, let's go check out the adventure.",
+    confirmSpeechFr: "Très bien, allons voir l'aventure.",
+    aliases: ["aventure", "l aventure", "adventure", "the adventure", "conversation", "conversations"],
   },
   {
     key: "quiz",

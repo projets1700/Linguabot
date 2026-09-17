@@ -2,10 +2,8 @@
 
 namespace App\Service;
 
-use App\Entity\Scenario;
-
 /**
- * Conversation logic for scenario sessions and the daily challenge (TP
+ * Conversation logic for Adventure missions and the daily challenge (TP
  * chapitre 12.2). STT/TTS are real and run in the browser (VoiceInput/
  * speakText); generateAnswer() calls a real LLM via AiChatService when
  * AI_API_KEY is configured (Groq by default, OpenAI-compatible), and
@@ -86,20 +84,9 @@ final class VoiceService
     }
 
     /**
-     * Scenario::context/title are intentionally French (catalogue copy for
-     * a French-speaking learner choosing a scenario) - they must never be
-     * injected into the spoken conversation itself, which stays 100%
-     * English (CDCF §1.2 "zéro saisie texte" / full voice immersion).
-     */
-    public function openingMessage(Scenario $scenario): string
-    {
-        return $this->openingMessageForCharacter($scenario->getCharacterName());
-    }
-
-    /**
-     * Same opening line as openingMessage(), for any other content type with
-     * a character name but no Scenario entity (e.g. Mission) - kept as one
-     * shared implementation rather than duplicating the sprintf template.
+     * Shared opening line for any content type with a character name (e.g.
+     * Mission) - kept as one implementation rather than duplicating the
+     * sprintf template per caller.
      */
     public function openingMessageForCharacter(string $characterName): string
     {

@@ -17,11 +17,9 @@ final class AdminStatsController
     public function __invoke(Connection $connection): JsonResponse
     {
         $usersCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM users WHERE deleted_at IS NULL');
-        $scenariosCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM scenarios');
-        $sessionsCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM sessions');
-        $completedSessionsCount = (int) $connection->fetchOne("SELECT COUNT(*) FROM sessions WHERE status = 'completed'");
+        $sessionsCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM mission_sessions');
+        $completedSessionsCount = (int) $connection->fetchOne("SELECT COUNT(*) FROM mission_sessions WHERE status = 'completed'");
         $completionRate = $sessionsCount > 0 ? round(100 * $completedSessionsCount / $sessionsCount, 1) : 0.0;
-        $avgScoreGlobal = $connection->fetchOne("SELECT ROUND(AVG(score), 1) FROM sessions WHERE status = 'completed'");
 
         $levelDistribution = $connection->fetchAllAssociative(
             <<<'SQL'
@@ -33,19 +31,10 @@ final class AdminStatsController
                 SQL,
         );
 
-        $topScenarios = $connection->fetchAllAssociative(
-            <<<'SQL'
-                SELECT code, title, play_count
-                FROM scenarios
-                ORDER BY play_count DESC, code ASC
-                LIMIT 10
-                SQL,
-        );
-
         $sessionsByDay = $connection->fetchAllAssociative(
             <<<'SQL'
                 SELECT DATE(started_at) AS day, COUNT(*) AS session_count
-                FROM sessions
+                FROM mission_sessions
                 WHERE started_at >= CURRENT_DATE - INTERVAL '13 days'
                 GROUP BY DATE(started_at)
                 ORDER BY day ASC
@@ -66,7 +55,7 @@ final class AdminStatsController
         $xpDistributedToday = (int) $connection->fetchOne(
             <<<'SQL'
                 SELECT
-                    COALESCE((SELECT SUM(xp_earned) FROM sessions WHERE DATE(ended_at) = CURRENT_DATE), 0)
+                    COALESCE((SELECT SUM(xp_earned) FROM mission_sessions WHERE DATE(ended_at) = CURRENT_DATE), 0)
                     + COALESCE((SELECT SUM(xp_earned) FROM quiz_attempts WHERE DATE(attempted_at) = CURRENT_DATE), 0)
                     + COALESCE((SELECT SUM(xp_earned) FROM challenge_sessions WHERE DATE(completed_at) = CURRENT_DATE), 0)
                 SQL,
@@ -74,18 +63,12 @@ final class AdminStatsController
 
         return new JsonResponse([
             'usersCount' => $usersCount,
-            'scenariosCount' => $scenariosCount,
             'sessionsCount' => $sessionsCount,
             'completedSessionsCount' => $completedSessionsCount,
             'completionRate' => $completionRate,
-            'avgScoreGlobal' => null !== $avgScoreGlobal ? (float) $avgScoreGlobal : null,
             'levelDistribution' => array_map(
                 static fn (array $row) => ['level' => $row['code'], 'count' => (int) $row['user_count']],
                 $levelDistribution,
-            ),
-            'topScenarios' => array_map(
-                static fn (array $row) => ['code' => $row['code'], 'title' => $row['title'], 'playCount' => (int) $row['play_count']],
-                $topScenarios,
             ),
             'sessionsByDay' => array_map(
                 static fn (array $row) => ['day' => $row['day'], 'count' => (int) $row['session_count']],

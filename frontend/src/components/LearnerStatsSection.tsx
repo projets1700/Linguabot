@@ -13,11 +13,6 @@ const PERIODS: { days: LearnerStats["days"]; label: string }[] = [
   { days: 365, label: "1 year" },
 ];
 
-const CATEGORY_LABEL: Record<LearnerStats["categoryBreakdown"][number]["category"], string> = {
-  quotidien: "Everyday",
-  thematique: "Thematic",
-};
-
 function formatPracticeTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.round((seconds % 3600) / 60);
@@ -47,7 +42,7 @@ export function LearnerStatsSection() {
 
   useEffect(load, [days]);
 
-  const totalCategoryCount = stats?.categoryBreakdown.reduce((sum, row) => sum + row.count, 0) ?? 0;
+  const totalWorldCount = stats?.worldBreakdown.reduce((sum, row) => sum + row.count, 0) ?? 0;
 
   return (
     <Card variant="stat" className="border border-blue-500/15">
@@ -83,17 +78,17 @@ export function LearnerStatsSection() {
             <StatTile label="XP earned" value={stats.xpEarned} highlight />
           </div>
 
-          {stats.categoryBreakdown.length > 0 && (
+          {stats.worldBreakdown.length > 0 && (
             <div className="mb-5">
-              <p className="text-slate-400 text-xs uppercase font-bold mb-2">Breakdown by category</p>
+              <p className="text-slate-400 text-xs uppercase font-bold mb-2">Breakdown by world</p>
               <div className="flex flex-col gap-2">
-                {stats.categoryBreakdown.map((row) => (
-                  <div key={row.category} className="flex items-center gap-3">
-                    <span className="w-24 text-slate-400 text-sm">{CATEGORY_LABEL[row.category]}</span>
+                {stats.worldBreakdown.map((row) => (
+                  <div key={row.world} className="flex items-center gap-3">
+                    <span className="w-32 text-slate-400 text-sm truncate">{row.world}</span>
                     <div className="flex-1 bg-slate-900 rounded-full h-3">
                       <div
                         className="bg-blue-600 h-3 rounded-full"
-                        style={{ width: `${totalCategoryCount > 0 ? (row.count / totalCategoryCount) * 100 : 0}%` }}
+                        style={{ width: `${totalWorldCount > 0 ? (row.count / totalWorldCount) * 100 : 0}%` }}
                       />
                     </div>
                     <span className="text-sm w-8 text-right">{row.count}</span>

@@ -98,7 +98,7 @@ final class SessionSummaryServiceTest extends TestCase
 
         $result = $service->summarize(self::HISTORY, 'A2', 2, 'Commander au café');
 
-        self::assertSame('Session terminée. Tu as réalisé 2 échanges dans le scénario "Commander au café".', $result['summary']);
+        self::assertSame('Session terminée. Tu as réalisé 2 échanges pour la mission "Commander au café".', $result['summary']);
         self::assertSame([], $result['strengths']);
         self::assertSame([], $result['reviewPoints']);
         self::assertSame([], $result['usefulExpressions']);

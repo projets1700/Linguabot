@@ -35,14 +35,9 @@ class Level
     #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'level')]
     private Collection $users;
 
-    /** @var Collection<int, Scenario> */
-    #[ORM\OneToMany(targetEntity: Scenario::class, mappedBy: 'level')]
-    private Collection $scenarios;
-
     public function __construct()
     {
         $this->users = new ArrayCollection();
-        $this->scenarios = new ArrayCollection();
     }
 
     public function getId(): ?int

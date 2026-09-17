@@ -4,9 +4,9 @@ namespace App\Controller\Api;
 
 use App\Entity\User;
 use App\Repository\ChallengeSessionRepository;
+use App\Repository\MissionSessionRepository;
 use App\Repository\PlacementTestRepository;
 use App\Repository\QuizAttemptRepository;
-use App\Repository\SessionRepository;
 use App\Repository\UserBadgeRepository;
 use App\Repository\UserTrophyRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -58,7 +58,7 @@ final class AccountController
     #[Route('/api/me/export', name: 'api_account_export', methods: ['GET'])]
     public function export(
         #[CurrentUser] User $user,
-        SessionRepository $sessionRepository,
+        MissionSessionRepository $missionSessionRepository,
         QuizAttemptRepository $quizAttemptRepository,
         ChallengeSessionRepository $challengeSessionRepository,
         PlacementTestRepository $placementTestRepository,
@@ -85,14 +85,13 @@ final class AccountController
                 'startedAt' => $placementTest->getStartedAt()->format(\DateTimeInterface::ATOM),
                 'endedAt' => $placementTest->getEndedAt()?->format(\DateTimeInterface::ATOM),
             ] : null,
-            'sessions' => array_map(static fn ($s) => [
-                'scenario' => $s->getScenario()->getTitle(),
+            'missionSessions' => array_map(static fn ($s) => [
+                'mission' => $s->getMission()->getTitle(),
                 'status' => $s->getStatus()->value,
-                'score' => $s->getScore(),
                 'xpEarned' => $s->getXpEarned(),
                 'startedAt' => $s->getStartedAt()->format(\DateTimeInterface::ATOM),
                 'endedAt' => $s->getEndedAt()?->format(\DateTimeInterface::ATOM),
-            ], $sessionRepository->findBy(['user' => $user])),
+            ], $missionSessionRepository->findBy(['user' => $user])),
             'quizAttempts' => array_map(static fn ($a) => [
                 'module' => $a->getModule()->getCode(),
                 'score' => $a->getScore(),

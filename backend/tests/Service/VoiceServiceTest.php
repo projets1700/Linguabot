@@ -2,9 +2,6 @@
 
 namespace App\Tests\Service;
 
-use App\Entity\Level;
-use App\Entity\Scenario;
-use App\Enum\ScenarioCategory;
 use App\Service\AiChatService;
 use App\Service\CecrlProfileService;
 use App\Service\VoiceService;
@@ -31,44 +28,9 @@ final class VoiceServiceTest extends TestCase
 
     public function testOpeningMessageIncludesTheCharacterName(): void
     {
-        $level = (new Level())->setCode('A1')->setName('Grands débuts')->setXpThreshold(300)->setOrderNum(1);
-        $scenario = (new Scenario())
-            ->setCode('QA1-2')
-            ->setTitle('Commander au café')
-            ->setContext('Demander un café, un jus, l\'addition')
-            ->setLevel($level)
-            ->setCategory(ScenarioCategory::QUOTIDIEN)
-            ->setPromptTemplate('...')
-            ->setCharacterName('Waiter / Barista')
-            ->setDurationEstimate(10)
-            ->setBaseXp(60);
-
-        $opening = $this->service->openingMessage($scenario);
+        $opening = $this->service->openingMessageForCharacter('Waiter / Barista');
 
         self::assertStringContainsString('Waiter / Barista', $opening);
-    }
-
-    public function testOpeningMessageNeverLeaksTheFrenchCatalogueContext(): void
-    {
-        // Scenario::context/title are French catalogue copy for the learner
-        // choosing a scenario; they must never end up in the spoken (English)
-        // conversation itself.
-        $level = (new Level())->setCode('A1')->setName('Grands débuts')->setXpThreshold(300)->setOrderNum(1);
-        $scenario = (new Scenario())
-            ->setCode('QA1-2')
-            ->setTitle('Commander au café')
-            ->setContext('Demander un café, un jus, l\'addition')
-            ->setLevel($level)
-            ->setCategory(ScenarioCategory::QUOTIDIEN)
-            ->setPromptTemplate('...')
-            ->setCharacterName('Waiter / Barista')
-            ->setDurationEstimate(10)
-            ->setBaseXp(60);
-
-        $opening = $this->service->openingMessage($scenario);
-
-        self::assertStringNotContainsString('Demander un café', $opening);
-        self::assertStringNotContainsString('Commander au café', $opening);
     }
 
     public function testTranscribeAudioTrimsWhitespace(): void

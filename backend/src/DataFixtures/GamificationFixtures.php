@@ -9,9 +9,16 @@ use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * The 12 badges and 6 trophies of the CDCF (§3.6), all evaluated by
- * GamificationService (including "Champion du défi", backed by the
- * daily-challenge streak once that system landed).
+ * Badges/trophies evaluated by GamificationService. The v1.1 CDCF catalog
+ * (§3.6) originally had 12 badges and 6 trophies; 7 badges and 5 trophies
+ * whose conditions were tied to the retired Scenario catalog (scenario
+ * categories, hardcoded scenario codes, per-level catalog completion
+ * ratios, a persisted numeric score - none of which Mission has an
+ * equivalent for) were dropped when Scenario/Session were removed in favor
+ * of the V2 Adventure hierarchy. The 3 badges whose CDCF wording was
+ * already generic ("compléter une session vocale", not "un scénario") were
+ * kept and now count Mission sessions too (User::$sessionsCount is
+ * incremented by MissionController::finish()).
  */
 final class GamificationFixtures extends Fixture
 {
@@ -22,13 +29,7 @@ final class GamificationFixtures extends Fixture
         ['BADGE_FIRST_STEP', 'Premier pas', 'Compléter sa première session vocale', '🌟', 'sessions_count', 1, 0],
         ['BADGE_VOCAB_BASICS', 'Vocabulaire de base', 'Valider 4 modules du quiz A0', '🧠', 'quiz_modules_passed', 4, 100],
         ['BADGE_SPEAKER', 'Prise de parole', 'Réaliser 5 sessions vocales', '🎙️', 'sessions_count', 5, 50],
-        ['BADGE_PERFECT', 'Sans faute', 'Obtenir 100% sur un scénario', '🍯', 'score_perfect', 100, 100],
         ['BADGE_ON_FIRE', 'En feu', 'Compléter 3 sessions dans la même journée', '🔥', 'sessions_same_day', 3, 80],
-        ['BADGE_POLYGLOT', 'Polyglotte en herbe', 'Essayer 5 scénarios différents', '🥑', 'distinct_scenarios', 5, 60],
-        ['BADGE_TRAVELER', 'Voyageur', "Compléter les 2 scénarios voyage (TA1-1 + TA2-1)", '🗺️', 'travel_scenarios', 2, 80],
-        ['BADGE_SERIOUS_CANDIDATE', 'Candidat sérieux', "Réussir l'entretien d'embauche (TB1-2) avec score > 80 %", '👔', 'interview_success', 80, 100],
-        ['BADGE_DAILY_MASTER', 'Maître du quotidien', "Compléter tous les scénarios du quotidien d'un niveau", '🏆', 'any_level_quotidien_complete', 5, 150],
-        ['BADGE_THEMATIC_EXPERT', 'Expert thématique', "Compléter tous les scénarios thématiques d'un niveau", '🎯', 'any_level_thematique_complete', 5, 150],
         ['BADGE_LEVEL_UP', 'Passage de niveau', 'Atteindre chaque nouveau niveau CECRL', '🚀', 'level_up', 1, 200],
         ['BADGE_CHALLENGE_CHAMPION', 'Champion du défi', 'Compléter 7 défis du jour consécutifs', '🥇', 'daily_challenge_streak', 7, 250],
         // V2 pilot (LinguaBot_V2_Conception.md) - proves the Mission reward
@@ -40,11 +41,6 @@ final class GamificationFixtures extends Fixture
      * [code, name, description, conditionType, conditionValue, xpReward, rarity].
      */
     private const TROPHIES = [
-        ['TROPHY_EXPLORER', 'Trophée Explorateur', 'Compléter tous les scénarios A1 (10/10)', 'level_a1_complete', 10, 500, TrophyRarity::BRONZE],
-        ['TROPHY_ADVENTURER', 'Trophée Aventurier', 'Compléter tous les scénarios A2 (10/10)', 'level_a2_complete', 10, 500, TrophyRarity::SILVER],
-        ['TROPHY_VOYAGER', 'Trophée Voyageur', 'Compléter tous les scénarios B1 (10/10)', 'level_b1_complete', 10, 750, TrophyRarity::GOLD],
-        ['TROPHY_MASTER_B2', 'Trophée Maître B2', 'Compléter tous les scénarios B2 (10/10)', 'level_b2_complete', 10, 1000, TrophyRarity::PLATINUM],
-        ['TROPHY_PERFECTIONIST', 'Perfectionniste', 'Obtenir plus de 90 % sur 10 scénarios différents', 'high_score_scenarios', 10, 500, TrophyRarity::PLATINUM],
         ['TROPHY_DEDICATED', 'Assidu', 'Effectuer 30 sessions au total', 'total_sessions', 30, 0, TrophyRarity::GOLD],
         // V2 pilot: conditionValue is the target World's orderNum (0 = "Vie
         // quotidienne", the only world seeded so far - MissionSessionRepository::hasCompletedAnyMissionInWorldWithOrderNum()).

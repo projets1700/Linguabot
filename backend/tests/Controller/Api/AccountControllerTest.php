@@ -59,7 +59,7 @@ final class AccountControllerTest extends ApiTestCase
 
         $data = $this->decodeResponse($client);
         self::assertSame('Test', $data['profile']['prenom']);
-        self::assertArrayHasKey('sessions', $data);
+        self::assertArrayHasKey('missionSessions', $data);
         self::assertArrayHasKey('quizAttempts', $data);
         self::assertArrayHasKey('dailyChallenges', $data);
         self::assertArrayHasKey('badges', $data);

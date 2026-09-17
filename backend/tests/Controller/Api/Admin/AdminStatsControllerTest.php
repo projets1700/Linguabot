@@ -20,10 +20,9 @@ final class AdminStatsControllerTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         $stats = $this->decodeResponse($client);
 
-        foreach (['usersCount', 'scenariosCount', 'sessionsCount', 'completionRate', 'levelDistribution', 'topScenarios', 'sessionsByDay', 'challengeParticipationRate', 'xpDistributedToday'] as $key) {
+        foreach (['usersCount', 'sessionsCount', 'completionRate', 'levelDistribution', 'sessionsByDay', 'challengeParticipationRate', 'xpDistributedToday'] as $key) {
             self::assertArrayHasKey($key, $stats);
         }
-        self::assertSame(40, $stats['scenariosCount']);
         self::assertCount(5, $stats['levelDistribution']);
     }
 
@@ -36,13 +35,16 @@ final class AdminStatsControllerTest extends ApiTestCase
 
         $this->jsonRequest($client, 'GET', '/api/admin/badges', $token);
         self::assertResponseIsSuccessful();
-        // 12 CDCF badges + 1 V2 pilot badge (BADGE_ADVENTURE_START).
-        self::assertCount(13, $this->decodeResponse($client));
+        // 6 CDCF badges whose condition survived the Scenario/Session
+        // removal (generic "session" wording, now backed by Mission
+        // completions) + 1 V2 pilot badge (BADGE_ADVENTURE_START).
+        self::assertCount(7, $this->decodeResponse($client));
 
         $this->jsonRequest($client, 'GET', '/api/admin/trophies', $token);
         self::assertResponseIsSuccessful();
-        // 6 CDCF trophies + 1 V2 pilot trophy (TROPHY_WORLD_EXPLORER).
-        self::assertCount(7, $this->decodeResponse($client));
+        // 1 CDCF trophy (Assidu, generic "session" wording) + 1 V2 pilot
+        // trophy (TROPHY_WORLD_EXPLORER).
+        self::assertCount(2, $this->decodeResponse($client));
     }
 
     private function promoteToAdmin(string $email): void

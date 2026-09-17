@@ -38,11 +38,11 @@ final class MeStatsControllerTest extends ApiTestCase
         $user->setLevel($levelA1);
         $em->flush();
 
-        $scenarioId = $this->findAnyScenarioId($client, $token);
-        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $missionId = $this->findAnyA1MissionId($client, $token);
+        $this->jsonRequest($client, 'POST', "/api/missions/{$missionId}/sessions", $token);
         $sessionId = $this->decodeResponse($client)['id'];
-        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/message", $token, ['message' => 'Hello!']);
-        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/finish", $token);
+        $this->jsonRequest($client, 'POST', "/api/mission-sessions/{$sessionId}/message", $token, ['message' => 'Hello!']);
+        $this->jsonRequest($client, 'POST', "/api/mission-sessions/{$sessionId}/finish", $token);
         $sessionXp = $this->decodeResponse($client)['xpEarned'];
         self::assertGreaterThan(0, $sessionXp);
 
@@ -70,7 +70,7 @@ final class MeStatsControllerTest extends ApiTestCase
         self::assertSame(1, $stats['quizzesCompleted']);
         self::assertSame(0, $stats['challengesCompleted']);
         self::assertGreaterThanOrEqual(0, $stats['practiceSeconds']);
-        self::assertNotEmpty($stats['categoryBreakdown']);
+        self::assertNotEmpty($stats['worldBreakdown']);
         // Audit P1-09: one point per calendar day in the window, zero-filled,
         // not just the (2, here) days that actually had activity - otherwise
         // a chart connecting them draws a straight line across the gap.
@@ -101,10 +101,10 @@ final class MeStatsControllerTest extends ApiTestCase
         // A second, unrelated user with their own session must never leak
         // into the first user's stats.
         $tokenB = $this->registerAndGetTokenAtLevel($client, 'A1', 'stats-user-b@linguabot.fr');
-        $scenarioIdB = $this->findAnyScenarioId($client, $tokenB);
-        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioIdB}/sessions", $tokenB);
+        $missionIdB = $this->findAnyA1MissionId($client, $tokenB);
+        $this->jsonRequest($client, 'POST', "/api/missions/{$missionIdB}/sessions", $tokenB);
         $sessionIdB = $this->decodeResponse($client)['id'];
-        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionIdB}/finish", $tokenB);
+        $this->jsonRequest($client, 'POST', "/api/mission-sessions/{$sessionIdB}/finish", $tokenB);
 
         $this->jsonRequest($client, 'GET', '/api/me/stats?days=30', $tokenB);
         $statsB = $this->decodeResponse($client);
@@ -116,17 +116,17 @@ final class MeStatsControllerTest extends ApiTestCase
     {
         $client = static::createClient();
         $token = $this->registerAndGetTokenAtLevel($client, 'A1', 'stats-period@linguabot.fr');
-        $scenarioId = $this->findAnyScenarioId($client, $token);
+        $missionId = $this->findAnyA1MissionId($client, $token);
 
-        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $this->jsonRequest($client, 'POST', "/api/missions/{$missionId}/sessions", $token);
         $sessionId = $this->decodeResponse($client)['id'];
-        $this->jsonRequest($client, 'POST', "/api/sessions/{$sessionId}/finish", $token);
+        $this->jsonRequest($client, 'POST', "/api/mission-sessions/{$sessionId}/finish", $token);
 
         /** @var EntityManagerInterface $em */
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $twentyDaysAgo = (new \DateTimeImmutable())->modify('-20 days')->format('Y-m-d H:i:s');
         $em->getConnection()->executeStatement(
-            'UPDATE sessions SET started_at = :d WHERE id = :id',
+            'UPDATE mission_sessions SET started_at = :d WHERE id = :id',
             ['d' => $twentyDaysAgo, 'id' => $sessionId],
         );
 
@@ -156,26 +156,26 @@ final class MeStatsControllerTest extends ApiTestCase
         // in-window, one dated exactly 7 days ago is not.
         $client = static::createClient();
         $token = $this->registerAndGetTokenAtLevel($client, 'A1', 'stats-boundary@linguabot.fr');
-        $scenarioId = $this->findAnyScenarioId($client, $token);
+        $missionId = $this->findAnyA1MissionId($client, $token);
 
-        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $this->jsonRequest($client, 'POST', "/api/missions/{$missionId}/sessions", $token);
         $insideSessionId = $this->decodeResponse($client)['id'];
-        $this->jsonRequest($client, 'POST', "/api/sessions/{$insideSessionId}/finish", $token);
+        $this->jsonRequest($client, 'POST', "/api/mission-sessions/{$insideSessionId}/finish", $token);
 
-        $this->jsonRequest($client, 'POST', "/api/scenarios/{$scenarioId}/sessions", $token);
+        $this->jsonRequest($client, 'POST', "/api/missions/{$missionId}/sessions", $token);
         $outsideSessionId = $this->decodeResponse($client)['id'];
-        $this->jsonRequest($client, 'POST', "/api/sessions/{$outsideSessionId}/finish", $token);
+        $this->jsonRequest($client, 'POST', "/api/mission-sessions/{$outsideSessionId}/finish", $token);
 
         /** @var EntityManagerInterface $em */
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $sixDaysAgo = (new \DateTimeImmutable())->modify('-6 days')->format('Y-m-d H:i:s');
         $sevenDaysAgo = (new \DateTimeImmutable())->modify('-7 days')->format('Y-m-d H:i:s');
         $em->getConnection()->executeStatement(
-            'UPDATE sessions SET started_at = :d WHERE id = :id',
+            'UPDATE mission_sessions SET started_at = :d WHERE id = :id',
             ['d' => $sixDaysAgo, 'id' => $insideSessionId],
         );
         $em->getConnection()->executeStatement(
-            'UPDATE sessions SET started_at = :d WHERE id = :id',
+            'UPDATE mission_sessions SET started_at = :d WHERE id = :id',
             ['d' => $sevenDaysAgo, 'id' => $outsideSessionId],
         );
 
@@ -190,17 +190,18 @@ final class MeStatsControllerTest extends ApiTestCase
         'how are you', 'nice to meet you', 'see you soon', 'excuse me', 'good evening',
     ];
 
-    private function findAnyScenarioId(mixed $client, string $token): int
+    private function findAnyA1MissionId(mixed $client, string $token): int
     {
-        $this->jsonRequest($client, 'GET', '/api/scenarios', $token);
-        $scenarios = $this->decodeResponse($client);
-        foreach ($scenarios as $scenario) {
-            if (!$scenario['locked']) {
-                return $scenario['id'];
+        $this->jsonRequest($client, 'GET', '/api/worlds/W1', $token);
+        $missions = $this->decodeResponse($client)['rooms'][0]['situations'][0]['missions'];
+
+        foreach ($missions as $mission) {
+            if ('A1' === $mission['level']) {
+                return $mission['id'];
             }
         }
 
-        self::fail('No unlocked scenario found - are fixtures loaded in the test database?');
+        self::fail('No A1 mission found in the pilot world fixtures.');
     }
 
     private function findQuizModuleId(mixed $client, string $token, string $code): int

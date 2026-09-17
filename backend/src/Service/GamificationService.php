@@ -13,8 +13,6 @@ use App\Repository\ChallengeSessionRepository;
 use App\Repository\LevelRepository;
 use App\Repository\MissionSessionRepository;
 use App\Repository\QuizAttemptRepository;
-use App\Repository\ScenarioRepository;
-use App\Repository\SessionRepository;
 use App\Repository\TrophyRepository;
 use App\Repository\UserBadgeRepository;
 use App\Repository\UserTrophyRepository;
@@ -26,15 +24,11 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class GamificationService
 {
-    private const LEVELS = ['A1', 'A2', 'B1', 'B2'];
-
     public function __construct(
         private readonly BadgeRepository $badgeRepository,
         private readonly UserBadgeRepository $userBadgeRepository,
         private readonly TrophyRepository $trophyRepository,
         private readonly UserTrophyRepository $userTrophyRepository,
-        private readonly SessionRepository $sessionRepository,
-        private readonly ScenarioRepository $scenarioRepository,
         private readonly QuizAttemptRepository $quizAttemptRepository,
         private readonly ChallengeSessionRepository $challengeSessionRepository,
         private readonly LevelRepository $levelRepository,
@@ -44,8 +38,8 @@ final class GamificationService
     }
 
     /**
-     * Scenarios are locked above the learner's current level (see
-     * SessionController::start()) until totalXp reaches the next level's
+     * Missions are locked above the learner's current level (see
+     * MissionController::start()) until totalXp reaches the next level's
      * threshold - this is what unlocks them. A0 -> A1 is excluded on
      * purpose: that step has its own dedicated gate (RG10, 4 of 6 quiz
      * modules passed - see QuizService::maybeUnlockA1()), not an XP
@@ -158,20 +152,13 @@ final class GamificationService
     private function badgeConditionMet(User $user, Badge $badge): bool
     {
         return match ($badge->getConditionType()) {
+            // sessionsCount now counts any completed Mission session too
+            // (MissionController::finish()), not just the retired Scenario
+            // catalog - these badges' own wording was always generic
+            // ("compléter une session vocale"), never scenario-specific.
             'sessions_count' => $user->getSessionsCount() >= $badge->getConditionValue(),
             'quiz_modules_passed' => $this->quizAttemptRepository->countDistinctPassedModules($user) >= $badge->getConditionValue(),
-            'score_perfect' => $this->sessionRepository->hasPerfectScore($user),
-            'sessions_same_day' => $this->sessionRepository->maxCompletedSessionsInOneDay($user) >= $badge->getConditionValue(),
-            'distinct_scenarios' => $this->sessionRepository->countDistinctScenarios($user) >= $badge->getConditionValue(),
-            'travel_scenarios' => $this->sessionRepository->hasCompletedScenarioCode($user, 'TA1-1')
-                && $this->sessionRepository->hasCompletedScenarioCode($user, 'TA2-1'),
-            'interview_success' => $this->sessionRepository->hasCompletedScenarioCodeWithScoreAbove(
-                $user,
-                'TB1-2',
-                (float) $badge->getConditionValue(),
-            ),
-            'any_level_quotidien_complete' => $this->anyLevelCategoryComplete($user, 'quotidien'),
-            'any_level_thematique_complete' => $this->anyLevelCategoryComplete($user, 'thematique'),
+            'sessions_same_day' => $this->missionSessionRepository->maxCompletedMissionsInOneDay($user) >= $badge->getConditionValue(),
             'level_up' => 'A0' !== $user->getLevel()->getCode(),
             'daily_challenge_streak' => $this->challengeSessionRepository->currentConsecutiveStreak($user) >= $badge->getConditionValue(),
             // V2 pilot (LinguaBot_V2_Conception.md): conditionValue is a
@@ -185,31 +172,12 @@ final class GamificationService
         };
     }
 
-    private function anyLevelCategoryComplete(User $user, string $category): bool
-    {
-        foreach (self::LEVELS as $levelCode) {
-            $total = $this->scenarioRepository->countByLevel($levelCode, $category);
-            $done = $this->sessionRepository->countDistinctCompletedScenariosForLevel($user, $levelCode, $category);
-
-            if ($total > 0 && $done >= $total) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /**
      * @return array{0: int, 1: int} [current progress, total required]
      */
     private function trophyProgress(User $user, Trophy $trophy): array
     {
         return match ($trophy->getConditionType()) {
-            'level_a1_complete' => [$this->sessionRepository->countDistinctCompletedScenariosForLevel($user, 'A1'), $this->scenarioRepository->countByLevel('A1')],
-            'level_a2_complete' => [$this->sessionRepository->countDistinctCompletedScenariosForLevel($user, 'A2'), $this->scenarioRepository->countByLevel('A2')],
-            'level_b1_complete' => [$this->sessionRepository->countDistinctCompletedScenariosForLevel($user, 'B1'), $this->scenarioRepository->countByLevel('B1')],
-            'level_b2_complete' => [$this->sessionRepository->countDistinctCompletedScenariosForLevel($user, 'B2'), $this->scenarioRepository->countByLevel('B2')],
-            'high_score_scenarios' => [$this->sessionRepository->countDistinctScenariosWithScoreAbove($user, 90), $trophy->getConditionValue()],
             'total_sessions' => [$user->getSessionsCount(), $trophy->getConditionValue()],
             'missions_completed' => [$this->missionSessionRepository->countCompletedMissions($user), $trophy->getConditionValue()],
             // world_explored is boolean (has the learner completed anything

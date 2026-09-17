@@ -26,9 +26,9 @@ function statsFixture(overrides: Partial<LearnerStats> = {}): LearnerStats {
     quizzesCompleted: 2,
     challengesCompleted: 1,
     xpEarned: 420,
-    categoryBreakdown: [
-      { category: "quotidien", count: 2 },
-      { category: "thematique", count: 1 },
+    worldBreakdown: [
+      { world: "Vie quotidienne", count: 2 },
+      { world: "Sorties & loisirs", count: 1 },
     ],
     history: [
       { day: "2026-09-01", sessionsCount: 1, xpEarned: 100 },
@@ -56,11 +56,11 @@ describe("LearnerStatsSection", () => {
     expect(screen.getByText("1h 30min")).toBeInTheDocument();
   });
 
-  it("shows the category breakdown from the response", async () => {
+  it("shows the world breakdown from the response", async () => {
     render(<LearnerStatsSection />);
 
-    expect(await screen.findByText("Everyday")).toBeInTheDocument();
-    expect(screen.getByText("Thematic")).toBeInTheDocument();
+    expect(await screen.findByText("Vie quotidienne")).toBeInTheDocument();
+    expect(screen.getByText("Sorties & loisirs")).toBeInTheDocument();
   });
 
   it("refetches with the new period when a period button is clicked", async () => {

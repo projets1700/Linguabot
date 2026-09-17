@@ -21,9 +21,9 @@ describe("detectDashboardReadyIntent", () => {
 });
 
 describe("detectDashboardDestination", () => {
-  it("recognizes scenarios", () => {
-    expect(detectDashboardDestination("scénarios")?.key).toBe("scenarios");
-    expect(detectDashboardDestination("les scénarios")?.route).toBe("/catalog");
+  it("recognizes the adventure", () => {
+    expect(detectDashboardDestination("aventure")?.key).toBe("adventure");
+    expect(detectDashboardDestination("l aventure")?.route).toBe("/aventure");
   });
 
   it("recognizes the quiz", () => {

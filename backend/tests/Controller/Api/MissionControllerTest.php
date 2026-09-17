@@ -102,7 +102,7 @@ final class MissionControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testFinishReturnsABilanWithTheMissionTitleAsScenarioTitle(): void
+    public function testFinishReturnsABilanWithTheMissionTitle(): void
     {
         $client = static::createClient();
         $token = $this->registerAndGetTokenAtLevel($client, 'A1');
@@ -117,7 +117,7 @@ final class MissionControllerTest extends ApiTestCase
         $summary = $this->decodeResponse($client)['summary'];
 
         self::assertSame(1, $summary['exchangeCount']);
-        self::assertNotEmpty($summary['scenarioTitle']);
+        self::assertNotEmpty($summary['missionTitle']);
     }
 
     private function findAnyA1MissionId(mixed $client, string $token): int

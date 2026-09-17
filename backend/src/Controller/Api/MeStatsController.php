@@ -34,13 +34,16 @@ final class MeStatsController
         $from = (new \DateTimeImmutable())->modify(\sprintf('-%d days', $days - 1))->format('Y-m-d');
 
         $sessionsCount = (int) $connection->fetchOne(
-            "SELECT COUNT(*) FROM sessions WHERE user_id = :userId AND status = 'completed' AND started_at >= :from",
+            "SELECT COUNT(*) FROM mission_sessions WHERE user_id = :userId AND status = 'completed' AND started_at >= :from",
             ['userId' => $userId, 'from' => $from],
         );
 
+        // mission_sessions has no duration_seconds column (unlike the
+        // retired Session, whose value was optional/rarely populated
+        // anyway) - derived directly from started_at/ended_at instead.
         $practiceSeconds = (int) $connection->fetchOne(
             <<<'SQL'
-                SELECT COALESCE(SUM(duration_seconds), 0) FROM sessions
+                SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (ended_at - started_at))), 0) FROM mission_sessions
                 WHERE user_id = :userId AND status = 'completed' AND started_at >= :from
                 SQL,
             ['userId' => $userId, 'from' => $from],
@@ -65,13 +68,20 @@ final class MeStatsController
             ['userId' => $userId, 'from' => $from],
         );
 
-        $categoryBreakdown = $connection->fetchAllAssociative(
+        // "categoryBreakdown" (quotidien/thematique) had no Mission
+        // equivalent once Scenario was retired - the closest analogous
+        // dimension in the V2 Adventure hierarchy is the World a mission
+        // belongs to, so the breakdown is now by World title.
+        $worldBreakdown = $connection->fetchAllAssociative(
             <<<'SQL'
-                SELECT sc.category, COUNT(*) AS session_count
-                FROM sessions s
-                INNER JOIN scenarios sc ON sc.id = s.scenario_id
-                WHERE s.user_id = :userId AND s.status = 'completed' AND s.started_at >= :from
-                GROUP BY sc.category
+                SELECT w.title AS world, COUNT(*) AS session_count
+                FROM mission_sessions ms
+                INNER JOIN missions mi ON mi.id = ms.mission_id
+                INNER JOIN situations si ON si.id = mi.situation_id
+                INNER JOIN rooms r ON r.id = si.room_id
+                INNER JOIN worlds w ON w.id = r.world_id
+                WHERE ms.user_id = :userId AND ms.status = 'completed' AND ms.started_at >= :from
+                GROUP BY w.title
                 SQL,
             ['userId' => $userId, 'from' => $from],
         );
@@ -96,7 +106,7 @@ final class MeStatsController
                 FROM generate_series(:from::date, CURRENT_DATE, '1 day') AS gs(day)
                 LEFT JOIN (
                     SELECT DATE(started_at) AS day, COUNT(*) AS session_count, COALESCE(SUM(xp_earned), 0) AS xp
-                    FROM sessions
+                    FROM mission_sessions
                     WHERE user_id = :userId AND status = 'completed' AND started_at >= :from
                     GROUP BY DATE(started_at)
 
@@ -146,9 +156,9 @@ final class MeStatsController
             'quizzesCompleted' => $quizzesCompleted,
             'challengesCompleted' => $challengesCompleted,
             'xpEarned' => $xpEarned,
-            'categoryBreakdown' => array_map(
-                static fn (array $row) => ['category' => $row['category'], 'count' => (int) $row['session_count']],
-                $categoryBreakdown,
+            'worldBreakdown' => array_map(
+                static fn (array $row) => ['world' => $row['world'], 'count' => (int) $row['session_count']],
+                $worldBreakdown,
             ),
             'history' => array_map(
                 static fn (array $row) => [

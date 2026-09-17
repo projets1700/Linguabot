@@ -6,7 +6,7 @@ namespace App\Service;
  * Generates the qualitative part of an end-of-session bilan (V1 spec §16):
  * a short summary, a few strengths/review points, useful expressions
  * actually used, and a next-step suggestion. Objective facts (exchange
- * count, XP, status, scenario) are computed by SessionController itself and
+ * count, XP, status, mission) are computed by MissionController itself and
  * never asked of the AI - this service only ever fills in the parts that
  * genuinely require reading the conversation.
  *
@@ -44,12 +44,12 @@ final class SessionSummaryService
      *
      * @return array{summary: string, strengths: string[], reviewPoints: string[], usefulExpressions: string[], nextStep: string}
      */
-    public function summarize(array $conversationHistory, string $levelCode, int $exchangeCount, string $scenarioTitle): array
+    public function summarize(array $conversationHistory, string $levelCode, int $exchangeCount, string $missionTitle): array
     {
         // Nothing to actually analyze - skip the AI call entirely rather
         // than asking it to comment on silence.
         if ($exchangeCount < 1) {
-            return $this->deterministicFallback($exchangeCount, $scenarioTitle);
+            return $this->deterministicFallback($exchangeCount, $missionTitle);
         }
 
         $profile = $this->cecrlProfileService->forLevelCode($levelCode);
@@ -70,12 +70,12 @@ final class SessionSummaryService
         ], 0.5, self::MAX_TOKENS);
 
         if (null === $raw) {
-            return $this->deterministicFallback($exchangeCount, $scenarioTitle);
+            return $this->deterministicFallback($exchangeCount, $missionTitle);
         }
 
         $parsed = $this->parseAiResponse($raw);
         if (null === $parsed) {
-            return $this->deterministicFallback($exchangeCount, $scenarioTitle);
+            return $this->deterministicFallback($exchangeCount, $missionTitle);
         }
 
         return [
@@ -90,15 +90,15 @@ final class SessionSummaryService
     /**
      * @return array{summary: string, strengths: string[], reviewPoints: string[], usefulExpressions: string[], nextStep: string}
      */
-    private function deterministicFallback(int $exchangeCount, string $scenarioTitle): array
+    private function deterministicFallback(int $exchangeCount, string $missionTitle): array
     {
         $summary = 0 === $exchangeCount
-            ? \sprintf('Session terminée dans le scénario "%s" sans échange enregistré.', $scenarioTitle)
+            ? \sprintf('Session terminée pour la mission "%s" sans échange enregistré.', $missionTitle)
             : \sprintf(
-                'Session terminée. Tu as réalisé %d échange%s dans le scénario "%s".',
+                'Session terminée. Tu as réalisé %d échange%s pour la mission "%s".',
                 $exchangeCount,
                 $exchangeCount > 1 ? 's' : '',
-                $scenarioTitle,
+                $missionTitle,
             );
 
         return [
@@ -106,7 +106,7 @@ final class SessionSummaryService
             'strengths' => [],
             'reviewPoints' => [],
             'usefulExpressions' => [],
-            'nextStep' => 'Rejoue ce scénario ou essaie-en un nouveau pour continuer à progresser.',
+            'nextStep' => 'Rejoue cette mission ou essaie-en une nouvelle pour continuer à progresser.',
         ];
     }
 
