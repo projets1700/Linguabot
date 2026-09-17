@@ -10,11 +10,11 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * All rooms of Monde 1 "Vie quotidienne" (7) and Monde 2 "Sorties & loisirs"
- * (9), each in the exact order LinguaBot_V2_Conception.md §5's own tables
- * list them. "Coffee shop" was dropped from an earlier pilot version of
- * this fixture under Monde 1 by mistake - it correctly belongs to Monde 2,
- * where it now lives.
+ * All rooms of Monde 1 "Vie quotidienne" (7), Monde 2 "Sorties & loisirs"
+ * (9) and Monde 3 "Voyage & transport" (10), each in the exact order
+ * LinguaBot_V2_Conception.md §5's own tables list them. "Coffee shop" was
+ * dropped from an earlier pilot version of this fixture under Monde 1 by
+ * mistake - it correctly belongs to Monde 2, where it now lives.
  * backgroundImageSrc is left null on purpose - no room artwork exists yet,
  * so RoomBackdrop (frontend) falls back to a plain gradient, same graceful
  * degradation as the Dashboard's own missing-photo fallback.
@@ -41,6 +41,18 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface, F
     public const ROOM_GYM_REFERENCE = 'room-w2-r8';
     public const ROOM_SWIMMING_POOL_REFERENCE = 'room-w2-r9';
 
+    // Monde 3 - Voyage & transport
+    public const ROOM_AIRPORT_TERMINAL_REFERENCE = 'room-w3-r1';
+    public const ROOM_PASSPORT_CONTROL_REFERENCE = 'room-w3-r2';
+    public const ROOM_BAGGAGE_CLAIM_REFERENCE = 'room-w3-r3';
+    public const ROOM_TRAIN_STATION_REFERENCE = 'room-w3-r4';
+    public const ROOM_METRO_STATION_REFERENCE = 'room-w3-r5';
+    public const ROOM_BUS_STATION_REFERENCE = 'room-w3-r6';
+    public const ROOM_TAXI_REFERENCE = 'room-w3-r7';
+    public const ROOM_CAR_RENTAL_REFERENCE = 'room-w3-r8';
+    public const ROOM_GAS_STATION_REFERENCE = 'room-w3-r9';
+    public const ROOM_TOURIST_OFFICE_REFERENCE = 'room-w3-r10';
+
     /**
      * [worldReference, reference, code, title].
      */
@@ -62,6 +74,17 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface, F
         [WorldFixtures::WORLD_2_REFERENCE, self::ROOM_BOWLING_REFERENCE, 'W2-R7', 'Bowling'],
         [WorldFixtures::WORLD_2_REFERENCE, self::ROOM_GYM_REFERENCE, 'W2-R8', 'Salle de sport'],
         [WorldFixtures::WORLD_2_REFERENCE, self::ROOM_SWIMMING_POOL_REFERENCE, 'W2-R9', 'Piscine'],
+
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_AIRPORT_TERMINAL_REFERENCE, 'W3-R1', "Terminal d'aéroport"],
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_PASSPORT_CONTROL_REFERENCE, 'W3-R2', 'Contrôle des passeports'],
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_BAGGAGE_CLAIM_REFERENCE, 'W3-R3', 'Récupération des bagages'],
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_TRAIN_STATION_REFERENCE, 'W3-R4', 'Gare ferroviaire'],
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_METRO_STATION_REFERENCE, 'W3-R5', 'Station de métro'],
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_BUS_STATION_REFERENCE, 'W3-R6', 'Gare routière'],
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_TAXI_REFERENCE, 'W3-R7', 'Taxi'],
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_CAR_RENTAL_REFERENCE, 'W3-R8', 'Agence de location de voitures'],
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_GAS_STATION_REFERENCE, 'W3-R9', 'Station-service'],
+        [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_TOURIST_OFFICE_REFERENCE, 'W3-R10', 'Office de tourisme'],
     ];
 
     public static function getGroups(): array

@@ -12,11 +12,12 @@ use Doctrine\Persistence\ObjectManager;
 
 /**
  * One A1 and one A2 Mission per situation across Monde 1 (28, over 14
- * situations) and Monde 2 (36, over 18 situations) - the mechanism that lets
- * the same Situation stay relevant as the learner's level rises
- * (LinguaBot_V2_Conception.md §8's restaurant example: A1 orders simply, A2
- * asks questions/modifies the order). baseXp mirrors Scenario's own
- * BASE_XP_BY_LEVEL (A1=60, A2=100) for consistency across the two systems.
+ * situations), Monde 2 (36, over 18 situations) and Monde 3 (40, over 20
+ * situations) - the mechanism that lets the same Situation stay relevant as
+ * the learner's level rises (LinguaBot_V2_Conception.md §8's restaurant
+ * example: A1 orders simply, A2 asks questions/modifies the order). baseXp
+ * mirrors Scenario's own BASE_XP_BY_LEVEL (A1=60, A2=100) for consistency
+ * across the two systems.
  */
 final class MissionFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
 {
@@ -189,6 +190,107 @@ final class MissionFixtures extends Fixture implements DependentFixtureInterface
             SituationFixtures::SITUATION_RENT_EQUIPMENT_REFERENCE, 'W2-R9-S2', 'Staff Member',
             ['Louer un casier', 'Ask to rent a locker or a towel at the pool.'],
             ['Comparer les options', 'Ask about rental options and prices for pool equipment.'],
+        ],
+
+        [
+            SituationFixtures::SITUATION_FIND_GATE_REFERENCE, 'W3-R1-S1', 'Gate Agent',
+            ['Trouver sa porte', 'Ask a gate agent for directions to your boarding gate.'],
+            ['Demander un changement', 'Ask a gate agent about a gate change and confirm your boarding time.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FLIGHT_DELAYED_REFERENCE, 'W3-R1-S2', 'Airport Staff',
+            ['Signaler un retard', 'Ask an airport staff member about a delayed flight.'],
+            ['Demander des solutions', 'Ask an airport staff member about rebooking options for a delayed flight.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ANSWER_OFFICER_REFERENCE, 'W3-R2-S1', 'Passport Officer',
+            ['Présenter son passeport', "Answer a passport control officer's basic questions about your trip."],
+            ['Justifier son séjour', "Answer a passport control officer's detailed questions about the purpose and length of your stay."],
+        ],
+        [
+            SituationFixtures::SITUATION_MISSING_DOCUMENT_REFERENCE, 'W3-R2-S2', 'Passport Officer',
+            ['Expliquer un oubli', 'Tell the officer you forgot a document and ask what to do.'],
+            ['Trouver une solution', 'Explain a missing document issue in detail and discuss solutions with the officer.'],
+        ],
+        [
+            SituationFixtures::SITUATION_LOST_LUGGAGE_REFERENCE, 'W3-R3-S1', 'Baggage Claim Agent',
+            ['Signaler un bagage manquant', 'Tell a baggage claim agent your suitcase is missing.'],
+            ['Décrire son bagage', 'Describe your lost suitcase in detail and fill out a report with the agent.'],
+        ],
+        [
+            SituationFixtures::SITUATION_DAMAGED_LUGGAGE_REFERENCE, 'W3-R3-S2', 'Baggage Claim Agent',
+            ['Signaler un dommage', 'Tell the agent your suitcase arrived damaged.'],
+            ['Demander une compensation', 'Explain the damage to your suitcase and ask about compensation.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BUY_TRAIN_TICKET_REFERENCE, 'W3-R4-S1', 'Ticket Agent',
+            ['Acheter un billet simple', 'Buy a train ticket to a specific destination.'],
+            ['Comparer des trajets', 'Ask a ticket agent about different train options and choose the best one for your schedule.'],
+        ],
+        [
+            SituationFixtures::SITUATION_MISSED_TRAIN_REFERENCE, 'W3-R4-S2', 'Ticket Agent',
+            ['Signaler un train manqué', 'Tell the ticket agent you missed your train and ask what to do.'],
+            ['Échanger son billet', 'Ask the ticket agent to exchange your ticket for the next available train.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FIND_METRO_ROUTE_REFERENCE, 'W3-R5-S1', 'Metro Staff',
+            ['Demander son chemin', 'Ask a metro staff member how to get to a specific station.'],
+            ['Planifier un trajet', 'Ask a metro staff member about the best route with a connection to reach your destination.'],
+        ],
+        [
+            SituationFixtures::SITUATION_METRO_TICKET_PROBLEM_REFERENCE, 'W3-R5-S2', 'Metro Staff',
+            ['Signaler un problème de ticket', "Tell a metro staff member your ticket isn't working at the gate."],
+            ['Résoudre un problème de carte', 'Explain a problem with your metro card and ask staff to fix it.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FIND_RIGHT_BUS_REFERENCE, 'W3-R6-S1', 'Bus Station Staff',
+            ['Trouver son bus', 'Ask a bus station staff member which bus goes to your destination.'],
+            ['Vérifier les horaires', 'Ask a staff member about bus schedules and confirm the best departure time.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BUS_FULL_REFERENCE, 'W3-R6-S2', 'Bus Station Staff',
+            ['Signaler un bus complet', 'Tell a staff member the bus is full and ask what to do.'],
+            ['Trouver une alternative', 'Discuss alternative bus options with staff after missing a full bus.'],
+        ],
+        [
+            SituationFixtures::SITUATION_EXPLAIN_DESTINATION_REFERENCE, 'W3-R7-S1', 'Taxi Driver',
+            ['Donner une destination', 'Tell a taxi driver your destination.'],
+            ['Discuter du trajet', 'Discuss the best route and estimated fare with a taxi driver.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FARE_PROBLEM_REFERENCE, 'W3-R7-S2', 'Taxi Driver',
+            ['Signaler un problème', 'Tell the taxi driver about a problem with the fare or the route.'],
+            ['Négocier une solution', 'Discuss a disagreement about the fare with the taxi driver and agree on a solution.'],
+        ],
+        [
+            SituationFixtures::SITUATION_RENT_CAR_REFERENCE, 'W3-R8-S1', 'Rental Agent',
+            ['Louer une voiture simple', 'Rent a car for a few days at the rental agency.'],
+            ['Comparer des options', 'Ask a rental agent about different car options, insurance, and mileage limits.'],
+        ],
+        [
+            SituationFixtures::SITUATION_VEHICLE_PROBLEM_REFERENCE, 'W3-R8-S2', 'Rental Agent',
+            ['Signaler un problème', 'Tell the rental agent about a problem with the car.'],
+            ['Demander un échange', 'Explain a problem with the rented car in detail and ask for a replacement or refund.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_GAS_STATION_HELP_REFERENCE, 'W3-R9-S1', 'Gas Station Attendant',
+            ["Demander de l'aide simple", 'Ask a gas station attendant for help finding something.'],
+            ['Résoudre un problème', 'Ask a gas station attendant for help after a problem with the pump or payment.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_DIRECTIONS_REFERENCE, 'W3-R9-S2', 'Gas Station Attendant',
+            ['Demander son chemin', 'Ask a gas station attendant for directions to a nearby place.'],
+            ['Demander un itinéraire détaillé', 'Ask a gas station attendant for detailed directions and confirm the route back.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ORGANIZE_VISIT_REFERENCE, 'W3-R10-S1', 'Tourist Office Staff',
+            ['Demander des recommandations', 'Ask tourist office staff for recommendations on what to visit.'],
+            ['Planifier un itinéraire', 'Ask tourist office staff to help plan a day of visits based on your interests.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BOOK_ACTIVITY_REFERENCE, 'W3-R10-S2', 'Tourist Office Staff',
+            ['Réserver une activité simple', 'Ask tourist office staff to book a simple activity or tour.'],
+            ['Comparer des activités', 'Ask tourist office staff about different tours and book the one that fits your schedule.'],
         ],
     ];
 

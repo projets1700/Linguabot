@@ -10,10 +10,11 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * 2 situations per room across Monde 1 (14, over 7 rooms) and Monde 2 (18,
- * over 9 rooms) - each room's first situation is the "situation de départ"
- * from LinguaBot_V2_Conception.md §5's tables, the second is an original
- * variant in the same spirit (§6: a room should host more than one situation).
+ * 2 situations per room across Monde 1 (14, over 7 rooms), Monde 2 (18,
+ * over 9 rooms) and Monde 3 (20, over 10 rooms) - each room's first
+ * situation is the "situation de départ" from LinguaBot_V2_Conception.md
+ * §5's tables, the second is an original variant in the same spirit (§6: a
+ * room should host more than one situation).
  */
 final class SituationFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
 {
@@ -51,6 +52,28 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
     public const SITUATION_JOIN_CLASS_REFERENCE = 'situation-w2-r8-s2';
     public const SITUATION_ASK_HOURS_REFERENCE = 'situation-w2-r9-s1';
     public const SITUATION_RENT_EQUIPMENT_REFERENCE = 'situation-w2-r9-s2';
+
+    // Monde 3 - Voyage & transport
+    public const SITUATION_FIND_GATE_REFERENCE = 'situation-w3-r1-s1';
+    public const SITUATION_FLIGHT_DELAYED_REFERENCE = 'situation-w3-r1-s2';
+    public const SITUATION_ANSWER_OFFICER_REFERENCE = 'situation-w3-r2-s1';
+    public const SITUATION_MISSING_DOCUMENT_REFERENCE = 'situation-w3-r2-s2';
+    public const SITUATION_LOST_LUGGAGE_REFERENCE = 'situation-w3-r3-s1';
+    public const SITUATION_DAMAGED_LUGGAGE_REFERENCE = 'situation-w3-r3-s2';
+    public const SITUATION_BUY_TRAIN_TICKET_REFERENCE = 'situation-w3-r4-s1';
+    public const SITUATION_MISSED_TRAIN_REFERENCE = 'situation-w3-r4-s2';
+    public const SITUATION_FIND_METRO_ROUTE_REFERENCE = 'situation-w3-r5-s1';
+    public const SITUATION_METRO_TICKET_PROBLEM_REFERENCE = 'situation-w3-r5-s2';
+    public const SITUATION_FIND_RIGHT_BUS_REFERENCE = 'situation-w3-r6-s1';
+    public const SITUATION_BUS_FULL_REFERENCE = 'situation-w3-r6-s2';
+    public const SITUATION_EXPLAIN_DESTINATION_REFERENCE = 'situation-w3-r7-s1';
+    public const SITUATION_FARE_PROBLEM_REFERENCE = 'situation-w3-r7-s2';
+    public const SITUATION_RENT_CAR_REFERENCE = 'situation-w3-r8-s1';
+    public const SITUATION_VEHICLE_PROBLEM_REFERENCE = 'situation-w3-r8-s2';
+    public const SITUATION_ASK_GAS_STATION_HELP_REFERENCE = 'situation-w3-r9-s1';
+    public const SITUATION_ASK_DIRECTIONS_REFERENCE = 'situation-w3-r9-s2';
+    public const SITUATION_ORGANIZE_VISIT_REFERENCE = 'situation-w3-r10-s1';
+    public const SITUATION_BOOK_ACTIVITY_REFERENCE = 'situation-w3-r10-s2';
 
     /**
      * [reference, roomReference, code, title, description].
@@ -103,6 +126,36 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
 
         [self::SITUATION_ASK_HOURS_REFERENCE, RoomFixtures::ROOM_SWIMMING_POOL_REFERENCE, 'W2-R9-S1', 'Demander horaires et informations', "Demande les horaires d'ouverture de la piscine."],
         [self::SITUATION_RENT_EQUIPMENT_REFERENCE, RoomFixtures::ROOM_SWIMMING_POOL_REFERENCE, 'W2-R9-S2', 'Louer du matériel', 'Demande à louer un casier ou une serviette.'],
+
+        [self::SITUATION_FIND_GATE_REFERENCE, RoomFixtures::ROOM_AIRPORT_TERMINAL_REFERENCE, 'W3-R1-S1', "Trouver sa porte d'embarquement", "Trouve ta porte d'embarquement à l'aéroport."],
+        [self::SITUATION_FLIGHT_DELAYED_REFERENCE, RoomFixtures::ROOM_AIRPORT_TERMINAL_REFERENCE, 'W3-R1-S2', 'Vol retardé', 'Ton vol est retardé - renseigne-toi auprès du personnel.'],
+
+        [self::SITUATION_ANSWER_OFFICER_REFERENCE, RoomFixtures::ROOM_PASSPORT_CONTROL_REFERENCE, 'W3-R2-S1', "Répondre à l'agent", 'Réponds aux questions de contrôle des passeports.'],
+        [self::SITUATION_MISSING_DOCUMENT_REFERENCE, RoomFixtures::ROOM_PASSPORT_CONTROL_REFERENCE, 'W3-R2-S2', 'Document manquant', "Un document te manque - explique la situation à l'agent."],
+
+        [self::SITUATION_LOST_LUGGAGE_REFERENCE, RoomFixtures::ROOM_BAGGAGE_CLAIM_REFERENCE, 'W3-R3-S1', 'Signaler un bagage perdu', 'Signale ton bagage manquant à un agent.'],
+        [self::SITUATION_DAMAGED_LUGGAGE_REFERENCE, RoomFixtures::ROOM_BAGGAGE_CLAIM_REFERENCE, 'W3-R3-S2', 'Bagage endommagé', 'Ta valise est arrivée endommagée - signale-le.'],
+
+        [self::SITUATION_BUY_TRAIN_TICKET_REFERENCE, RoomFixtures::ROOM_TRAIN_STATION_REFERENCE, 'W3-R4-S1', 'Acheter un billet', 'Achète un billet de train à la gare.'],
+        [self::SITUATION_MISSED_TRAIN_REFERENCE, RoomFixtures::ROOM_TRAIN_STATION_REFERENCE, 'W3-R4-S2', 'Train manqué', 'Tu as manqué ton train - vois ce que tu peux faire.'],
+
+        [self::SITUATION_FIND_METRO_ROUTE_REFERENCE, RoomFixtures::ROOM_METRO_STATION_REFERENCE, 'W3-R5-S1', 'Trouver son itinéraire', 'Trouve ton chemin dans le métro.'],
+        [self::SITUATION_METRO_TICKET_PROBLEM_REFERENCE, RoomFixtures::ROOM_METRO_STATION_REFERENCE, 'W3-R5-S2', 'Ticket bloqué', 'Ton ticket ne fonctionne pas au portillon - signale-le.'],
+
+        [self::SITUATION_FIND_RIGHT_BUS_REFERENCE, RoomFixtures::ROOM_BUS_STATION_REFERENCE, 'W3-R6-S1', 'Trouver le bon bus', 'Trouve le bus qui va à ta destination.'],
+        [self::SITUATION_BUS_FULL_REFERENCE, RoomFixtures::ROOM_BUS_STATION_REFERENCE, 'W3-R6-S2', 'Bus complet', 'Le bus est complet - trouve une alternative.'],
+
+        [self::SITUATION_EXPLAIN_DESTINATION_REFERENCE, RoomFixtures::ROOM_TAXI_REFERENCE, 'W3-R7-S1', 'Expliquer sa destination', 'Explique ta destination au chauffeur de taxi.'],
+        [self::SITUATION_FARE_PROBLEM_REFERENCE, RoomFixtures::ROOM_TAXI_REFERENCE, 'W3-R7-S2', 'Problème de trajet', 'Un désaccord survient sur le prix ou le trajet - règle-le.'],
+
+        [self::SITUATION_RENT_CAR_REFERENCE, RoomFixtures::ROOM_CAR_RENTAL_REFERENCE, 'W3-R8-S1', 'Louer une voiture', "Loue une voiture à l'agence de location."],
+        [self::SITUATION_VEHICLE_PROBLEM_REFERENCE, RoomFixtures::ROOM_CAR_RENTAL_REFERENCE, 'W3-R8-S2', 'Problème avec le véhicule', 'Un problème survient avec la voiture louée - signale-le.'],
+
+        [self::SITUATION_ASK_GAS_STATION_HELP_REFERENCE, RoomFixtures::ROOM_GAS_STATION_REFERENCE, 'W3-R9-S1', "Demander de l'aide", "Demande de l'aide à la station-service."],
+        [self::SITUATION_ASK_DIRECTIONS_REFERENCE, RoomFixtures::ROOM_GAS_STATION_REFERENCE, 'W3-R9-S2', 'Itinéraire perdu', "Tu es perdu - demande ton chemin à l'employé."],
+
+        [self::SITUATION_ORGANIZE_VISIT_REFERENCE, RoomFixtures::ROOM_TOURIST_OFFICE_REFERENCE, 'W3-R10-S1', 'Organiser une visite', "Demande des recommandations à l'office de tourisme."],
+        [self::SITUATION_BOOK_ACTIVITY_REFERENCE, RoomFixtures::ROOM_TOURIST_OFFICE_REFERENCE, 'W3-R10-S2', 'Réserver une activité', 'Réserve une activité ou visite guidée.'],
     ];
 
     public static function getGroups(): array
