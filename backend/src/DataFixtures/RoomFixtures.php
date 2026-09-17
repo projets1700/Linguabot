@@ -95,13 +95,13 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface
      * [worldReference, reference, code, title].
      */
     private const ROOMS = [
-        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_LIVING_ROOM_REFERENCE, 'W1-R1', "Salon d'appartement"],
-        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_KITCHEN_REFERENCE, 'W1-R2', 'Cuisine familiale'],
-        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_BEDROOM_REFERENCE, 'W1-R3', 'Chambre / dressing'],
-        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_SUPERMARKET_REFERENCE, 'W1-R4', 'Supermarché'],
-        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_BAKERY_REFERENCE, 'W1-R5', 'Boulangerie'],
-        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_CLOTHING_SHOP_REFERENCE, 'W1-R6', 'Boutique de vêtements'],
-        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_HAIR_SALON_REFERENCE, 'W1-R7', 'Salon de coiffure'],
+        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_LIVING_ROOM_REFERENCE, 'W1-R1', 'Apartment Living Room'],
+        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_KITCHEN_REFERENCE, 'W1-R2', 'Family Kitchen'],
+        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_BEDROOM_REFERENCE, 'W1-R3', 'Bedroom / Closet'],
+        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_SUPERMARKET_REFERENCE, 'W1-R4', 'Supermarket'],
+        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_BAKERY_REFERENCE, 'W1-R5', 'Bakery'],
+        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_CLOTHING_SHOP_REFERENCE, 'W1-R6', 'Clothing Shop'],
+        [WorldFixtures::WORLD_1_REFERENCE, self::ROOM_HAIR_SALON_REFERENCE, 'W1-R7', 'Hair Salon'],
 
         [WorldFixtures::WORLD_2_REFERENCE, self::ROOM_COFFEE_SHOP_REFERENCE, 'W2-R1', 'Coffee shop'],
         [WorldFixtures::WORLD_2_REFERENCE, self::ROOM_RESTAURANT_REFERENCE, 'W2-R2', 'Restaurant'],
