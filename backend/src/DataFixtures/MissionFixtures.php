@@ -35,13 +35,13 @@ final class MissionFixtures extends Fixture implements DependentFixtureInterface
     private const MISSIONS = [
         [
             SituationFixtures::SITUATION_RAINY_DAY_REFERENCE, 'W1-R1-S1', 'Friend',
-            ['Proposer une activité simple', 'Suggest an alternative indoor activity to a friend.'],
-            ['Organiser un après-midi', 'Suggest and negotiate an indoor activity plan with a friend, agreeing on timing.'],
+            ['Suggest a Simple Activity', 'Suggest an alternative indoor activity to a friend.'],
+            ['Plan an Afternoon', 'Suggest and negotiate an indoor activity plan with a friend, agreeing on timing.'],
         ],
         [
             SituationFixtures::SITUATION_DINNER_REFERENCE, 'W1-R1-S2', 'Roommate',
-            ['Décider quoi cuisiner', 'Decide with your roommate what to cook for dinner tonight.'],
-            ['Répartir les tâches', 'Discuss and split the cooking and shopping tasks with your roommate for dinner.'],
+            ['Decide What to Cook', 'Decide with your roommate what to cook for dinner tonight.'],
+            ['Split the Tasks', 'Discuss and split the cooking and shopping tasks with your roommate for dinner.'],
         ],
         [
             SituationFixtures::SITUATION_RECIPE_REFERENCE, 'W1-R2-S1', 'Family Member',

@@ -140,8 +140,8 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
      * [reference, roomReference, code, title, description].
      */
     private const SITUATIONS = [
-        [self::SITUATION_RAINY_DAY_REFERENCE, RoomFixtures::ROOM_LIVING_ROOM_REFERENCE, 'W1-R1-S1', 'Rainy Day Plans', "Il pleut dehors et tes plans sont annulés - trouve une activité d'intérieur."],
-        [self::SITUATION_DINNER_REFERENCE, RoomFixtures::ROOM_LIVING_ROOM_REFERENCE, 'W1-R1-S2', 'Préparer le dîner', 'Avec ton/ta colocataire, décidez quoi cuisiner ce soir.'],
+        [self::SITUATION_RAINY_DAY_REFERENCE, RoomFixtures::ROOM_LIVING_ROOM_REFERENCE, 'W1-R1-S1', 'Rainy Day Plans', "It's raining outside and your plans are cancelled - find an indoor activity."],
+        [self::SITUATION_DINNER_REFERENCE, RoomFixtures::ROOM_LIVING_ROOM_REFERENCE, 'W1-R1-S2', 'Dinner Plans', 'With your roommate, decide what to cook for dinner tonight.'],
 
         [self::SITUATION_RECIPE_REFERENCE, RoomFixtures::ROOM_KITCHEN_REFERENCE, 'W1-R2-S1', 'Follow a Recipe', "Cuisine avec un proche en suivant une recette pas à pas."],
         [self::SITUATION_MISSING_INGREDIENT_REFERENCE, RoomFixtures::ROOM_KITCHEN_REFERENCE, 'W1-R2-S2', 'Un ingrédient manquant', "Il manque un ingrédient pour la recette - trouvez une solution."],
