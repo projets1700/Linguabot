@@ -6,7 +6,6 @@ use App\Entity\Level;
 use App\Entity\Mission;
 use App\Entity\Situation;
 use Doctrine\Bundle\FixturesBundle\Fixture;
-use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
@@ -16,10 +15,12 @@ use Doctrine\Persistence\ObjectManager;
  * situations) - the mechanism that lets the same Situation stay relevant as
  * the learner's level rises (LinguaBot_V2_Conception.md §8's restaurant
  * example: A1 orders simply, A2 asks questions/modifies the order). baseXp
- * mirrors Scenario's own BASE_XP_BY_LEVEL (A1=60, A2=100) for consistency
- * across the two systems.
+ * mirrors the v1.1 catalog's own BASE_XP_BY_LEVEL (A1=60, A2=100) for
+ * consistency across the two systems.
+ *
+ * Update-in-place by code rather than blind insert - see WorldFixtures.
  */
-final class MissionFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
+final class MissionFixtures extends Fixture implements DependentFixtureInterface
 {
     private const BASE_XP_BY_LEVEL = [
         'A1' => 60,
@@ -294,11 +295,6 @@ final class MissionFixtures extends Fixture implements DependentFixtureInterface
         ],
     ];
 
-    public static function getGroups(): array
-    {
-        return ['v2'];
-    }
-
     public function load(ObjectManager $manager): void
     {
         foreach (self::MISSIONS as [$situationReference, $codePrefix, $characterName, $a1, $a2]) {
@@ -324,11 +320,13 @@ final class MissionFixtures extends Fixture implements DependentFixtureInterface
     ): void {
         /** @var Level $level */
         $level = $this->getReference(LevelFixtures::reference($levelCode), Level::class);
+        $code = "{$codePrefix}-{$levelCode}";
 
-        $mission = (new Mission())
+        $mission = $manager->getRepository(Mission::class)->findOneBy(['code' => $code]) ?? new Mission();
+        $mission
             ->setSituation($situation)
             ->setLevel($level)
-            ->setCode("{$codePrefix}-{$levelCode}")
+            ->setCode($code)
             ->setTitle($title)
             ->setObjective($objective)
             ->setPromptTemplate(\sprintf(

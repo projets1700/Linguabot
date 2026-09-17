@@ -19,6 +19,11 @@ use Doctrine\Persistence\ObjectManager;
  * already generic ("compléter une session vocale", not "un scénario") were
  * kept and now count Mission sessions too (User::$sessionsCount is
  * incremented by MissionController::finish()).
+ *
+ * Update-in-place by code rather than blind insert - see WorldFixtures.
+ * Matters even more here: badges/trophies are referenced by user_badges/
+ * user_trophies, so losing their ids on reload would orphan every
+ * learner's already-earned rewards.
  */
 final class GamificationFixtures extends Fixture
 {
@@ -49,8 +54,12 @@ final class GamificationFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
+        $badgeRepository = $manager->getRepository(Badge::class);
+        $trophyRepository = $manager->getRepository(Trophy::class);
+
         foreach (self::BADGES as [$code, $name, $description, $icon, $conditionType, $conditionValue, $xpBonus]) {
-            $badge = (new Badge())
+            $badge = $badgeRepository->findOneBy(['code' => $code]) ?? new Badge();
+            $badge
                 ->setCode($code)
                 ->setName($name)
                 ->setDescription($description)
@@ -63,7 +72,8 @@ final class GamificationFixtures extends Fixture
         }
 
         foreach (self::TROPHIES as [$code, $name, $description, $conditionType, $conditionValue, $xpReward, $rarity]) {
-            $trophy = (new Trophy())
+            $trophy = $trophyRepository->findOneBy(['code' => $code]) ?? new Trophy();
+            $trophy
                 ->setCode($code)
                 ->setName($name)
                 ->setDescription($description)

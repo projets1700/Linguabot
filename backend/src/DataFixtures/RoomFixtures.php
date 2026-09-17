@@ -5,7 +5,6 @@ namespace App\DataFixtures;
 use App\Entity\Room;
 use App\Entity\World;
 use Doctrine\Bundle\FixturesBundle\Fixture;
-use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
@@ -18,8 +17,10 @@ use Doctrine\Persistence\ObjectManager;
  * backgroundImageSrc is left null on purpose - no room artwork exists yet,
  * so RoomBackdrop (frontend) falls back to a plain gradient, same graceful
  * degradation as the Dashboard's own missing-photo fallback.
+ *
+ * Update-in-place by code rather than blind insert - see WorldFixtures.
  */
-final class RoomFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
+final class RoomFixtures extends Fixture implements DependentFixtureInterface
 {
     // Monde 1 - Vie quotidienne
     public const ROOM_LIVING_ROOM_REFERENCE = 'room-w1-r1';
@@ -87,13 +88,10 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface, F
         [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_TOURIST_OFFICE_REFERENCE, 'W3-R10', 'Office de tourisme'],
     ];
 
-    public static function getGroups(): array
-    {
-        return ['v2'];
-    }
-
     public function load(ObjectManager $manager): void
     {
+        $repository = $manager->getRepository(Room::class);
+
         /** @var array<string, int> $orderNumByWorld */
         $orderNumByWorld = [];
 
@@ -102,7 +100,8 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface, F
             $world = $this->getReference($worldReference, World::class);
             $orderNum = $orderNumByWorld[$worldReference] ?? 0;
 
-            $room = (new Room())
+            $room = $repository->findOneBy(['code' => $code]) ?? new Room();
+            $room
                 ->setWorld($world)
                 ->setCode($code)
                 ->setTitle($title)

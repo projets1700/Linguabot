@@ -15,6 +15,9 @@ use Doctrine\Persistence\ObjectManager;
  * answer word itself, since TTS would otherwise give it away by reading it
  * aloud - e.g. numbers are asked via arithmetic/counting clues rather than
  * "what is the English word for 5", which TTS would just read as "five").
+ *
+ * Update-in-place by code (module) / by (module, orderNum) (question)
+ * rather than blind insert - see WorldFixtures.
  */
 final class QuizFixtures extends Fixture
 {
@@ -95,17 +98,27 @@ final class QuizFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
+        $moduleRepository = $manager->getRepository(QuizModule::class);
+        $questionRepository = $manager->getRepository(QuizQuestion::class);
+
         foreach (self::MODULES as $orderNum => [$code, $title, $questions]) {
-            $module = (new QuizModule())
+            $module = $moduleRepository->findOneBy(['code' => $code]) ?? new QuizModule();
+            $module
                 ->setCode($code)
                 ->setTitle($title)
                 ->setOrderNum($orderNum)
                 ->setQuestionCount(\count($questions));
 
             $manager->persist($module);
+            // Flushed immediately so a brand-new module has an id before the
+            // question lookup below queries by module - otherwise
+            // findOneBy(['module' => $module, ...]) on an unpersisted
+            // entity would look for a null module_id instead.
+            $manager->flush();
 
             foreach ($questions as $questionOrderNum => [$questionText, $correctAnswer]) {
-                $question = (new QuizQuestion())
+                $question = $questionRepository->findOneBy(['module' => $module, 'orderNum' => $questionOrderNum]) ?? new QuizQuestion();
+                $question
                     ->setModule($module)
                     ->setQuestionText($questionText)
                     ->setCorrectAnswer($correctAnswer)

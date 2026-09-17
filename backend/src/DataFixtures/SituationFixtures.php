@@ -5,7 +5,6 @@ namespace App\DataFixtures;
 use App\Entity\Room;
 use App\Entity\Situation;
 use Doctrine\Bundle\FixturesBundle\Fixture;
-use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
@@ -15,8 +14,10 @@ use Doctrine\Persistence\ObjectManager;
  * situation is the "situation de départ" from LinguaBot_V2_Conception.md
  * §5's tables, the second is an original variant in the same spirit (§6: a
  * room should host more than one situation).
+ *
+ * Update-in-place by code rather than blind insert - see WorldFixtures.
  */
-final class SituationFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
+final class SituationFixtures extends Fixture implements DependentFixtureInterface
 {
     public const SITUATION_RAINY_DAY_REFERENCE = 'situation-w1-r1-s1';
     public const SITUATION_DINNER_REFERENCE = 'situation-w1-r1-s2';
@@ -158,13 +159,10 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
         [self::SITUATION_BOOK_ACTIVITY_REFERENCE, RoomFixtures::ROOM_TOURIST_OFFICE_REFERENCE, 'W3-R10-S2', 'Réserver une activité', 'Réserve une activité ou visite guidée.'],
     ];
 
-    public static function getGroups(): array
-    {
-        return ['v2'];
-    }
-
     public function load(ObjectManager $manager): void
     {
+        $repository = $manager->getRepository(Situation::class);
+
         /** @var array<string, int> $orderNumByRoom */
         $orderNumByRoom = [];
 
@@ -173,7 +171,8 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
             $room = $this->getReference($roomReference, Room::class);
             $orderNum = $orderNumByRoom[$roomReference] ?? 0;
 
-            $situation = (new Situation())
+            $situation = $repository->findOneBy(['code' => $code]) ?? new Situation();
+            $situation
                 ->setRoom($room)
                 ->setCode($code)
                 ->setTitle($title)
