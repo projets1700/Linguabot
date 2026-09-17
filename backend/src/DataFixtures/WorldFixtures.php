@@ -13,6 +13,11 @@ use Doctrine\Persistence\ObjectManager;
  * "Travail & études", Monde 6 "Services & ville", Monde 7 "Santé &
  * imprévus" and Monde 8 "Relations sociales".
  *
+ * Titles/descriptions are in English (unlike the room/situation/mission
+ * fixtures, still French for now) - these are the only V2 content strings
+ * actually rendered on /aventure today, and the rest of the app's UI is
+ * English since the translation pass - see AdventurePage.
+ *
  * Update-in-place by code rather than blind insert: meant to be rerun with
  * `doctrine:fixtures:load --append` on a live database (never a full
  * purge), so editing/extending content never risks the users table - see
@@ -33,14 +38,14 @@ final class WorldFixtures extends Fixture
      * [reference, code, title, description, orderNum].
      */
     private const WORLDS = [
-        [self::WORLD_1_REFERENCE, 'W1', 'Vie quotidienne', "Les lieux et situations de la vie de tous les jours : à la maison, au café, dans les commerces.", 0],
-        [self::WORLD_2_REFERENCE, 'W2', 'Sorties & loisirs', 'Les endroits où sortir et se divertir : cafés, restaurants, cinéma, sport, culture.', 1],
-        [self::WORLD_3_REFERENCE, 'W3', 'Voyage & transport', "Se déplacer et voyager : aéroport, gares, taxi, location de voiture, office de tourisme.", 2],
-        [self::WORLD_4_REFERENCE, 'W4', 'Vacances & aventure', "Les moments de vacances : hôtel, plage, camping, croisière, musée.", 3],
-        [self::WORLD_5_REFERENCE, 'W5', 'Travail & études', "Le monde professionnel et académique : université, entretien, bureau, réunion.", 4],
-        [self::WORLD_6_REFERENCE, 'W6', 'Services & ville', "Les démarches du quotidien en ville : banque, poste, garage, agence immobilière.", 5],
-        [self::WORLD_7_REFERENCE, 'W7', 'Santé & imprévus', "Gérer sa santé et les imprévus : médecin, pharmacie, dentiste, urgences.", 6],
-        [self::WORLD_8_REFERENCE, 'W8', 'Relations sociales', "Rencontrer et échanger avec d'autres personnes dans un cadre social.", 7],
+        [self::WORLD_1_REFERENCE, 'W1', 'Daily Life', 'Everyday places and situations: at home, at the café, running errands.', 0],
+        [self::WORLD_2_REFERENCE, 'W2', 'Leisure & Outings', 'Places to go out and have fun: cafés, restaurants, the movies, sports, culture.', 1],
+        [self::WORLD_3_REFERENCE, 'W3', 'Travel & Transport', 'Getting around and traveling: airports, train stations, taxis, car rentals, tourist offices.', 2],
+        [self::WORLD_4_REFERENCE, 'W4', 'Vacation & Adventure', 'Vacation moments: hotels, beaches, camping, cruises, museums.', 3],
+        [self::WORLD_5_REFERENCE, 'W5', 'Work & Studies', 'The professional and academic world: university, interviews, the office, meetings.', 4],
+        [self::WORLD_6_REFERENCE, 'W6', 'City & Services', 'Everyday errands around town: the bank, the post office, the garage, real estate agencies.', 5],
+        [self::WORLD_7_REFERENCE, 'W7', 'Health & Emergencies', 'Managing your health and the unexpected: the doctor, the pharmacy, the dentist, the ER.', 6],
+        [self::WORLD_8_REFERENCE, 'W8', 'Social Life', 'Meeting and talking with other people in social settings.', 7],
     ];
 
     public function load(ObjectManager $manager): void

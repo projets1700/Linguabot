@@ -49,7 +49,7 @@ final class GamificationFixtures extends Fixture
         ['TROPHY_DEDICATED', 'Assidu', 'Effectuer 30 sessions au total', 'total_sessions', 30, 0, TrophyRarity::GOLD],
         // V2 pilot: conditionValue is the target World's orderNum (0 = "Vie
         // quotidienne", the only world seeded so far - MissionSessionRepository::hasCompletedAnyMissionInWorldWithOrderNum()).
-        ['TROPHY_WORLD_EXPLORER', 'Explorateur du Monde 1', 'Compléter une mission dans le Monde 1 - Vie quotidienne', 'world_explored', 0, 200, TrophyRarity::BRONZE],
+        ['TROPHY_WORLD_EXPLORER', 'Explorateur du Monde 1', "Compléter une mission dans le premier monde de l'Aventure", 'world_explored', 0, 200, TrophyRarity::BRONZE],
     ];
 
     public function load(ObjectManager $manager): void
