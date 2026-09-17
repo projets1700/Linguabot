@@ -10,8 +10,9 @@ use Doctrine\Persistence\ObjectManager;
 
 /**
  * All rooms of Monde 1 "Vie quotidienne" (7), Monde 2 "Sorties & loisirs"
- * (9) and Monde 3 "Voyage & transport" (10), each in the exact order
- * LinguaBot_V2_Conception.md §5's own tables list them. "Coffee shop" was
+ * (9), Monde 3 "Voyage & transport" (10) and Monde 4 "Vacances & aventure"
+ * (5), each in the exact order LinguaBot_V2_Conception.md §5's own tables
+ * list them. "Coffee shop" was
  * dropped from an earlier pilot version of this fixture under Monde 1 by
  * mistake - it correctly belongs to Monde 2, where it now lives.
  * backgroundImageSrc is left null on purpose - no room artwork exists yet,
@@ -54,6 +55,13 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface
     public const ROOM_GAS_STATION_REFERENCE = 'room-w3-r9';
     public const ROOM_TOURIST_OFFICE_REFERENCE = 'room-w3-r10';
 
+    // Monde 4 - Vacances & aventure
+    public const ROOM_HOTEL_LOBBY_REFERENCE = 'room-w4-r1';
+    public const ROOM_BEACH_CLUB_REFERENCE = 'room-w4-r2';
+    public const ROOM_CAMPSITE_REFERENCE = 'room-w4-r3';
+    public const ROOM_CRUISE_SHIP_REFERENCE = 'room-w4-r4';
+    public const ROOM_MUSEUM_REFERENCE = 'room-w4-r5';
+
     /**
      * [worldReference, reference, code, title].
      */
@@ -86,6 +94,12 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface
         [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_CAR_RENTAL_REFERENCE, 'W3-R8', 'Agence de location de voitures'],
         [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_GAS_STATION_REFERENCE, 'W3-R9', 'Station-service'],
         [WorldFixtures::WORLD_3_REFERENCE, self::ROOM_TOURIST_OFFICE_REFERENCE, 'W3-R10', 'Office de tourisme'],
+
+        [WorldFixtures::WORLD_4_REFERENCE, self::ROOM_HOTEL_LOBBY_REFERENCE, 'W4-R1', "Lobby d'hôtel"],
+        [WorldFixtures::WORLD_4_REFERENCE, self::ROOM_BEACH_CLUB_REFERENCE, 'W4-R2', 'Club de plage'],
+        [WorldFixtures::WORLD_4_REFERENCE, self::ROOM_CAMPSITE_REFERENCE, 'W4-R3', 'Cabane / camping'],
+        [WorldFixtures::WORLD_4_REFERENCE, self::ROOM_CRUISE_SHIP_REFERENCE, 'W4-R4', 'Bateau / croisière'],
+        [WorldFixtures::WORLD_4_REFERENCE, self::ROOM_MUSEUM_REFERENCE, 'W4-R5', 'Musée'],
     ];
 
     public function load(ObjectManager $manager): void

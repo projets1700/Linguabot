@@ -11,8 +11,9 @@ use Doctrine\Persistence\ObjectManager;
 
 /**
  * One A1 and one A2 Mission per situation across Monde 1 (28, over 14
- * situations), Monde 2 (36, over 18 situations) and Monde 3 (40, over 20
- * situations) - the mechanism that lets the same Situation stay relevant as
+ * situations), Monde 2 (36, over 18 situations), Monde 3 (40, over 20
+ * situations) and Monde 4 (20, over 10 situations) - the mechanism that
+ * lets the same Situation stay relevant as
  * the learner's level rises (LinguaBot_V2_Conception.md §8's restaurant
  * example: A1 orders simply, A2 asks questions/modifies the order). baseXp
  * mirrors the v1.1 catalog's own BASE_XP_BY_LEVEL (A1=60, A2=100) for
@@ -292,6 +293,57 @@ final class MissionFixtures extends Fixture implements DependentFixtureInterface
             SituationFixtures::SITUATION_BOOK_ACTIVITY_REFERENCE, 'W3-R10-S2', 'Tourist Office Staff',
             ['Réserver une activité simple', 'Ask tourist office staff to book a simple activity or tour.'],
             ['Comparer des activités', 'Ask tourist office staff about different tours and book the one that fits your schedule.'],
+        ],
+
+        [
+            SituationFixtures::SITUATION_HOTEL_CHECKIN_REFERENCE, 'W4-R1-S1', 'Hotel Receptionist',
+            ['Faire son check-in', 'Check in at the hotel reception.'],
+            ['Demander une amélioration', 'Check in and ask about a room upgrade or a late check-out.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BOOKING_ISSUE_REFERENCE, 'W4-R1-S2', 'Hotel Receptionist',
+            ['Signaler un problème', 'Tell the receptionist there is a problem with your booking.'],
+            ['Résoudre le problème', 'Explain a booking problem in detail and ask the receptionist to resolve it.'],
+        ],
+        [
+            SituationFixtures::SITUATION_RENT_BEACH_EQUIPMENT_REFERENCE, 'W4-R2-S1', 'Beach Club Staff',
+            ['Louer du matériel simple', 'Rent basic beach equipment, like a sunbed or umbrella.'],
+            ['Comparer des options', 'Ask about different rental options and prices for beach equipment.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BOOK_BEACH_CLASS_REFERENCE, 'W4-R2-S2', 'Beach Instructor',
+            ["S'inscrire à un cours", 'Sign up for a beginner surf or swimming lesson.'],
+            ['Choisir son niveau', 'Ask about different class levels and choose the one that fits your experience.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ORGANIZE_EXCURSION_REFERENCE, 'W4-R3-S1', 'Campsite Staff',
+            ['Se renseigner sur une excursion', 'Ask about an excursion offered from the campsite.'],
+            ['Comparer des excursions', 'Ask about different excursions and choose one that fits your schedule.'],
+        ],
+        [
+            SituationFixtures::SITUATION_CAMPSITE_ISSUE_REFERENCE, 'W4-R3-S2', 'Campsite Staff',
+            ['Signaler un problème simple', 'Tell campsite staff about a problem with your pitch or cabin.'],
+            ['Demander une solution', 'Explain a problem with your pitch or cabin in detail and ask for a solution.'],
+        ],
+        [
+            SituationFixtures::SITUATION_FIND_CABIN_REFERENCE, 'W4-R4-S1', 'Crew Member',
+            ['Trouver sa cabine', 'Ask a crew member for directions to your cabin.'],
+            ['Se renseigner sur le programme', "Ask a crew member for directions and information about the day's activities."],
+        ],
+        [
+            SituationFixtures::SITUATION_JOIN_SHIP_ACTIVITY_REFERENCE, 'W4-R4-S2', 'Crew Member',
+            ["S'inscrire à une activité simple", 'Sign up for an activity offered on board.'],
+            ['Comparer des activités', 'Ask about different onboard activities and choose one that fits your schedule.'],
+        ],
+        [
+            SituationFixtures::SITUATION_BUY_MUSEUM_TICKET_REFERENCE, 'W4-R5-S1', 'Museum Staff',
+            ['Acheter son billet', 'Buy a ticket to enter the museum.'],
+            ["Discuter d'une œuvre", 'Buy a ticket and ask a staff member about a specific artwork.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_GUIDED_TOUR_REFERENCE, 'W4-R5-S2', 'Museum Staff',
+            ['Se renseigner sur une visite', 'Ask about guided tour times at the museum.'],
+            ['Réserver une visite guidée', 'Ask about different guided tours and book the one that fits your schedule.'],
         ],
     ];
 

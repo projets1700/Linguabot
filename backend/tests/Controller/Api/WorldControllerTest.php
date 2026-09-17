@@ -15,7 +15,7 @@ final class WorldControllerTest extends ApiTestCase
 
         self::assertResponseIsSuccessful();
         $worlds = $this->decodeResponse($client);
-        self::assertCount(3, $worlds);
+        self::assertCount(4, $worlds);
         self::assertSame('W1', $worlds[0]['code']);
         self::assertTrue($worlds[0]['unlocked']);
         self::assertSame(7, $worlds[0]['roomsCount']);
@@ -25,6 +25,9 @@ final class WorldControllerTest extends ApiTestCase
         self::assertSame('W3', $worlds[2]['code']);
         self::assertTrue($worlds[2]['unlocked']);
         self::assertSame(10, $worlds[2]['roomsCount']);
+        self::assertSame('W4', $worlds[3]['code']);
+        self::assertTrue($worlds[3]['unlocked']);
+        self::assertSame(5, $worlds[3]['roomsCount']);
     }
 
     public function testWorldsIndexRequiresAuthentication(): void
@@ -89,6 +92,25 @@ final class WorldControllerTest extends ApiTestCase
         self::assertSame('W3-R1', $airportTerminal['code']);
         self::assertCount(2, $airportTerminal['situations']);
         self::assertCount(2, $airportTerminal['situations'][0]['missions']);
+    }
+
+    public function testWorldFourDetailListsItsFiveRooms(): void
+    {
+        $client = static::createClient();
+        $token = $this->registerAndGetTokenAtLevel($client, 'A1');
+
+        $this->jsonRequest($client, 'GET', '/api/worlds/W4', $token);
+
+        self::assertResponseIsSuccessful();
+        $world = $this->decodeResponse($client);
+        self::assertSame('W4', $world['code']);
+        self::assertTrue($world['unlocked']);
+        self::assertCount(5, $world['rooms']);
+
+        $hotelLobby = $world['rooms'][0];
+        self::assertSame('W4-R1', $hotelLobby['code']);
+        self::assertCount(2, $hotelLobby['situations']);
+        self::assertCount(2, $hotelLobby['situations'][0]['missions']);
     }
 
     public function testUnknownWorldCodeReturns404(): void

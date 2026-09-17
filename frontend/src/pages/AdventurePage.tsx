@@ -7,12 +7,11 @@ import { normalizeApiError, type ApiError } from "../lib/apiError";
 import type { WorldSummary } from "../types";
 
 /**
- * The other 5 worlds from LinguaBot_V2_Conception.md §5 - no backend rows
+ * The other 4 worlds from LinguaBot_V2_Conception.md §5 - no backend rows
  * exist for these yet, so they're rendered here as static "coming soon"
  * cards rather than empty/inactive API data.
  */
 const UPCOMING_WORLDS = [
-  "Vacances & aventure",
   "Travail & études",
   "Services & ville",
   "Santé & imprévus",

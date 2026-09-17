@@ -10,10 +10,10 @@ use Doctrine\Persistence\ObjectManager;
 
 /**
  * 2 situations per room across Monde 1 (14, over 7 rooms), Monde 2 (18,
- * over 9 rooms) and Monde 3 (20, over 10 rooms) - each room's first
- * situation is the "situation de départ" from LinguaBot_V2_Conception.md
- * §5's tables, the second is an original variant in the same spirit (§6: a
- * room should host more than one situation).
+ * over 9 rooms), Monde 3 (20, over 10 rooms) and Monde 4 (10, over 5 rooms)
+ * - each room's first situation is the "situation de départ" from
+ * LinguaBot_V2_Conception.md §5's tables, the second is an original variant
+ * in the same spirit (§6: a room should host more than one situation).
  *
  * Update-in-place by code rather than blind insert - see WorldFixtures.
  */
@@ -75,6 +75,18 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
     public const SITUATION_ASK_DIRECTIONS_REFERENCE = 'situation-w3-r9-s2';
     public const SITUATION_ORGANIZE_VISIT_REFERENCE = 'situation-w3-r10-s1';
     public const SITUATION_BOOK_ACTIVITY_REFERENCE = 'situation-w3-r10-s2';
+
+    // Monde 4 - Vacances & aventure
+    public const SITUATION_HOTEL_CHECKIN_REFERENCE = 'situation-w4-r1-s1';
+    public const SITUATION_BOOKING_ISSUE_REFERENCE = 'situation-w4-r1-s2';
+    public const SITUATION_RENT_BEACH_EQUIPMENT_REFERENCE = 'situation-w4-r2-s1';
+    public const SITUATION_BOOK_BEACH_CLASS_REFERENCE = 'situation-w4-r2-s2';
+    public const SITUATION_ORGANIZE_EXCURSION_REFERENCE = 'situation-w4-r3-s1';
+    public const SITUATION_CAMPSITE_ISSUE_REFERENCE = 'situation-w4-r3-s2';
+    public const SITUATION_FIND_CABIN_REFERENCE = 'situation-w4-r4-s1';
+    public const SITUATION_JOIN_SHIP_ACTIVITY_REFERENCE = 'situation-w4-r4-s2';
+    public const SITUATION_BUY_MUSEUM_TICKET_REFERENCE = 'situation-w4-r5-s1';
+    public const SITUATION_ASK_GUIDED_TOUR_REFERENCE = 'situation-w4-r5-s2';
 
     /**
      * [reference, roomReference, code, title, description].
@@ -157,6 +169,21 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
 
         [self::SITUATION_ORGANIZE_VISIT_REFERENCE, RoomFixtures::ROOM_TOURIST_OFFICE_REFERENCE, 'W3-R10-S1', 'Organiser une visite', "Demande des recommandations à l'office de tourisme."],
         [self::SITUATION_BOOK_ACTIVITY_REFERENCE, RoomFixtures::ROOM_TOURIST_OFFICE_REFERENCE, 'W3-R10-S2', 'Réserver une activité', 'Réserve une activité ou visite guidée.'],
+
+        [self::SITUATION_HOTEL_CHECKIN_REFERENCE, RoomFixtures::ROOM_HOTEL_LOBBY_REFERENCE, 'W4-R1-S1', 'Faire son check-in', "Enregistre-toi à la réception de l'hôtel."],
+        [self::SITUATION_BOOKING_ISSUE_REFERENCE, RoomFixtures::ROOM_HOTEL_LOBBY_REFERENCE, 'W4-R1-S2', 'Problème de réservation', 'Ta réservation pose problème - explique-le à la réception.'],
+
+        [self::SITUATION_RENT_BEACH_EQUIPMENT_REFERENCE, RoomFixtures::ROOM_BEACH_CLUB_REFERENCE, 'W4-R2-S1', 'Louer du matériel', 'Loue du matériel de plage.'],
+        [self::SITUATION_BOOK_BEACH_CLASS_REFERENCE, RoomFixtures::ROOM_BEACH_CLUB_REFERENCE, 'W4-R2-S2', 'Réserver un cours', 'Inscris-toi à un cours (surf, plongée, voile...).'],
+
+        [self::SITUATION_ORGANIZE_EXCURSION_REFERENCE, RoomFixtures::ROOM_CAMPSITE_REFERENCE, 'W4-R3-S1', 'Organiser une excursion', 'Renseigne-toi sur les excursions proposées depuis le camping.'],
+        [self::SITUATION_CAMPSITE_ISSUE_REFERENCE, RoomFixtures::ROOM_CAMPSITE_REFERENCE, 'W4-R3-S2', 'Problème sur le site', "Signale un problème avec ton emplacement ou ta cabane."],
+
+        [self::SITUATION_FIND_CABIN_REFERENCE, RoomFixtures::ROOM_CRUISE_SHIP_REFERENCE, 'W4-R4-S1', 'Trouver sa cabine et les activités', "Demande ton chemin vers ta cabine et le programme d'activités."],
+        [self::SITUATION_JOIN_SHIP_ACTIVITY_REFERENCE, RoomFixtures::ROOM_CRUISE_SHIP_REFERENCE, 'W4-R4-S2', 'S\'inscrire à une activité', 'Inscris-toi à une activité proposée à bord.'],
+
+        [self::SITUATION_BUY_MUSEUM_TICKET_REFERENCE, RoomFixtures::ROOM_MUSEUM_REFERENCE, 'W4-R5-S1', 'Acheter son entrée', "Achète ton billet et demande des informations sur une œuvre."],
+        [self::SITUATION_ASK_GUIDED_TOUR_REFERENCE, RoomFixtures::ROOM_MUSEUM_REFERENCE, 'W4-R5-S2', 'Demander une visite guidée', "Renseigne-toi sur les visites guidées du musée."],
     ];
 
     public function load(ObjectManager $manager): void
