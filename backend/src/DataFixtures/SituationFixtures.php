@@ -11,10 +11,11 @@ use Doctrine\Persistence\ObjectManager;
 /**
  * 2 situations per room across Monde 1 (14, over 7 rooms), Monde 2 (18,
  * over 9 rooms), Monde 3 (20, over 10 rooms), Monde 4 (10, over 5 rooms),
- * Monde 5 (14, over 7 rooms) and Monde 6 (14, over 7 rooms) - each room's
- * first situation is the "situation de départ" from
- * LinguaBot_V2_Conception.md §5's tables, the second is an original variant
- * in the same spirit (§6: a room should host more than one situation).
+ * Monde 5 (14, over 7 rooms), Monde 6 (14, over 7 rooms), Monde 7 (8, over 4
+ * rooms) and Monde 8 (2, over 1 room) - each room's first situation is the
+ * "situation de départ" from LinguaBot_V2_Conception.md §5's tables, the
+ * second is an original variant in the same spirit (§6: a room should host
+ * more than one situation).
  *
  * Update-in-place by code rather than blind insert - see WorldFixtures.
  */
@@ -120,6 +121,20 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
     public const SITUATION_NEGOTIATE_RENT_REFERENCE = 'situation-w6-r6-s2';
     public const SITUATION_REPORT_LOST_ITEM_REFERENCE = 'situation-w6-r7-s1';
     public const SITUATION_FILE_REPORT_REFERENCE = 'situation-w6-r7-s2';
+
+    // Monde 7 - Santé & imprévus
+    public const SITUATION_DESCRIBE_SYMPTOMS_REFERENCE = 'situation-w7-r1-s1';
+    public const SITUATION_ASK_PRESCRIPTION_REFERENCE = 'situation-w7-r1-s2';
+    public const SITUATION_ASK_PHARMACY_PRODUCT_REFERENCE = 'situation-w7-r2-s1';
+    public const SITUATION_ASK_MEDICATION_QUESTION_REFERENCE = 'situation-w7-r2-s2';
+    public const SITUATION_EXPLAIN_DENTAL_PAIN_REFERENCE = 'situation-w7-r3-s1';
+    public const SITUATION_BOOK_DENTAL_APPOINTMENT_REFERENCE = 'situation-w7-r3-s2';
+    public const SITUATION_EXPLAIN_EMERGENCY_REFERENCE = 'situation-w7-r4-s1';
+    public const SITUATION_ANSWER_ER_QUESTIONS_REFERENCE = 'situation-w7-r4-s2';
+
+    // Monde 8 - Relations sociales
+    public const SITUATION_MEET_SOMEONE_REFERENCE = 'situation-w8-r1-s1';
+    public const SITUATION_JOIN_GROUP_CONVERSATION_REFERENCE = 'situation-w8-r1-s2';
 
     /**
      * [reference, roomReference, code, title, description].
@@ -259,6 +274,21 @@ final class SituationFixtures extends Fixture implements DependentFixtureInterfa
 
         [self::SITUATION_REPORT_LOST_ITEM_REFERENCE, RoomFixtures::ROOM_POLICE_STATION_REFERENCE, 'W6-R7-S1', 'Signaler un objet perdu', 'Signale un objet perdu au commissariat.'],
         [self::SITUATION_FILE_REPORT_REFERENCE, RoomFixtures::ROOM_POLICE_STATION_REFERENCE, 'W6-R7-S2', 'Faire une déclaration', "Fais une déclaration détaillée pour un vol ou un incident."],
+
+        [self::SITUATION_DESCRIBE_SYMPTOMS_REFERENCE, RoomFixtures::ROOM_DOCTOR_OFFICE_REFERENCE, 'W7-R1-S1', 'Décrire des symptômes', 'Décris tes symptômes au médecin.'],
+        [self::SITUATION_ASK_PRESCRIPTION_REFERENCE, RoomFixtures::ROOM_DOCTOR_OFFICE_REFERENCE, 'W7-R1-S2', 'Demander une ordonnance', "Demande le renouvellement d'une ordonnance au médecin."],
+
+        [self::SITUATION_ASK_PHARMACY_PRODUCT_REFERENCE, RoomFixtures::ROOM_PHARMACY_REFERENCE, 'W7-R2-S1', 'Demander un produit ou conseil', 'Demande un produit ou un conseil au pharmacien.'],
+        [self::SITUATION_ASK_MEDICATION_QUESTION_REFERENCE, RoomFixtures::ROOM_PHARMACY_REFERENCE, 'W7-R2-S2', 'Poser une question sur un médicament', 'Pose une question sur la posologie ou les effets secondaires.'],
+
+        [self::SITUATION_EXPLAIN_DENTAL_PAIN_REFERENCE, RoomFixtures::ROOM_DENTIST_OFFICE_REFERENCE, 'W7-R3-S1', 'Expliquer une douleur', 'Explique une douleur dentaire au dentiste.'],
+        [self::SITUATION_BOOK_DENTAL_APPOINTMENT_REFERENCE, RoomFixtures::ROOM_DENTIST_OFFICE_REFERENCE, 'W7-R3-S2', 'Prendre rendez-vous', 'Prends rendez-vous chez le dentiste.'],
+
+        [self::SITUATION_EXPLAIN_EMERGENCY_REFERENCE, RoomFixtures::ROOM_EMERGENCY_ROOM_REFERENCE, 'W7-R4-S1', 'Expliquer une situation urgente', 'Explique une situation urgente au personnel des urgences.'],
+        [self::SITUATION_ANSWER_ER_QUESTIONS_REFERENCE, RoomFixtures::ROOM_EMERGENCY_ROOM_REFERENCE, 'W7-R4-S2', 'Répondre aux questions du personnel', 'Réponds aux questions du personnel soignant sur ta situation.'],
+
+        [self::SITUATION_MEET_SOMEONE_REFERENCE, RoomFixtures::ROOM_PARTY_REFERENCE, 'W8-R1-S1', 'Rencontrer quelqu\'un et maintenir une conversation', 'Fais connaissance avec quelqu\'un à une fête.'],
+        [self::SITUATION_JOIN_GROUP_CONVERSATION_REFERENCE, RoomFixtures::ROOM_PARTY_REFERENCE, 'W8-R1-S2', 'Rejoindre un groupe de discussion', "Rejoins un groupe de discussion déjà en cours."],
     ];
 
     public function load(ObjectManager $manager): void

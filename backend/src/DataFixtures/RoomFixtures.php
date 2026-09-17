@@ -9,11 +9,12 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * All rooms of Monde 1 "Vie quotidienne" (7), Monde 2 "Sorties & loisirs"
- * (9), Monde 3 "Voyage & transport" (10), Monde 4 "Vacances & aventure" (5),
- * Monde 5 "Travail & études" (7) and Monde 6 "Services & ville" (7), each in
- * the exact order LinguaBot_V2_Conception.md §5's own tables list them.
- * "Coffee shop" was
+ * All rooms of the 8 conception worlds: Monde 1 "Vie quotidienne" (7),
+ * Monde 2 "Sorties & loisirs" (9), Monde 3 "Voyage & transport" (10), Monde
+ * 4 "Vacances & aventure" (5), Monde 5 "Travail & études" (7), Monde 6
+ * "Services & ville" (7), Monde 7 "Santé & imprévus" (4) and Monde 8
+ * "Relations sociales" (1), each in the exact order
+ * LinguaBot_V2_Conception.md §5's own tables list them. "Coffee shop" was
  * dropped from an earlier pilot version of this fixture under Monde 1 by
  * mistake - it correctly belongs to Monde 2, where it now lives.
  * backgroundImageSrc is left null on purpose - no room artwork exists yet,
@@ -81,6 +82,15 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface
     public const ROOM_APARTMENT_VIEWING_REFERENCE = 'room-w6-r6';
     public const ROOM_POLICE_STATION_REFERENCE = 'room-w6-r7';
 
+    // Monde 7 - Santé & imprévus
+    public const ROOM_DOCTOR_OFFICE_REFERENCE = 'room-w7-r1';
+    public const ROOM_PHARMACY_REFERENCE = 'room-w7-r2';
+    public const ROOM_DENTIST_OFFICE_REFERENCE = 'room-w7-r3';
+    public const ROOM_EMERGENCY_ROOM_REFERENCE = 'room-w7-r4';
+
+    // Monde 8 - Relations sociales
+    public const ROOM_PARTY_REFERENCE = 'room-w8-r1';
+
     /**
      * [worldReference, reference, code, title].
      */
@@ -135,6 +145,13 @@ final class RoomFixtures extends Fixture implements DependentFixtureInterface
         [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_REAL_ESTATE_AGENCY_REFERENCE, 'W6-R5', 'Agence immobilière'],
         [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_APARTMENT_VIEWING_REFERENCE, 'W6-R6', 'Appartement à visiter'],
         [WorldFixtures::WORLD_6_REFERENCE, self::ROOM_POLICE_STATION_REFERENCE, 'W6-R7', 'Commissariat'],
+
+        [WorldFixtures::WORLD_7_REFERENCE, self::ROOM_DOCTOR_OFFICE_REFERENCE, 'W7-R1', 'Cabinet médical'],
+        [WorldFixtures::WORLD_7_REFERENCE, self::ROOM_PHARMACY_REFERENCE, 'W7-R2', 'Pharmacie'],
+        [WorldFixtures::WORLD_7_REFERENCE, self::ROOM_DENTIST_OFFICE_REFERENCE, 'W7-R3', 'Cabinet dentaire'],
+        [WorldFixtures::WORLD_7_REFERENCE, self::ROOM_EMERGENCY_ROOM_REFERENCE, 'W7-R4', 'Accueil des urgences'],
+
+        [WorldFixtures::WORLD_8_REFERENCE, self::ROOM_PARTY_REFERENCE, 'W8-R1', 'Fête / soirée'],
     ];
 
     public function load(ObjectManager $manager): void

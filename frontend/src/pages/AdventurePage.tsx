@@ -6,13 +6,6 @@ import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { normalizeApiError, type ApiError } from "../lib/apiError";
 import type { WorldSummary } from "../types";
 
-/**
- * The other 2 worlds from LinguaBot_V2_Conception.md §5 - no backend rows
- * exist for these yet, so they're rendered here as static "coming soon"
- * cards rather than empty/inactive API data.
- */
-const UPCOMING_WORLDS = ["Santé & imprévus", "Relations sociales"];
-
 export function AdventurePage() {
   const [worlds, setWorlds] = useState<WorldSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,16 +50,6 @@ export function AdventurePage() {
                   {world.situationsCompleted} / {world.situationsTotal} situations completed
                 </p>
               </Link>
-            ))}
-
-            {UPCOMING_WORLDS.map((title) => (
-              <div
-                key={title}
-                className="bg-slate-900 p-6 rounded-xl opacity-50 cursor-not-allowed"
-              >
-                <p className="font-bold text-lg mb-1">{title}</p>
-                <p className="text-slate-500 text-sm">🔒 Coming soon</p>
-              </div>
             ))}
           </div>
         )}

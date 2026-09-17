@@ -10,11 +10,12 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 
 /**
- * One A1 and one A2 Mission per situation across Monde 1 (28, over 14
- * situations), Monde 2 (36, over 18 situations), Monde 3 (40, over 20
- * situations), Monde 4 (20, over 10 situations), Monde 5 (28, over 14
- * situations) and Monde 6 (28, over 14 situations) - the mechanism that
- * lets the same Situation stay relevant as the learner's level rises
+ * One A1 and one A2 Mission per situation across all 8 conception worlds:
+ * Monde 1 (28, over 14 situations), Monde 2 (36, over 18 situations), Monde
+ * 3 (40, over 20 situations), Monde 4 (20, over 10 situations), Monde 5 (28,
+ * over 14 situations), Monde 6 (28, over 14 situations), Monde 7 (16, over 8
+ * situations) and Monde 8 (4, over 2 situations) - the mechanism that lets
+ * the same Situation stay relevant as the learner's level rises
  * (LinguaBot_V2_Conception.md §8's restaurant example: A1 orders simply, A2
  * asks questions/modifies the order). baseXp mirrors the v1.1 catalog's own
  * BASE_XP_BY_LEVEL (A1=60, A2=100) for consistency across the two systems.
@@ -486,6 +487,58 @@ final class MissionFixtures extends Fixture implements DependentFixtureInterface
             SituationFixtures::SITUATION_FILE_REPORT_REFERENCE, 'W6-R7-S2', 'Police Officer',
             ['Faire une déclaration simple', 'File a simple report about an incident.'],
             ['Raconter les faits en détail', 'Describe the incident in detail to a police officer while filing a report.'],
+        ],
+
+        [
+            SituationFixtures::SITUATION_DESCRIBE_SYMPTOMS_REFERENCE, 'W7-R1-S1', 'Doctor',
+            ['Décrire un symptôme simple', 'Tell the doctor about a simple symptom, like a headache or a cough.'],
+            ['Décrire ses symptômes en détail', "Describe your symptoms in detail and answer the doctor's follow-up questions."],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_PRESCRIPTION_REFERENCE, 'W7-R1-S2', 'Doctor',
+            ['Demander un renouvellement', 'Ask the doctor to renew a simple prescription.'],
+            ["Discuter d'un traitement", 'Ask the doctor detailed questions about a prescription and possible side effects.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_PHARMACY_PRODUCT_REFERENCE, 'W7-R2-S1', 'Pharmacist',
+            ['Demander un produit simple', 'Ask the pharmacist for a simple product, like pain relief.'],
+            ['Demander conseil', 'Describe your symptoms and ask the pharmacist for advice on what to take.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ASK_MEDICATION_QUESTION_REFERENCE, 'W7-R2-S2', 'Pharmacist',
+            ['Poser une question simple', 'Ask the pharmacist a simple question about how to take a medication.'],
+            ['Se renseigner sur les effets secondaires', 'Ask the pharmacist detailed questions about dosage and possible side effects.'],
+        ],
+        [
+            SituationFixtures::SITUATION_EXPLAIN_DENTAL_PAIN_REFERENCE, 'W7-R3-S1', 'Dentist',
+            ['Expliquer une douleur simple', 'Tell the dentist about a simple toothache.'],
+            ['Décrire la douleur en détail', "Describe the pain in detail and answer the dentist's questions about when it started."],
+        ],
+        [
+            SituationFixtures::SITUATION_BOOK_DENTAL_APPOINTMENT_REFERENCE, 'W7-R3-S2', 'Dentist Receptionist',
+            ['Prendre un rendez-vous simple', 'Book a dental appointment for a specific day.'],
+            ['Modifier un rendez-vous', 'Reschedule a dental appointment and explain why.'],
+        ],
+        [
+            SituationFixtures::SITUATION_EXPLAIN_EMERGENCY_REFERENCE, 'W7-R4-S1', 'ER Nurse',
+            ['Expliquer une urgence simple', 'Tell the ER nurse about a simple urgent problem.'],
+            ['Décrire la situation en détail', 'Describe an urgent situation in detail to the ER nurse.'],
+        ],
+        [
+            SituationFixtures::SITUATION_ANSWER_ER_QUESTIONS_REFERENCE, 'W7-R4-S2', 'ER Nurse',
+            ['Répondre à une question simple', 'Answer a simple question from the ER nurse about your condition.'],
+            ['Répondre à des questions détaillées', 'Answer detailed questions from the ER nurse about your medical history and symptoms.'],
+        ],
+
+        [
+            SituationFixtures::SITUATION_MEET_SOMEONE_REFERENCE, 'W8-R1-S1', 'Party Guest',
+            ['Se présenter', 'Introduce yourself to someone new at a party.'],
+            ['Maintenir une conversation', 'Introduce yourself and keep a conversation going with someone new at a party.'],
+        ],
+        [
+            SituationFixtures::SITUATION_JOIN_GROUP_CONVERSATION_REFERENCE, 'W8-R1-S2', 'Party Guest',
+            ['Rejoindre une conversation simple', 'Join a small group conversation at a party.'],
+            ['Participer activement', 'Join a group conversation and contribute your own opinion on the topic being discussed.'],
         ],
     ];
 
