@@ -98,6 +98,25 @@ export function RoomPage() {
           charIndexRef={charIndexRef}
           onReady={handleAvatarReady}
           heightClassName="h-[380px] sm:h-[520px]"
+          // Bigger/taller avatar box than RoomBackdrop's own default (which
+          // MissionPage still uses unchanged) - the "portrait" framing
+          // already crops head-to-mid-thigh correctly, the default box was
+          // just too short (min-h-[260px]) to let it read as more than a
+          // thumbnail inside this page's much larger immersive zone.
+          // mt-6/mt-10 (down from the default mt-16) leaves just enough
+          // headroom above the avatar for AvatarSpeechBubble's bottom-full
+          // anchor without pushing the taller box past the backdrop's own
+          // height and getting clipped by its overflow-hidden.
+          // Explicit h-[..] (not h-full/min-h-[..]) on purpose: the
+          // wrapper above has no definite height of its own (it's
+          // auto-sized, since backdrop uses items-end not items-stretch),
+          // so a percentage height here would compute to "auto" per the
+          // CSS spec and R3F's inner Canvas div (which sizes itself via
+          // its own height:100%) would collapse to a near-zero box - only
+          // an explicit length establishes a definite height that R3F's
+          // internal 100% chain can actually resolve against.
+          avatarWrapperClassName="relative w-full max-w-sm mt-6 sm:mt-10"
+          avatarHeightClassName="h-[300px] sm:h-[440px]"
         />
 
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-10 mb-4">Choose a situation</h2>

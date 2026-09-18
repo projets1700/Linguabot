@@ -15,6 +15,10 @@ type Props = {
   onReady: () => void;
   framing?: AvatarFraming;
   heightClassName?: string;
+  /** Replaces the avatar's own inner wrapper classes (width cap + top margin, for the speech bubble's `bottom-full` anchor above it) - defaults to every existing caller's exact current look. */
+  avatarWrapperClassName?: string;
+  /** Replaces AvatarScene's own heightClassName - defaults to every existing caller's exact current look ("h-full" alone can't resolve without a stretched parent, so min-h-[260px] is what actually applies today). */
+  avatarHeightClassName?: string;
 };
 
 /**
@@ -34,6 +38,8 @@ export function RoomBackdrop({
   onReady,
   framing = "portrait",
   heightClassName = "h-[320px] sm:h-[420px]",
+  avatarWrapperClassName = "relative w-full max-w-xs mt-16",
+  avatarHeightClassName = "h-full min-h-[260px]",
 }: Props) {
   return (
     <div
@@ -58,7 +64,7 @@ export function RoomBackdrop({
         </div>
       )}
 
-      <div className="relative w-full max-w-xs mt-16">
+      <div className={avatarWrapperClassName}>
         <AvatarScene
           state={avatarState}
           avatarType={avatarType}
@@ -68,7 +74,7 @@ export function RoomBackdrop({
           framing={framing}
           transparentBackground
           showStateLabel={false}
-          heightClassName="h-full min-h-[260px]"
+          heightClassName={avatarHeightClassName}
         />
         <AvatarSpeechBubble text={speechText} active={avatarState === "speaking"} charIndexRef={charIndexRef} />
       </div>
